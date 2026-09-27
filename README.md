@@ -8,7 +8,7 @@
 
 [![Version](https://img.shields.io/badge/version-0.42-blue.svg)](https://github.com/ValentinZurita/vsdd)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![Platforms](https://img.shields.io/badge/platform-macOS%20%7C%20Linux-lightgrey.svg)]()
+[![Platforms](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg)]()
 [![Compatible Agents](https://img.shields.io/badge/agents-Claude%20Code%20%7C%20Cursor%20%7C%20Codex%20%7C%20Antigravity-purple.svg)]()
 
 </div>
@@ -17,16 +17,26 @@
 
 ## 🚀 Instalación en 5 segundos
 
-Abre tu terminal y ejecuta:
+### En Windows (PowerShell / Windows Terminal):
 
-```bash
-curl -fsSL https://raw.githubusercontent.com/ValentinZurita/vsdd/main/install.sh | bash
+```powershell
+# Asistente interactivo directo desde GitHub
+irm https://raw.githubusercontent.com/ValentinZurita/vsdd/main/install.ps1 | iex
+
+# O si ya tienes el repositorio descargado:
+.\install.ps1
 ```
 
-> **¿Ya tienes el repositorio descargado?** Simplemente ejecuta:
-> ```bash
-> ./install.sh
-> ```
+### En macOS y Linux (Terminal / Bash):
+
+```bash
+# Asistente interactivo directo desde GitHub
+curl -fsSL https://raw.githubusercontent.com/ValentinZurita/vsdd/main/install.sh | bash
+
+# O si ya tienes el repositorio descargado:
+./install.sh
+```
+
 > *El asistente detectará automáticamente tus editores. Presiona **`[Enter]`** en cada pregunta para aceptar las opciones recomendadas.*
 
 ---
