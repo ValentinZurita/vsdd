@@ -1,10 +1,10 @@
-# Spec template
+# Plantilla de Especificación (Spec Template)
 
-The saved `spec.md` **is** the headings below, in this order, with these names. No extra `##`. No rename. No skip. Instruction lines (this block, **Llenar**, **Forma**, angle-bracket hints) never appear in the recap or the file.
+El archivo `spec.md` guardado **debe contener exactamente** los encabezados que figuran a continuación, en este orden y con estos nombres. Sin encabezados `##` adicionales, sin renombrar y sin omitir secciones. Las líneas de instrucción (este bloque introductorio, los bloques **Llenar:**, **Forma:**, **Vacío:** y las ayudas entre corchetes angulares) nunca deben aparecer en el recapitulativo del chat ni en el archivo final.
 
-Every sentence traces to `idea.md` or a spec answer. Qué and por qué. No stack, architecture, routes, or filenames. `Estado`: `en-revision` until they say Sí to contento (then `listo-para-plan`). Menu option 1 after that still waits for comments; do not flip back.
+Cada oración debe tener trazabilidad directa hacia `idea.md` o hacia una respuesta confirmada de la entrevista. Enfocarse en el **qué** y el **por qué**. Queda estrictamente prohibido incluir detalles de arquitectura, librerías, nombres de archivos, rutas de carpetas o código. El `Estado` inicial es `en-revision` hasta que el usuario responda **Sí** a la pregunta de satisfacción (momento en el cual pasa a `listo-para-plan`).
 
-If a section has nothing settled: use that section’s **Vacío** word. Do not invent.
+Si una sección no tiene requisitos settled, usar la palabra de relleno indicada en **Vacío:**. No inventar contenido.
 
 ---
 
@@ -14,92 +14,89 @@ Estado: <en-revision | listo-para-plan>
 
 ## Contexto y objetivos
 
-**Llenar:** 2–5 sentences. What pain this cut removes, why it is worth doing now, what “better” means for the person who uses it. Not a tour of screens.
+**Llenar:** 2 a 5 oraciones en prosa. Heredar e integrar obligatoriamente el **Problema** y la solución de **Qué vamos a hacer** definidos en `idea.md`. Explicar qué dolor o necesidad resuelve esta entrega, por qué vale la pena implementarla ahora y qué significa una mejora para la persona que la utiliza. No realizar un recorrido de pantallas.
 
-**Forma:** prose, not bullets.
+**Forma:** prosa fluida, sin viñetas.
 
 ### Usuarios y actores
 
-**Llenar:** each kind of person (or system acting for a person) that this cut touches. For each: what they can do here, and what they must not be able to do. Include “who never sees this” if that was settled.
+**Llenar:** cada tipo de persona (o sistema en su representación) que interactúa con esta funcionalidad. Para cada uno indicar con claridad qué puede hacer y qué tiene prohibido hacer. Incluir quiénes nunca tienen acceso si se acordó en la entrevista.
 
 **Forma:**
-
-- <rol>: <puede …>. No <no puede …>.
+- <rol o tipo de usuario>: puede <acción permitida>. No puede <acción restringida>.
 
 ### Historias de usuario
 
-**Llenar:** one story per settled outcome that a rol cares about. Benefit in their words. No story for a skip they accepted.
+**Llenar:** una historia por cada resultado de valor acordado para cada rol de usuario. Describir el beneficio en palabras de negocio. No incluir historias para exclusiones o elementos fuera de alcance.
 
 **Forma:**
-
-- Como <rol> quiero <acción> para <beneficio>
+- Como <rol de usuario>, quiero <acción o capacidad> para <beneficio o valor esperado>.
 
 ## Requisitos funcionales
 
-**Llenar:** the whole of this cut, split into RF items. One RF = one comprobable behavior (one actor + one outcome, or one rule that always holds). Do not map 1:1 to interview questions. Merge repeats. Split if two outcomes.
+**Llenar:** la totalidad de la funcionalidad desglosada en ítems RF concisos y comprobables. Un RF equivale a un comportamiento observable (un actor + un resultado, o una regla de negocio que siempre se cumple). No mapear 1:1 con las preguntas de la entrevista. Fusionar requisitos redundantes y dividir si hay más de un resultado.
 
-**Número:** `RF-01`, `RF-02`, … consecutive, two digits. Title: short product language (verb + what changes for the user).
+**Número:** `RF-01`, `RF-02`, ... correlativo de dos dígitos. Título en lenguaje de producto: verbo + qué cambia para el usuario.
 
-**Criterios:** one or more EARS bullets under that RF. Each bullet is condition + `debe` + **observable** result (what someone sees, cannot do, or is told). Never how it is built.
+**Criterios:** una o más viñetas bajo cada RF redactadas bajo la sintaxis EARS. Cada criterio define una condición + `debe` + **resultado observable** (lo que alguien ve en pantalla, lo que se le prohíbe hacer o la confirmación que recibe). Jamás detallar cómo está programado.
 
-**EARS (elige la forma que calce; se pueden mezclar en un RF):**
+**Sintaxis EARS (elegir la forma que corresponda; pueden combinarse en un mismo RF):**
+- Siempre: `<el sistema / la interfaz> debe <resultado observable>`
+- Evento: `Cuando <ocurre evento del usuario o sistema>, <la interfaz / sistema> debe <resultado observable>`
+- Estado: `Si <el sistema está en determinado estado>, <la interfaz> debe <resultado observable>`
+- No deseado: `Si <ocurre una situación errónea o no permitida>, <el sistema> no debe <daño o acción indebida>; debe <mensaje o protección visible>`
 
-- Siempre: `<esto> debe <resultado>`
-- Evento: `Cuando <ocurre X>, <esto> debe <resultado>`
-- Estado: `Si <está X>, <esto> debe <resultado>`
-- No deseado: `Si <X no debe pasar>, <esto> no debe <daño>; debe <protección visible>`
-
-**El conjunto de RFs tiene que dejar comprobables (aquí o en Casos límite, no duplicar de más):**
-
-- Quién puede y quién no
-- El camino que sí termina bien
-- No puede seguir (falta algo, no tiene permiso, choca con otra cosa, falló)
-- No hay nada / primera vez / no hay qué mostrar
-- Qué queda después (sigue valiendo, se deshace, se entiende el fallo)
+**El conjunto de RFs debe dejar comprobables de forma obligatoria:**
+- Quién tiene permiso y quién no
+- El flujo principal exitoso (camino feliz)
+- Casos donde no se puede continuar (falta de datos, sin permisos, conflicto o error)
+- Casos de estado vacío, primera vez o ausencia de información
+- Estado resultante tras la acción (datos preservados, operación deshecha o error comprensible)
 
 **Forma:**
 
-### RF-01 <verbo + qué cambia>
-
-- Cuando <evento>, <esto> debe <resultado observable>
-- Si <estado>, <esto> debe <resultado observable>
+### RF-01 <Verbo en infinitivo + qué cambia para el usuario>
+- Cuando <evento>, debe <resultado observable>
+- Si <estado>, debe <resultado observable>
 
 ## Casos límite
 
-**Llenar:** stresses that are not the happy path: empty, first time, already exists, two at once, stale, partial, interrupted, no permission, failure in the middle. Only settled ones. If an edge is already an EARS bullet, do not paste it again; name it only if it still needs a separate check.
+**Llenar:** situaciones extremas o excepcionales fuera del camino feliz que fueron acordadas: colecciones vacías, primera interacción, elemento duplicado, dos acciones simultáneas, datos desactualizados, interrupción de conexión o falta de permisos en medio del proceso. Solo registrar lo acordado. Si un caso límite ya está cubierto como criterio EARS en un RF, no duplicarlo textualmente; mencionarlo solo si requiere una verificación independiente.
 
 **Vacío:** `Ninguno más allá de los RF.`
 
-**Forma:** bullets. Each: if <situación>, then <resultado observable>.
+**Forma:** viñetas. En cada una: si <situación excepcional>, entonces <resultado observable>.
 
 ## Requisitos no funcionales
 
-**Llenar:** only qualities the user would notice and did settle: how fast it must feel, how clear, how much it must hold, how much they must trust it, language/tone. Not libraries, servers, or file layout.
+**Llenar:** únicamente atributos de calidad perceptibles por el usuario final que hayan sido acordados: sensación de agilidad/rapidez de respuesta, claridad de mensajes, tolerancia de uso o tono de comunicación. Prohibido mencionar librerías, nombres de servidores o detalles técnicos internos.
 
 **Vacío:** `Ninguno más allá de lo observable en los RF.`
 
-**Forma:** bullets. Each: <calidad> debe <criterio comprobable sin stack>.
+**Forma:** viñetas. Cada una: <cualidad de experiencia> debe <criterio comprobable en lenguaje cotidiano>.
 
 ## Fuera de alcance
 
-**Llenar:** what this cut will not do, including skips they accepted. One line each, no justification.
+**Llenar:** qué NO hará esta entrega, heredando e integrando las exclusiones definidas en el **Fuera de alcance** de `idea.md` más cualquier descarte adicional acordado en la entrevista. Una línea por ítem, sin justificaciones largas.
 
 **Vacío:** `Nada más de lo ya dicho en la idea.`
 
 ## Criterios de finalización
 
-**Llenar:** the cut is done when a person can **see and check** the stories without help from the implementer. Phrase as observable outcomes. No ticket language, no “code merged”.
+**Llenar:** contrato objetivo de aceptación. **Heredar obligatoriamente las 1 a 3 condiciones del "Listo cuando" acordadas en `idea.md`**, expandiéndolas o precisándolas para que cualquier persona pueda verificar la entrega de forma independiente sin consultar al desarrollador. Redactar exclusivamente como resultados observables. Prohibido usar jerga de commits, tickets o tareas técnicas.
 
-**Forma:** bullets starting with `Se puede comprobar que…`
+**Forma:** viñetas iniciando estrictamente con:
+- Se puede comprobar que: <condición observable 1 heredada de Listo cuando>
+- Se puede comprobar que: <condición observable 2 heredada de Listo cuando>
 
 ## Diagramas
 
-**Llenar:** at most one simple mermaid (`flowchart` or `sequenceDiagram`) that supports a settled story (who does what, in what order, what happens if it cannot). No class diagrams, no schema.
+**Llenar:** como máximo un diagrama conceptual simple en Mermaid (`flowchart` o `sequenceDiagram`) que ilustre un flujo acordado (quién realiza qué acción, en qué orden y qué ocurre si falla). Prohibido incluir diagramas de clases, tablas de base de datos o arquitectura de software.
 
 **Vacío:** `Ninguno.`
 
 ## Dudas abiertas
 
-**Llenar:** every hole still untestable. Source: unchecked comprobable ticks (quién puede/no, camino que sí, no puede seguir, vacío/primera vez, qué queda después), skips, cap-cuts, QA list. Each line: `[NECESITA ATENCIÓN]` + the hole. Do not invent extras. Do not hide real holes.
+**Llenar:** cualquier aspecto que aún no sea comprobable. Fuente: verificaciones pendientes de permisos, flujos incompletos, preguntas descartadas por el tope o advertencias del auditor de QA que requieran atención futura. Cada línea debe iniciar con `[NECESITA ATENCIÓN]` seguido del punto específico. No inventar contenido ni ocultar vacíos reales.
 
-**Vacío:** `Ninguna.` — only if there is no such hole.
+**Vacío:** `Ninguna.` (únicamente si no existe ningún vacío pendiente de definición).

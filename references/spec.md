@@ -1,92 +1,111 @@
-# Spec
+# Especificación (Spec)
 
-Turn a saved idea into a spec. Do not plan, implement, commit, or `branch:init`. Do not copy `idea.md` into `spec.md`.
+Transforma una idea congelada (`idea.md`) en una especificación funcional rigurosa y comprobable. En esta fase **no** se diseña la arquitectura, no se implementa código, no se crean tests ni se tocan ramas de git. No se copia `idea.md` textualmente en `spec.md`.
 
-**Close contract (unskippable):** 4c → write `spec.md` → host **Task** QA (auditor independiente) → **wait for the report** → **artifact exception:** conductor patches settled `spec.md` (never `apps/`); **ask the user only for choices that are theirs** → recap + contento → on Sí, the 3-option menu. Recapping without a Task result, or ending without the menu, is a bug.
+**Contrato de cierre (obligatorio y secuencial):**
+Paso 4c (pregunta de cierre) → escribir `spec.md` inicial (`Estado: en-revision`) → despachar **Auditor Independiente de QA** (anunciando subagente y modelo) → esperar reporte → incorporar ajustes evidentes de redacción; si hay dudas de producto, consultar al usuario → presentar el **recapitulativo visual completo en el chat** → formular la pregunta de satisfacción → iterar colaborativamente hasta recibir un **Sí** explícito → presentar el menú de transición de 3 opciones.
 
-## Rules
+---
 
-- Questions: Rioplatense Spanish (voseo) matching persona, non-technical, brief. Artifact language strictly neutral Spanish (no voseo). No code, paths, filenames, or stack.
-- One question. STOP. Wait. Options in the **chat** as `1 / 2 / 3` with **Pro**, **Contra**, **Recomendada**. **Never** host AskQuestion/select. Sí/No has no pro/contra.
-- Each spec-gap question **starts** with `Pregunta k de como máximo N.` N is the complexity budget (5, 10, or 15). Say N in the same turn as Q1, before the question. Host 1/1 is still forbidden.
-- Do not re-ask facts already settled in `idea.md`. Ask only holes that would make the spec untestable: errors, empty, permission, edge, out of this cut, done-when.
-- Before the first **spec-gap** question (after the idea is chosen), the conductor **must** Read `CONSTITUTION.md`, `AGENTS.md`, and that `idea.md`. Picking which idea is allowed before those reads. No spec-gap question until then.
-- Recap **is** the spec, in chat: locked headings from `spec-template.md` in that order, **fill rules applied, instruction text stripped**. No extra `##`. A recap that omits a heading, adds a heading, or leaves `<angle hints>` is invalid.
-- Qué and por qué. Agent writes EARS from their answers using the template’s EARS shapes. They do not have to speak EARS. The RF set must cover the template’s comprobable list (who can/cannot, happy path, cannot proceed, empty/first time, what remains after). Missing coverage → question if budget remains; else `[NECESITA ATENCIÓN]`.
-- `[NECESITA ATENCIÓN]` is required for every hole still untestable. Before writing, privately tick: quién puede/no, camino que sí, no puede seguir, vacío/primera vez, qué queda después. Each **unchecked** item → one Dudas line. Also: skips, cap-cuts, QA list (except dropped false positives). `Ninguna` only if all five ticks are checked **and** QA listed no remaining ambiguities. Do not invent extras.
-- After every answer: privately check harm, security, privacy, trust. If none, settle. If yes: one short `Oye, fíjate que…` and wait. Skip unless it would actually hurt. If they keep the risk, it is settled.
-- Diagramas: one simple mermaid, only if it clarifies a story they settled. Else `Ninguno.` At most one `¿Quieres un diagrama simple de esto?` inside the budget.
-- **Close is invalid** unless all of these happened in order: (1) 4c “agregar algo”, (2) write, (3) host Task QA with a returned report, (4) user asked only for their decisions, (5) after Sí, the three-option menu. Do not simulate QA. Do not STOP after recap.
+## Reglas Fundamentales
 
-## Explore (conductor does none)
+- **Persona y Tono:** Líder de Producto / Desarrollador Senior en **español neutro**, claro, empático y profesional (sin voseo ni modismos regionales). Lenguaje no técnico orientado al valor de negocio y la experiencia de usuario. Prohibido mencionar código, rutas de archivos, nombres de librerías o detalles del stack tecnológico.
+- **Interacción Uno a Uno:** Una sola pregunta por turno. **DETENERSE (STOP) y esperar respuesta.** Opciones presentadas en el chat numeradas (`1 / 2 / 3`) con formato estructurado:
+  - `• Pro:`
+  - `• Contra:`
+  - `• Recomendada:`
+  Las preguntas de confirmación simple (Sí / No) no llevan análisis de pros y contras.
+- **Estimación y Presupuesto de Preguntas:** Cada pregunta de especificación se encabeza amigablemente con: `Pregunta k de como máximo N.` Donde $N$ es el tope estimado según la complejidad ($5$, $10$ o $15$). Se anuncia $N$ en el primer turno:
+  `● Estimación de diálogo: como máximo N preguntas breves (una por turno). Al final podrás agregar o aclarar cualquier punto.`
+- **No re-preguntar hechos ya resueltos:** Respetar lo acordado en `idea.md`. Indagar únicamente vacíos que harían que la especificación sea incompleta o no comprobable: excepciones, flujos sin datos, permisos, casos límite y el contrato de aceptación.
+- **Descubrimiento de Directrices del Proyecto:** Tras seleccionar la idea y antes de la primera pregunta, el conductor lee `idea.md` y revisa si el proyecto cuenta con guías de desarrollo o restricciones documentadas (ej. `CONSTITUTION.md`, `README.md`, `CONTRIBUTING.md`). Si existen, se respetan sus límites funcionales; si no existen, se continúa sin bloquearse. Prohibido pegar textualmente estas guías en el chat.
+- **Trazabilidad Total de `idea.md`:** El 100% de lo acordado en la idea (**Problema**, **Qué vamos a hacer**, **Fuera de alcance** y fundamentalmente el **"Listo cuando"**) debe integrarse en la especificación. Las 1 a 3 condiciones del "Listo cuando" se importan obligatoriamente en `## Criterios de finalización` como base del contrato de aceptación.
+- **Requisitos Funcionales (EARS):** El conductor redacta los criterios bajo la sintaxis EARS a partir de las respuestas del usuario. El conjunto de RFs debe garantizar que sean comprobables: quién tiene permiso y quién no, el camino exitoso, qué ocurre cuando no se puede continuar, el estado vacío/primera vez y el estado resultante tras la acción.
+- **Transparencia Absoluta de Agentes y Modelos:**
+  - Prohibido realizar tareas ocultas o silenciosas.
+  - Al despachar cualquier subagente se anuncia visiblemente en el chat su rol y el modelo exacto asignado:
+    `● [Subagente: <Rol>] <Acción en curso> con modelo: <nombre-del-modelo>...`
+  - Si el entorno no soporta subagentes o la herramienta falla, se notifica de inmediato:
+    `▲ [Aviso] No fue posible despachar el subagente; el agente principal asume la tarea localmente.`
+- **Gestión de Dudas Abiertas (`[NECESITA ATENCIÓN]`):** Todo aspecto funcional que quede sin definir o que el usuario prefiera postergar se registra en la sección `## Dudas abiertas` bajo la etiqueta `[NECESITA ATENCIÓN]`. No inventar requisitos ni esconder vacíos.
+- **Diagramas:** Como máximo un diagrama conceptual simple en Mermaid (`flowchart` o `sequenceDiagram`) solo si aclara un flujo acordado. De lo contrario, registrar `Ninguno.`.
 
-Same ban as Intake: conductor does not Grep/Glob/Web/product `Read`. **Do not** spawn Gentle `sdd-explore`.
+---
 
-**Allowed** on the conductor: this skill, `spec-template.md`, `CONSTITUTION.md`, `AGENTS.md`, `idea.md` / `spec.md` in that vsdd folder, short `mem_search`, list `docs/sdd/vsdd/` to pick the idea, write `spec.md` in the close (**artifact exception:** patches after QA on `spec.md` only, never `apps/`). Never paste Constitution or AGENTS.
+## Exploración Inicial (Olas)
 
-**Wave 1** (idea loaded, same turn, silent): one `explore` host subagent Task (fast/cheap model, e.g. `composer-2.5-fast`, `flash`, `haiku`), thoroughness **quick**, **no web**. Prompt = idea text + “no seeds that break tenant isolation, fail-closed, or stack/how” + this shape, **≤12 lines**:
+El conductor no realiza recorridos masivos del código del proyecto en esta fase.
+
+**Ola 1 (Análisis de huecos de especificación):**
+Con la idea cargada, se despacha un subagente de exploración (modelo rápido y económico, ej: `flash` o `haiku`) para analizar vacíos funcionales sobre el texto de la idea:
+Anunciar en chat: `● [Subagente: Exploración de Requisitos] Analizando completitud y casos límite con modelo: <modelo>...`
+El subagente evalúa complejidad ($5$, $10$ o $15$) e identifica $Q1$ y temas clave en un reporte conciso ($\le 12$ líneas). Si la herramienta falla, el agente principal analiza los huecos directamente en el mismo turno avisando en chat.
+
+**Ola 2 (Exploración de mejores prácticas / referencias externas):**
+Solo si tras agotar los temas de la Ola 1 se determina que una consulta externa aportaría claridad real sobre cómo maneja la industria este caso de uso.
+Anunciar en chat: `● [Subagente: Exploración Web] Consultando mejores prácticas con modelo: <modelo>...`
+A lo sumo 2 consultas genéricas breves. Si no es necesaria, omitir este paso y continuar sin demora.
+
+---
+
+## Ciclo de Conversación (Entrevista Consultiva)
+
+0. **Cargar la idea:** Requiere un archivo `idea.md` con `Estado: listo-para-spec`. Si no existe, invitar primero a ejecutar `vsdd intake`. Si hay varias, listar opciones numeradas en el chat y esperar selección. Si ya existe un `spec.md` en esa carpeta, ofrecer: 1) Continuar revisión, 2) Rehacer, 3) Seleccionar otra idea.
+1. **Inicio de sesión:** Leer las directrices del proyecto (si existen) y el `idea.md` seleccionado. Indicar en una línea amable que iniciaremos la especificación para cerrar los detalles de comportamiento paso a paso.
+2. **Primera Pregunta (Q1):** Anunciar el tope estimado $N$ y formular la pregunta 1 abordando la decisión funcional más importante, con opciones formateadas con viñetas. **DETENERSE y esperar respuesta.**
+3. **Recorrido de Temas:** Avanzar por los temas clave (casos límite, errores, permisos, reglas de negocio), siempre una pregunta por turno encabezada con `Pregunta k de como máximo N.`.
+4. **Pregunta de Cierre del Diálogo (4c):** Al agotar los temas o alcanzar el tope, formular de manera obligatoria:
+   `Última pregunta: ¿Deseas agregar o aclarar algún punto adicional sobre el comportamiento de la funcionalidad, o dejamos la propuesta así?`
+   **DETENERSE y esperar respuesta.** No escribir el archivo ni generar el recapitulativo antes de esta respuesta.
+
+---
+
+## Cierre, Auditoría y Ciclo de Satisfacción
+
+8. **Redacción Inicial del Artefacto:** En el turno posterior a la respuesta de 4c, redactar `docs/sdd/vsdd/<nnn>-<slug>/spec.md` siguiendo estrictamente la estructura de `spec-template.md`, con todas las instrucciones de plantilla eliminadas y `Estado: en-revision`.
+9. **Auditoría Independiente de QA (Obligatoria):**
+   En el mismo turno, despachar un subagente de auditoría QA independiente (modelo analítico de alto razonamiento, ej: `pro` o `sonnet`):
+   Anunciar en chat: `● [Subagente: Auditoría QA de Especificación] Verificando consistencia, casos límite y posibles ambigüedades con modelo: <modelo>...`
+   Si el subagente falla tras un reintento, avisar en el chat y realizar la revisión analítica de forma local.
+   El auditor evalúa:
+   1) Ambigüedades funcionales
+   2) Contradicciones internas o contra `idea.md`
+   3) Casos límite no cubiertos
+   4) Conflictos con las directrices del proyecto
+10. **Procesamiento de Hallazgos y Presentación Visual en Terminal:**
+    - Ajustes evidentes de redacción o formato: se aplican directamente en `spec.md`.
+    - Dudas que requieren decisión del usuario: se formula una pregunta puntual antes de cerrar.
+    - **Presentación en Terminal:** Imprimir en el chat la especificación estructurada y completa en Markdown limpio, permitiendo al usuario leerla con total comodidad sin abandonar la terminal ni abrir archivos externos.
+    - **Pregunta de Satisfacción (Reunión con Desarrollador Senior):**
+      En el mismo mensaje del recapitulativo, formular con calidez:
+      `¿Estás satisfecho con esta especificación o deseas ajustar algo? (Sí / No, deseo realizar ajustes)`
+      **DETENERSE (STOP).**
+    - **Bucle de Iteración Continua:** Si el usuario responde "No" o plantea dudas, observaciones o cambios, el agente atiende cada punto como en una reunión de producto real: aclara dudas, modifica `spec.md` en disco, actualiza la visualización y vuelve a consultar. **No se da por terminada la fase hasta que el usuario exprese explícitamente estar satisfecho con un "Sí".**
+11. **Cierre Definitivo y Menú de Transición:**
+    Únicamente en el turno donde el usuario confirme con **Sí**:
+    - Actualizar en `spec.md` la cabecera a `Estado: listo-para-plan`.
+    - Si Engram está disponible, persistir un resumen con `mem_save topic_key: vsdd-spec-<slug>`.
+    - Presentar en la terminal el menú de transición de 3 opciones:
 
 ```text
-Complejidad: 5 | 10 | 15
-Q1: (hueco que impide una spec comprobable; 2-3 etiquetas)
-Temas: (otros huecos, una etiqueta cada uno)
+╭────────────────────────────────────────────────────────╮
+│  ✔ Especificación aprobada y guardada con éxito        │
+│    Archivo: docs/sdd/vsdd/<nnn>-<slug>/spec.md         │
+╰────────────────────────────────────────────────────────╯
+
+¿Cuál es el siguiente paso que deseas realizar?
+1. Revisar la especificación en detalle
+2. Pasar a la fase de planificación (vsdd plan)
+3. Lanzar otra verificación independiente de QA
 ```
 
-Empty or a dump: do **not** retry. Q1 from `idea.md` holes. Never paste.
+- Opción 1: Esperar comentarios del usuario y volver al paso 10 si solicita cambios.
+- Opción 2: Iniciar la fase de planificación cargando `references/plan.md`.
+- Opción 3: Despachar nuevamente la auditoría QA y procesar el reporte.
 
-**Wave 2** — after Wave-1 topics are done. Silent. Do **not** rubber-stamp. No topic checklist.
+---
 
-1. Would a short look at how this is done, how we are doing it, and what needs attention now change the next question? If leftovers are only local taste: **stop. No Task.**
-2. One `explore` host subagent Task, same cheap model, **quick**, **with web**. Idea + settled spec answers (no tenants, paths, ids, copy, credentials). At most **2** generic queries on **that** subject. **≤12 lines**: `Nuevos` / `Saltar`.
-3. Ask `Nuevos` (they count in the budget). Empty or skipped: say nothing. Never paste.
+## Contrato de Salida
 
-**Use or fail:** questions **are** those seeds. A generic “cuéntame los RF” while the report sits unused is a bug.
-
-## Budget
-
-From Wave-1 `Complejidad` (or `idea.md` if empty): **5** simple, **10** medium, **15** complex. N is a **ceiling**, not a promise (you may ask fewer). **Tell N** in the Q1 turn: `Como máximo N preguntas, una por turno. Puede ser menos. Al final te pregunto si quieres agregar algo.` Each spec-gap question: `Pregunta k de como máximo N.` Cap includes Wave-2 `Nuevos`. Cap-cut leftovers → `[NECESITA ATENCIÓN]`. Do **not** jump from Temas to recap; the only exit is 4c. **Always** 4c, labeled `Última (fuera del cupo):` + `¿Quieres agregar o aclarar algo, o lo dejamos así?` Skipping 4c is a bug.
-
-## Loop
-
-0. Need `idea.md` with `Estado: listo-para-spec`. None → one line: first Intake. One → use it. Several → numbered list in chat. Wait. Existing `spec.md` in that folder → numbered: seguir (jump directly to step 9/10, do not re-interview) / rehacer / otra idea. Wait.
-1. **After the idea is chosen, before any spec-gap question**, Read `CONSTITUTION.md`, `AGENTS.md`, and that `idea.md`. Starting the interview without those three reads is a bug. Silent: drop options that would violate the Constitution; keep AGENTS limits (qué/por qué, no stack, Spanish MX). Do not paste those files. One line: vamos a cerrar huecos, una cosa a la vez.
-2. Same turn, silent: Wave-1 + `mem_search`. Rank only those seeds (idea + Constitution, not a repo tour).
-3. Same turn as Wave-1: one line with N, then Q1 as `Pregunta 1 de como máximo N.` Wait. A different Q1 is a bug.
-4. Walk `Temas` (`¿Quieres decidir X?` or a fork with pro/contra), each as `Pregunta k de como máximo N.` Do not recap after Q1. After the last Tema (or when you would otherwise recap), go to 4b then **4c**. Never recap from here.
-   4b. Wave 2 steps; walk `Nuevos` the same way.
-   4c. **Always**, labeled `Última (fuera del cupo):` `¿Quieres agregar o aclarar algo, o lo dejamos así?` Wait. Do not recap before this. Do not write before this.
-5. Off-menu answer: that is the decision; confirm in one line inside the next question.
-6. Two answers contradict: one tie-break (last answer recommended). Recap only when the close starts.
-7. Mid-loop they ask to save the spec: one line, `van k de N`. Do not skip 4c or QA.
-
-## Close (do not skip, do not reorder)
-
-8. On the turn **after** 4c is answered: privately tick the five comprobable items. Write `docs/sdd/vsdd/<nnn>-<slug>/spec.md` (template filled, instruction text stripped, `Estado: en-revision`). Unchecked ticks + skips + cap-cuts → **Dudas abiertas** as `[NECESITA ATENCIÓN]`. Collision: do not overwrite without them saying rehacer.
-9. **Same turn, required:** invoke host subagent (using host mechanism: `invoke_subagent` in Antigravity, `Task` in Cursor; medium/reasoning model, e.g. `pro`, `sonnet`/`opus`; not the fast explorer, not Gentle). Readonly. Do **not** invent the report. **Do not recap, contento, or menu until the Task has returned.** Empty/tool failure: retry **once**. If the host tool repeatedly fails due to infrastructure/network, inform the user and offer: `1) Reintentar auditoría`, `2) Continuar bajo mi propio riesgo (skip manual documentado en Dudas abiertas como [NECESITA ATENCIÓN: auditoría técnica no ejecutada por fallo de entorno])`; otherwise treat as `bloquea`. Never paste the report. Prompt must include paths to `spec.md`, `idea.md`, `CONSTITUTION.md`, and `AGENTS.md`, and this shape only:
-
-```text
-Rol: QA de spec. No propongas soluciones ni reescribas la spec.
-1) Ambigüedades que quedan
-2) Contradicciones entre requisitos (y vs idea.md)
-3) Casos límite no cubiertos
-4) Conflictos con CONSTITUTION.md (y voz/límites de AGENTS.md: qué/por qué, sin stack)
-Marca cada hallazgo: ajuste-de-spec | decide-el-usuario
-Veredicto: limpio | ok-con-huecos | bloquea
-Cada hallazgo: una línea, qué y dónde. Sin stack. ≤40 líneas.
-```
-
-10. When the report is back (**artifact exception:** patch `spec.md` only, never `apps/`): classify each finding. Drafting defect on **already settled** facts (`ajuste-de-spec`) → patch `spec.md`. Needs a product choice (`decide-el-usuario`) → one question, STOP, wait, then resume here. Constitution fork → question; if the spec violates a rule they already accepted, patch. Drop false positives only with a private reason. Do not add features to “fix” QA. Every QA ambiguity you did not ask → add to Dudas (patch the file **before** recap). At most **3** QA-driven user questions; leftovers that are theirs → Dudas unless Constitution **blocks**. Then recap the spec in chat (template headings). Same message: `¿Estás contento con esta spec?` Sí / No. Wait. No → one question on what to change; patch `spec.md` on disk with the agreed change before recapping; recap again only after that answer.
-11. The turn whose user message is Sí: ensure `spec.md` reflects all recap changes and set `Estado: listo-para-plan`. `mem_save` `topic_key: vsdd-spec-<slug>`, `type: decision`, `title: "vsdd spec <slug>"`, `content: spec summary`. If you patched after QA, **one** line of what changed. Then the message **must be** this menu (numbered, no pro/contra) and wait — nothing else except that one patch line:
-
-```text
-Quedó spec.md lista para revisar.
-1. Revisar la spec
-2. Pasar a planificación
-3. Lanzar otra verificación independiente
-```
-
-1 → wait for their comments (still Spec); on user comments: patch `spec.md` on disk, route to step 10 (recap + happy-check). 2 → **Plan**: read `references/plan.md` and start that phase (same folder). 3 → spawn QA again (step 9), **wait for the report**, then 10–11. Ending Spec without this menu is a bug.
-
-## Output
-
-Questions: `Pregunta k de como máximo N` + current question. Exit only via 4c. Next turn: write, Task QA, **wait**, recap, contento. Sí turn: menu (revisar / planificación / otra verificación). Option 2 starts Plan. No product code.
+* **En el chat:** Una sola pregunta por turno, opciones formateadas con viñetas estructuradas (`• Pro:`, `• Contra:`, `• Recomendada:`), avisos visibles de subagentes y modelos, recapitulativo visual completo en Markdown sobrio y menú interactivo de 3 opciones al finalizar.
+* **En el disco:** Ningún archivo de producto o tests modificado. Únicamente se genera y actualiza `spec.md` dentro de la carpeta `docs/sdd/vsdd/<nnn>-<slug>/`.
