@@ -1,0 +1,23 @@
+{
+  "name": "vsdd",
+  "version": "0.42.0",
+  "description": "Valentin-Driven Development: Conductor VSDD portable para agentes de IA",
+  "main": "scripts/install-skill.js",
+  "bin": {
+    "vsdd-install": "./scripts/install-skill.js"
+  },
+  "scripts": {
+    "test": "node --test tests/install-skill.test.js"
+  },
+  "keywords": [
+    "vsdd",
+    "agent-skills",
+    "ai",
+    "claude-code",
+    "cursor",
+    "antigravity",
+    "codex"
+  ],
+  "author": "Valentin Zurita",
+  "license": "MIT"
+}
