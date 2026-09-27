@@ -79,11 +79,11 @@ del usuario.     de uso reales.   técnica.         estrategia TDD.  y puertas g
 
 ## ⚙️ Comandos Útiles
 
-| Acción | Comando |
-| :--- | :--- |
-| **Instalar o Actualizar** | `./install.sh` *(detecta automáticamente si ya existe y la actualiza)* |
-| **Instalación Directa (Sin preguntas)** | `./install.sh -y` |
-| **Desinstalar** | `./install.sh --uninstall` |
+| Acción | macOS / Linux (Bash) | Windows (PowerShell) |
+| :--- | :--- | :--- |
+| **Instalar o Actualizar** | `./install.sh` | `.\install.ps1` |
+| **Instalación Directa (Sin preguntas)** | `./install.sh -y` | `.\install.ps1 -Yes` |
+| **Desinstalar** | `./install.sh --uninstall` | `.\install.ps1 -Uninstall` |
 
 ---
 
