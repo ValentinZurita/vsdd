@@ -1,97 +1,137 @@
-# Verify
+# Verificación y Cierre (Verify)
 
-Validar de forma exhaustiva que la funcionalidad implementada cumple al 100% con la especificación, los requisitos funcionales y no funcionales, los criterios de finalización de `idea.md` y los quality gates del monorepo. Si algo falla, un bucle autónomo repara y comitea hasta alcanzar luz verde.
+Valida de forma exhaustiva que la funcionalidad implementada cumple al 100% con la especificación (`spec.md`), los requisitos funcionales (`RF`) y no funcionales (`RNF`), el contrato observable del **"Listo cuando"** de `idea.md` y las pruebas de calidad del proyecto. Si algo falla, un bucle autónomo repara y comitea hasta alcanzar luz verde.
 
-**El conductor no verifica producto.** Diffs, matriz RF/RNF, suites y `quality:gate` corren en subagentes. Chat = checkpoints + resumen ejecutivo. Pegar logs, `git diff` o reportes de auditoría es un bug.
+**El conductor no verifica código directamente.** Diffs, matriz de requisitos, suites de tests y gates corren en subagentes especializados. El hilo principal de chat únicamente gestiona checkpoints breves, el informe ejecutivo estilizado y la confirmación humana de cierre. Pegar logs masivos, `git diff` o reportes crudos de auditoría en la terminal es considerado un defecto.
+
+---
 
 ## Reglas Innegociables
 
-- **Git Guard previo obligatorio:** Antes de despachar subagentes, verificar `git status -s`. Si el árbol tiene cambios pendientes ajenos a la verificación, STOP y exigir que el usuario los comitee o guarde.
-- **Precondición de entrada:** Requerir que `tasks.md` esté en `Estado: listo-para-verify` y que no existan tareas pendientes (`- [ ]`). Si no, indicar que primero corre `vsdd apply`.
-- **Conductor no parchea producto:** El agente principal **nunca** escribe bajo `apps/`, **nunca** corre `pnpm typecheck` / `pnpm test` / `pnpm quality:gate`, **nunca** inspecciona `git diff` de producto y **nunca** pega reportes ni stdout de gates en el chat. Tres subagentes distintos: auditor (readonly, nivel Crítico), runner de gates, reparador. El merge a `codex/work` espera confirmación explícita en el hilo; el trabajo pesado de DoD va a un closer.
-- **Trazabilidad estricta RF / RNF:** Cada RF y RNF de `spec.md` debe estar mapeado a código y test. Lo construye el **auditor**, no el conductor.
-- **Validación de la Idea:** El auditor confirma que la entrega satisface `idea.md` sin sobre-ingeniería. El conductor no re-audita.
-- **Gates obligatorios (en subagente):** Luz verde solo si el runner reporta 0 errores en `pnpm typecheck`, `pnpm test` y `pnpm quality:gate`.
-- **Bucle de Auto-Corrección (Self-Healing):** Si el auditor o el runner fallan:
-  1. Invocar **subagente reparador** (aviso de modelo, fallback transparente). El conductor **no** aplica el fix.
-  2. El reparador aplica el mínimo dentro del árbol de `plan.md`, commit atómico Commitlint (`fix(<scope>): ...`), y re-ejecuta gates.
-  3. Relanzar auditor + runner (máximo **2** iteraciones). Si persiste: STOP. Diagnóstico = ≤5 líneas de causa (nombre de test o regla), no logs.
-- **Resumen Ejecutivo al grano:** Solo lo que el usuario necesita. Gotchas: máximo 3 viñetas, una línea cada una.
+- **Git Guard previo obligatorio:** Antes de despachar subagentes, verificar `git status -s`. Si el árbol tiene cambios pendientes ajenos a la verificación, DETENERSE (STOP) y solicitar al usuario que los comitee o guarde.
+- **Precondición de entrada:** Requerir que `tasks.md` esté en `Estado: listo-para-verify` y que no existan tareas pendientes (`- [ ]`). Si no, indicar que primero debe ejecutarse `vsdd apply`.
+- **Conductor No Modifica Código de Producto:** El agente principal **nunca** edita archivos de la aplicación, **nunca** ejecuta directamente suites de pruebas masivas, **nunca** inspecciona `git diff` de producto en el hilo principal y **nunca** pega reportes de auditoría en el chat. Se utilizan subagentes diferenciados:
+  1. **Auditor de Verificación (solo lectura, nivel Crítico):** Valida RFs, RNFs y el "Listo cuando".
+  2. **Runner de Calidad:** Ejecuta el comando de pruebas y calidad del proyecto.
+  3. **Reparador:** Aplica correcciones técnicas mínimas si hay fallos.
+  4. **Closer (DoD):** Prepara la consolidación hacia la rama base.
+- **Trazabilidad Estricta y Validación del "Listo cuando":**
+  - Cada `RF-xx` y `RNF-xx` de `spec.md` debe estar mapeado a código y pruebas automatizadas.
+  - El auditor debe verificar explícitamente el cumplimiento de las 1 a 3 condiciones observables del **"Listo cuando"** heredadas de `idea.md` y formalizadas en los criterios de finalización de `spec.md`.
+- **Contrato Universal de Calidad:**
+  - Las pruebas se validan ejecutando el comando propio del proyecto detectado dinámicamente (`npm test`, `go test ./...`, `pytest`, `cargo test`, Makefile target, etc.). Prohibido invocar comandos propietarios fijos de monorrepos.
+- **Transparencia Absoluta de Agentes y Modelos:**
+  - **Obligatorio antes del despacho:** Imprimir visiblemente en el chat el aviso correspondiente antes de lanzar cada subagente:
+    * `● [Subagente: Auditoría Final de Verificación] Verificando requisitos y Listo cuando con modelo: <modelo>...`
+    * `● [Subagente: Runner de Calidad] Ejecutando pruebas (<comando>) con modelo: <modelo>...`
+    * `● [Subagente: Reparador de Verificación] Aplicando correcciones con modelo: <modelo>...`
+    * `● [Subagente: Preparación DoD] Consolidando entrega hacia <rama_base> con modelo: <modelo>...`
+  - **Fallback transparente:** Si un modelo no está soportado o la inicialización falla:
+    `▲ [Aviso] No fue posible despachar el subagente; el agente principal asume la tarea localmente.`
+- **Bucle de Auto-Corrección (Self-Healing):**
+  - Si el auditor detecta discrepancias o el runner reporta pruebas fallidas:
+    1. Invocar **subagente reparador** pasando los hallazgos exclusivamente en su prompt.
+    2. El reparador aplica la corrección mínima dentro del árbol autorizado de `plan.md`, realiza un commit atómico bajo Conventional Commits y re-ejecuta pruebas.
+    3. Relanzar auditor y runner (máximo **2** iteraciones). Si el fallo persiste: STOP y presentar diagnóstico breve al usuario ($\le 5$ líneas, sin volcados de logs).
+- **Ergonomía Visual en Terminal (Thin Thread):**
+  - Informe final presentado en el chat estructurado en bloques claros y sintetizados. Gotchas o advertencias técnicas: máximo 3 viñetas breves.
+
+---
 
 ## Flujo de Verificación
 
 1. **Entrada y Git Guard (conductor):**
-   - `git status -s`. Si hay suciedad ajena, STOP.
-   - Comprobar `tasks.md`: `Estado: listo-para-verify` y cero `- [ ]`.
-2. **Auditor independiente (subagente, nivel Crítico, readonly).** Paths: `idea.md`, `spec.md`, `plan.md`, `tasks.md`, `CONSTITUTION.md`, `AGENTS.md`. Diff de la rama vs origen. No pegar el reporte. Checkpoint: `[VERIFY AUDIT] limpio` o `[VERIFY AUDIT] k hallazgos`. Empty/tool failure: retry once; si persiste, menú `1) Reintentar` / `2) Continuar bajo propio riesgo`.
+   - Ejecutar `git status -s`. Si hay modificaciones ajenas pendientes, STOP.
+   - Comprobar que en `tasks.md` todas las tareas estén completadas (`[x]`).
+2. **Auditoría Independiente de Requisitos y Contrato (Subagente):**
+   - Anunciar en chat: `● [Subagente: Auditoría Final de Verificación] Verificando requisitos y Listo cuando con modelo: <modelo>...`
+   - Despachar subagente auditor independiente (solo lectura, nivel Crítico). Paths: `idea.md`, `spec.md`, `plan.md`, `tasks.md` y directrices del proyecto detectadas dinámicamente. Evalúa diff de la rama actual vs. rama base.
+   - Checkpoint en chat: `✔ [VERIFY AUDIT] Requisitos verificados` o `▲ [VERIFY AUDIT] k discrepancias detectadas`.
 
 ```text
-Rol: auditor independiente de verificación. Readonly. No propongas parches. No reescribas.
+Rol: auditor independiente de verificación. Solo lectura. No propongas parches ni reescribas código.
 1) Cada RF-xx: archivo impl + test + PASS/FAIL (una línea)
-2) Cada RNF-xx: evidencia + PASS/FAIL (una línea)
-3) Criterios Listo cuando / idea.md: cumplido o hueco
-4) Diff fuera del árbol de plan.md, o sobre-ingeniería vs idea.md
+2) Cada RNF-xx: evidencia observable + PASS/FAIL (una línea)
+3) Criterios "Listo cuando" de idea.md / spec.md: cumplido o pendiente
+4) Diff fuera del árbol de plan.md, o sobre-ingeniería innecesaria vs idea.md
 Veredicto: limpio | ok-con-huecos | bloquea
-≤40 líneas. No pegar stdout ni git diff.
+≤40 líneas. Prohibido volcar stdout o diffs crudos.
 ```
 
-3. **Runner de gates (subagente distinto).** Ejecuta `pnpm typecheck`, `pnpm test`, `pnpm quality:gate`. Checkpoint: `[VERIFY GATE] typecheck X · tests n/n · gate X`.
+3. **Runner de Calidad y Pruebas del Proyecto (Subagente):**
+   - Anunciar en chat: `● [Subagente: Runner de Calidad] Ejecutando pruebas (<comando>) con modelo: <modelo>...`
+   - Despachar subagente runner para ejecutar el comando de pruebas y calidad del proyecto.
+   - Checkpoint en chat: `✔ [VERIFY GATE] Pruebas verdes (<comando>) · 0 fallos`.
 
 ```text
-Rol: runner de gates. No editar código.
-Ejecutar typecheck, test y quality:gate.
-Devolver solo: typecheck PASS/FAIL, tests X/Y, gate PASS/FAIL.
-Si FAIL: ≤5 líneas (nombre de test o regla). Sin log completo.
+Rol: runner de calidad del proyecto. No editar código.
+Ejecutar el comando de pruebas y calidad del proyecto.
+Devolver solo: comando ejecutado, PASS/FAIL y resumen de pruebas (ej: 10/10 PASS).
+Si FAIL: ≤5 líneas indicando el nombre exacto del test que falló. Sin logs completos.
 ```
 
 4. **Reparación (si auditor ≠ limpio o runner ≠ PASS):**
-   - Pasar hallazgos **solo** en el prompt del Task (nunca en chat). No reutilizar el auditor como reparador.
-   - Checkpoint: `[VERIFY FIX] <causa breve> → commit (<hash>) → gate <PASS|FAIL>.`
-   - Volver a pasos 2–3. Máximo 2 vueltas.
+   - Si existen discrepancias:
+     - Anunciar en chat: `● [Subagente: Reparador de Verificación] Aplicando correcciones con modelo: <modelo>...`
+     - Invocar subagente reparador pasando los hallazgos en su prompt.
+     - Checkpoint en chat: `✔ [VERIFY FIX] <causa breve> → Commit: <hash> → Pruebas: PASS`.
+     - Relanzar pasos 2 y 3 (máximo 2 iteraciones).
 
 ```text
-Rol: reparador de verify. No auditar. No ensanchar el alcance.
-Hallazgos (literal, solo en este prompt):
-<reporte compacto del auditor y/o del runner>
-Árbol autorizado: <paths de plan.md>
-Fix mínimo, TDD, Commitlint AGENTS.md, re-ejecutar gates.
-Devolver solo: archivos, hash, gate PASS/FAIL.
+Rol: reparador de verificación. No ensanchar el alcance.
+Hallazgos: <reporte compacto del auditor y/o del runner>
+Árbol autorizado: <rutas del plan.md>
+Fix mínimo estricto, TDD, Conventional Commits y validación de pruebas.
+Devolver solo: archivos tocados, hash de commit y resultado de pruebas.
 ```
 
-5. **Resumen ejecutivo (conductor, con los checkpoints; sin re-leer `apps/`):**
+5. **Informe Ejecutivo en Terminal (Conductor):**
+   Al alcanzar luz verde en auditoría y pruebas, presentar en el chat el informe ejecutivo estructurado:
 
 ```text
-## Verificación de Funcionalidad: <Nombre de la Funcionalidad>
+╭────────────────────────────────────────────────────────╮
+│  ✔ Verificación de Funcionalidad: <Nombre>             │
+│    Estado: 100% VERDE · Calidad Validada               │
+╰────────────────────────────────────────────────────────╯
 
-### 1. Estado de la Especificación
-- Requisitos Funcionales (RF): X/X cubiertos y validados con tests.
-- Requisitos No Funcionales (RNF): X/X verificados.
-- Criterios de "Listo cuando" e idea.md: 100% cumplidos.
+1. Cobertura de Requisitos y Contrato:
+   ✔ Requisitos Funcionales (RF): X/X cubiertos y validados con pruebas
+   ✔ Requisitos No Funcionales (RNF): X/X verificados
+   ✔ Contrato "Listo cuando": 100% cumplido (X/X condiciones observables comprobadas)
 
-### 2. Evidencia de Calidad (Quality Gate)
-- TypeScript: 0 errores (typecheck PASS).
-- Tests: X pruebas en verde (Vitest PASS).
-- Quality Gate: 100% VERDE (lint, límites AST, tenant isolation).
+2. Evidencia de Calidad del Proyecto:
+   ✔ Pruebas del proyecto (<comando>): PASS (0 errores)
 
-### 3. Lo que debes saber (Notas técnicas y Runtime)
-- <Máximo 3 viñetas, una línea. Si no hay: Ninguna.>
+3. Notas Técnicas y Runtime:
+   • <Máximo 3 viñetas breves de contexto útil. Si no hay: Ninguna.>
 
-### 4. Próximo Paso (Definition of Done)
-¿Deseas cerrar e integrar esta rama hacia codex/work?
-1. Iniciar integración y merge hacia codex/work (según AGENTS.md §5)
-2. Mantener la rama abierta para pruebas manuales
+4. Próximo Paso (Definition of Done):
+   Rama activa: <rama_actual> · Rama base: <rama_base>
+
+   ¿Cómo deseas proceder con la entrega de esta funcionalidad?
+   1. Integrar y fusionar hacia <rama_base> (git merge --no-ff)
+   2. Mantener la rama abierta para revisión manual o Pull Request
+   3. Relanzar verificación completa
 ```
 
-- `mem_save` `topic_key: vsdd-verify-<slug>`.
+- Persistir estado en memoria: `mem_save topic_key: vsdd-verify-<slug>`.
 
-6. **DoD hacia `codex/work` (si elige 1):**
-   - Lanzar **subagente closer** (no mergea): `pnpm branch:summary`, completar `resumen.md`, `git fetch origin`, rebase + gate si `codex/work` avanzó. Checkpoint: `[VERIFY DOD] commits / archivos / gate`.
+6. **Consolidación y Definition of Done (si elige Opción 1):**
+   - Anunciar en chat: `● [Subagente: Preparación DoD] Consolidando entrega hacia <rama_base> con modelo: <modelo>...`
+   - Despachar subagente closer para inspeccionar commits y diff de la rama vs. `<rama_base>` (`git log --oneline <rama_base>..<rama>`, `git diff --stat <rama_base>..<rama>`).
+   - Presentar en chat el resumen conciso (número de commits y archivos modificados) y **solicitar confirmación explícita antes de fusionar**:
+     `¿Confirmas la integración definitiva de esta rama hacia <rama_base>? (Sí / No)`
+   - **Tras confirmación con "Sí":**
+     - El conductor ejecuta: `git checkout <rama_base> && git merge --no-ff <rama_actual>`.
+     - **Cláusula de aborto por conflictos:** Si el comando `git merge` reporta conflictos de fusión, DETENERSE de inmediato, ejecutar `git merge --abort`, notificar al usuario y devolver el control para resolución manual asistida.
+     - Si la fusión es exitosa, preguntar amablemente:
+       `¿Deseas eliminar la rama local integrada (<rama_actual>) y en el repositorio remoto si existe? (1: Solo local / 2: Local y remota / 3: Conservar ambas)`
+       Ejecutar la opción seleccionada limpiamente.
+     - Confirmar en el chat la finalización exitosa del ciclo VSDD.
 
-```text
-Rol: closer DoD. No mergear. No borrar ramas.
-branch:summary, resumen.md, fetch, rebase+gate si hace falta.
-Devolver ≤10 líneas: commits, archivos, gate PASS/FAIL. Sin dump.
-```
+---
 
-- Presentar ese resumen corto. **Esperar confirmación explícita.**
-- Tras el sí: el conductor ejecuta solo `git switch codex/work && git merge --no-ff <rama>` (un comando; no dump). Luego pregunta si borrar la rama local (`git branch -d <rama>`).
+## Contrato de Salida
+
+* **En el chat:** Avisos previos visibles antes de despachar subagentes, checkpoints sobrios (`✔`), informe ejecutivo final estructurado y confirmación humana explícita antes de cualquier merge en Git.
+* **En el disco:** Cobertura de tests y código 100% verde, tareas marcadas como completadas, fusión limpia hacia la rama base elegida por el usuario y registro histórico en Engram.
