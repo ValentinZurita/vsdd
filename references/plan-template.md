@@ -1,10 +1,10 @@
-# Plan template
+# Plantilla de Plan Técnico (Plan Template)
 
-The saved `plan.md` **is** the headings below, in this order, with these names. No extra `##`. No rename. No skip. Instruction lines (this block, **Llenar**, **Forma**, **Vacío**, angle-bracket hints) never appear in the recap or the file.
+El archivo `plan.md` guardado **debe contener exactamente** los encabezados que figuran a continuación, en este orden y con estos nombres. Sin encabezados `##` adicionales, sin renombrar y sin omitir secciones. Las líneas de instrucción (este bloque introductorio, los bloques **Llenar:**, **Forma:**, **Vacío:** y las ayudas entre corchetes angulares) nunca deben aparecer en el recapitulativo del chat ni en el archivo final.
 
-No production code. Qué-técnico: módulos, datos, contratos, DTs, árbol, tests. Every RF and RNF from `spec.md` appears in **Cobertura**. `Estado`: `en-revision` until they say Sí to contento (then `listo-para-tareas`). Menu option 1 after that still waits for comments; do not flip back.
+Prohibido incluir código de producción. El contenido se enfoca en el **qué-técnico**: módulos, modelos de datos, contratos, decisiones técnicas (DT), árbol de archivos y estrategia de pruebas. Cada `RF` y `RNF` de `spec.md` debe aparecer obligatoriamente en la tabla de **Cobertura**. El `Estado` inicial es `en-revision` hasta que el usuario confirme con **Sí** a la pregunta de satisfacción (momento en el que pasa a `listo-para-tareas`).
 
-If a section does not apply: that section’s **Vacío** word. Do not invent.
+Si una sección no aplica para este corte funcional, usar la palabra de relleno indicada en **Vacío:**. No inventar contenido.
 
 ---
 
@@ -17,87 +17,96 @@ Spec: `<nnn>-<slug>/spec.md`
 
 ## Alineación
 
-**Llenar:** how this cut respects the core problem and user pain of `idea.md`, CONSTITUTION.md (isolation, fail-closed, owner/buyer feel, no bloat) and AGENTS.md (hexagonal direction, no tenant default in admin/order presentation, file limits, Spanish MX, no extra deps). Short. Not a quote dump.
+**Llenar:** de 3 a 8 oraciones o viñetas concisas. Explicar cómo este plan técnico resuelve fielmente el problema original y el dolor del usuario definidos en `idea.md` y cumple los requisitos de `spec.md` sin sobre-ingeniería ni complejidad accidental. Si el proyecto cuenta con directrices arquitectónicas documentadas, certificar el cumplimiento de sus límites.
 
-**Forma:** 3–8 sentences or short bullets.
+**Forma:** prosa breve o viñetas directas.
 
-## Módulos
+## Módulos y arquitectura
 
-**Llenar:** which hexagonal slices this cut touches (`domain` / `application` / `infrastructure` / `presentation`). What already exists vs what is new. Presentation does not import infrastructure. Name the module (`catalog`, `admin`, …) in product terms.
+**Llenar:** qué partes o capas del sistema toca este corte (ej. dominio, aplicación, infraestructura, componentes de interfaz o adaptadores), adaptándose a la arquitectura real del repositorio descubierta dinámicamente. Distinguir qué módulos ya existen y cuáles son nuevos.
 
-Each block: **Cubre:** `RF-xx`, `RNF-xx`.
+Cada bloque debe indicar explícitamente: **Cubre:** `RF-xx`, `RNF-xx`.
 
 **Forma:**
-
-- **\<módulo / capa\>:** \<qué hace aquí\>. Cubre: RF-xx
+- **<Módulo o componente>:** <responsabilidad técnica específica>. Cubre: RF-xx, RNF-xx
 
 ## Modelo de datos
 
-**Llenar:** only if this cut stores or shapes data. JSON (or tables as JSON-shaped objects) of the **observable** records: fields, who owns them, tenant key. No SQL dump unless the spec already requires persistence; even then, shape first, not a migration file.
+**Llenar:** únicamente si este corte almacena o estructura información persistente o en memoria. Esquema observable de los registros en formato JSON o especificación de campos: tipos, identificadores y relaciones clave. Prohibido incluir migraciones SQL completas; definir la estructura conceptual de datos.
 
 **Vacío:** `No aplica.`
 
-**Forma:** fenced `json` sketch, then one paragraph qué/por qué.
+**Forma:** bloque de código `json` seguido de un párrafo explicativo conciso.
 
-## Algoritmos
+## Algoritmos y lógica de negocio
 
-**Llenar:** only if a rule is easier as steps than as a DT. Pseudocode. No TypeScript, no imports.
+**Llenar:** únicamente si una regla de negocio o cálculo requiere pasos secuenciales detallados que no justifican una decisión técnica independiente. Pseudocódigo claro en lenguaje de producto/técnico.
 
 **Vacío:** `No aplica.`
 
-## Contratos
+## Contratos e interfaces
 
-**Llenar:** only if ports, payloads, or UI events must stay stable. Names of contracts, who talks to whom, what is in/out. Not class files.
+**Llenar:** únicamente si se definen interfaces públicas, tipos de entrada/salida (DTOs), puertos o eventos entre componentes que deban mantenerse estables para las tareas de desarrollo.
 
 **Vacío:** `No aplica.`
 
 ## Decisiones técnicas
 
-**Llenar:** every real fork (two defensible hows). Consecutive `DT-01`, `DT-02`, …. Do not invent a DT to fill this heading.
+**Llenar:** cada disyuntiva técnica real donde existan dos o más alternativas defendibles. Numeración correlativa `DT-01`, `DT-02`, ... Toda decisión debe estar respaldada por evidencia técnica y buenas prácticas actuales de la industria. Prohibido inventar decisiones técnicas para llenar la sección.
 
-**Vacío:** `Ninguna: el corte no tenía dos hows defendibles.`
+Una decisión técnica sin alternativa descartada rigurosamente justificada se considera inválida.
+
+**Vacío:** `Ninguna: el corte técnico no presentó disyuntivas con alternativas divergentes.`
 
 **Forma:**
 
-### DT-01 \<título corto\>
-
-- **Decisión:** …
-- **Alternativa descartada:** …
-- **Por qué se descarta:** …
+### DT-01 <Título corto de la decisión>
+- **Decisión:** <qué enfoque se adopta>
+- **Por qué es la mejor opción actual:** <justificación técnica basada en rendimiento, mantenibilidad, estándares actuales o simplicidad>
+- **Alternativa descartada:** <enfoque alternativo considerado>
+- **Por qué se descarta:** <motivo técnico concreto por el cual la alternativa no es óptima para este caso>
 - **Cubre:** RF-xx, RNF-xx
-
-A DT without a discarded alternative is invalid.
 
 ## Árbol de cambios
 
-**Llenar:** the repo as it will move. Real paths. Mark each line `+` new, `~` edit, `-` delete. Group by folder. Do not list files you will not touch. Respect 300-line files / split if a touched file is already large.
+**Llenar:** mapa exacto y determinista de los archivos que se crearán, modificarán o eliminarán. Rutas completas y reales del proyecto. Cada línea debe utilizar estrictamente uno de los tres prefijos:
+`+` para archivo o directorio nuevo.
+`~` para archivo existente que se modifica.
+`-` para archivo existente que se elimina.
+Prohibido usar párrafos conversacionales; este árbol es el blueprint directo para la descomposición atómica de tareas en `tasks.md`.
 
-**Forma:** indented tree or bullets with `+` / `~` / `-`.
+**Forma:** lista estructurada por carpetas:
+- `+ ruta/al/archivo_nuevo.ext`
+- `~ ruta/al/archivo_existente.ext`
 
 ## Estrategia de tests
 
-**Llenar:** what is proven first (TDD), which behaviors (not file names only), mock vs real if both exist. Each cluster: **Cubre:** RF-xx / RNF-xx.
+**Llenar:** enfoque de pruebas (TDD: prueba primero, luego implementación). Describir qué comportamientos se verifican, cómo se prueban los casos límite y **mapear explícitamente cómo se valida cada una de las condiciones del "Listo cuando"** heredadas de `idea.md` y `spec.md`. Cada grupo de pruebas debe indicar qué requisitos cubre.
 
-**Vacío:** not allowed. At least how the RF set is checked.
+**Vacío:** no permitido. Todo plan técnico debe definir cómo se comprueba el corte.
+
+**Forma:** viñetas. Cada una:
+- **<Nombre de la suite o prueba>:** <qué comportamiento valida>. Valida Listo cuando: <condición observable>. Cubre: RF-xx.
 
 ## Cobertura RF / RNF
 
-**Llenar:** one row per RF-xx and RNF-xx in the spec. No blank. If a row has no home, that is a bug — question or `[NECESITA ATENCIÓN]`.
+**Llenar:** tabla exhaustiva con una fila por cada `RF-xx` y `RNF-xx` de `spec.md`. Ningún requisito puede quedar sin ubicación (módulo, DT o test). Una fila sin cobertura constituye un defecto crítico.
 
 **Forma:**
 
-| ID    | Dónde (módulo, DT, tests) |
-| ----- | ------------------------- |
-| RF-01 | …                         |
+| ID | Dónde se resuelve (Módulo, DT, Tests) |
+| :--- | :--- |
+| RF-01 | Módulo X, DT-01, Prueba unitaria Y |
+| RF-02 | Módulo Z, Prueba de integración W |
 
 ## Diagramas
 
-**Llenar:** simple mermaid (`flowchart` or `sequenceDiagram`) only if it clarifies a module boundary or a DT. No class soup.
+**Llenar:** como máximo un diagrama simple en Mermaid (`flowchart` o `sequenceDiagram`) únicamente si clarifica la interacción entre módulos o el flujo de una decisión técnica.
 
 **Vacío:** `Ninguno.`
 
 ## Dudas abiertas
 
-**Llenar:** untestable or unmapped holes after questions + QA, plus any unresolved `[NECESITA ATENCIÓN]` carried over from `spec.md`. Each line: `[NECESITA ATENCIÓN]` + the hole.
+**Llenar:** cualquier aspecto técnico pendiente de resolver tras la entrevista y la auditoría QA, o advertencias técnicas que deban resolverse durante la implementación. Cada línea inicia con `[NECESITA ATENCIÓN]` seguido del detalle.
 
-**Vacío:** `Ninguna.` — only if every RF/RNF has a row, all `spec.md` doubts are resolved in DTs, and QA listed no remaining gaps.
+**Vacío:** `Ninguna.` (únicamente si todos los RF/RNF tienen cobertura completa y no quedan incertidumbres de diseño).
