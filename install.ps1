@@ -98,7 +98,10 @@ function Resolve-SourceDirectory {
     $localRef = Join-Path $currentDir "references"
 
     if ((Test-Path $localSkill) -and (Test-Path $localRef)) {
-        return $currentDir.Path
+        $skillContent = Get-Content $localSkill -Raw -ErrorAction SilentlyContinue
+        if ($skillContent -and $skillContent.Contains("name: vsdd")) {
+            return $currentDir.Path
+        }
     }
 
     Write-Host "● Descargando VSDD v$VSDD_VERSION desde GitHub..." -ForegroundColor Cyan
@@ -134,22 +137,23 @@ function Resolve-SourceDirectory {
 # ------------------------------------------------------------------------------
 # Flujo Principal
 # ------------------------------------------------------------------------------
-if ($Help) {
+function Invoke-Main {
+    if ($Help) {
+        Show-Banner
+        Write-Host "Uso: .\install.ps1 [-Yes] [-Uninstall] [-Help]`n"
+        Write-Host "Opciones:"
+        Write-Host "  -Yes         Modo no interactivo (acepta valores recomendados)"
+        Write-Host "  -Uninstall   Desinstala VSDD de los editores configurados"
+        Write-Host "  -Help        Muestra esta ayuda`n"
+        exit 0
+    }
+
+    if ($Uninstall) {
+        Run-Uninstall
+    }
+
     Show-Banner
-    Write-Host "Uso: .\install.ps1 [-Yes] [-Uninstall] [-Help]`n"
-    Write-Host "Opciones:"
-    Write-Host "  -Yes         Modo no interactivo (acepta valores recomendados)"
-    Write-Host "  -Uninstall   Desinstala VSDD de los editores configurados"
-    Write-Host "  -Help        Muestra esta ayuda`n"
-    exit 0
-}
-
-if ($Uninstall) {
-    Run-Uninstall
-}
-
-Show-Banner
-$sourceDir = Resolve-SourceDirectory
+    $sourceDir = Resolve-SourceDirectory
 
 # 1. Detección de Agentes
 Write-Host "● Escaneando entornos de desarrollo en este equipo:" -ForegroundColor White
@@ -275,3 +279,6 @@ Write-Host "│                                                        │" -For
 Write-Host ("│  VSDD v{0,-5} ya está lista para usar en tus agentes.   │" -f $VSDD_VERSION) -ForegroundColor Green
 Write-Host "│  Puedes activarla llamando a 'vsdd' en cualquier chat. │" -ForegroundColor Green
 Write-Host "╰────────────────────────────────────────────────────────╯`n" -ForegroundColor Green
+}
+
+Invoke-Main

@@ -4,7 +4,7 @@ description: 'Trigger: vsdd, sdd interactivo, mi sdd. Conductor SDD: entrevista,
 license: MIT
 metadata:
   author: valentin
-  version: '0.41'
+  version: '0.42'
 ---
 
 ## Activation Contract

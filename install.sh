@@ -61,15 +61,16 @@ on_error() {
   local line_no="$2"
   cleanup
   if [ "$exit_code" -ne 0 ] && [ "$exit_code" -ne 130 ]; then
-    printf "\n%b✖ Ocurrió un error inesperado (código %s en línea %s).%b\n" "$RED" "$exit_code" "$line_no" "$RESET"
-    printf "%bPor favor, revisa los permisos de tu sistema o el mensaje superior.%b\n\n" "$DIM" "$RESET"
+    printf "\n%b✖ Ocurrió un error inesperado (código %s en línea %s).%b\n" "$RED" "$exit_code" "$line_no" "$RESET" >&2
+    printf "%bPor favor, revisa los permisos de tu sistema o el mensaje superior.%b\n\n" "$DIM" "$RESET" >&2
     pause_before_exit
+    exit "$exit_code"
   fi
 }
 
 on_interrupt() {
   cleanup
-  printf "\n\n%bOperación cancelada por el usuario.%b\n" "$YELLOW" "$RESET"
+  printf "\n\n%bOperación cancelada por el usuario.%b\n" "$YELLOW" "$RESET" >&2
   exit 130
 }
 
@@ -98,20 +99,20 @@ read_input() {
   local user_val=""
 
   if [ "$AUTO_CONFIRM" -eq 1 ]; then
-    printf "%b%b%s%b\n" "$prompt_text" "$CYAN" "$default_value" "$RESET"
+    printf "%b%b%s%b\n" "$prompt_text" "$CYAN" "$default_value" "$RESET" >&2
     echo "$default_value"
     return 0
   fi
 
   if [ -t 0 ]; then
-    printf "%b" "$prompt_text"
+    printf "%b" "$prompt_text" >&2
     read -r user_val || true
   elif [ -r /dev/tty ]; then
     printf "%b" "$prompt_text" > /dev/tty
     read -r user_val < /dev/tty || true
   else
-    printf "%b" "$prompt_text"
-    read -r user_val || true
+    printf "\n%b✖ Error: Se requiere una terminal interactiva o usar la opción -y / --yes.%b\n\n" "$RED" "$RESET" >&2
+    exit 1
   fi
 
   if [ -z "$user_val" ]; then
@@ -125,15 +126,15 @@ read_input() {
 # Detección del Origen de la Skill (Local vs Remoto)
 # ------------------------------------------------------------------------------
 resolve_source_directory() {
-  # 1. Comprobar si estamos ejecutando localmente dentro del repositorio clonado
-  if [ -f "./SKILL.md" ] && [ -d "./references" ]; then
+  # 1. Comprobar si estamos ejecutando localmente dentro del repositorio de VSDD
+  if [ -f "./SKILL.md" ] && [ -d "./references" ] && grep -q "name: vsdd" "./SKILL.md" 2>/dev/null; then
     echo "$(pwd)"
     return 0
   fi
 
   # 2. Si no, estamos en ejecución remota (curl | bash). Descargamos la skill.
   TMP_DIR="$(mktemp -d 2>/dev/null || mktemp -d -t 'vsdd-install')"
-  printf "%b● Descargando VSDD v%s desde GitHub...%b\n" "$CYAN" "$VSDD_VERSION" "$RESET"
+  printf "%b● Descargando VSDD v%s desde GitHub...%b\n" "$CYAN" "$VSDD_VERSION" "$RESET" >&2
 
   local archive_url="https://github.com/ValentinZurita/vsdd/archive/refs/heads/main.tar.gz"
   local download_ok=0
@@ -151,13 +152,13 @@ resolve_source_directory() {
   fi
 
   if [ "$download_ok" -eq 0 ]; then
-    printf "\n%b✖ No se pudo descargar automáticamente el paquete desde GitHub.%b\n" "$RED" "$RESET"
-    printf "%bPosibles causas:%b\n" "$YELLOW" "$RESET"
-    printf "  1. El repositorio está actualmente configurado como privado en GitHub.\n"
-    printf "  2. No hay conexión a internet disponible en este momento.\n\n"
-    printf "%bSolución:%b Clona el repositorio con tus credenciales e instálalo localmente:\n" "$BOLD" "$RESET"
-    printf "  %bgit clone https://github.com/ValentinZurita/vsdd.git%b\n" "$CYAN" "$RESET"
-    printf "  %bcd vsdd && ./install.sh%b\n\n" "$CYAN" "$RESET"
+    printf "\n%b✖ No se pudo descargar automáticamente el paquete desde GitHub.%b\n" "$RED" "$RESET" >&2
+    printf "%bPosibles causas:%b\n" "$YELLOW" "$RESET" >&2
+    printf "  1. El repositorio está actualmente configurado como privado en GitHub.\n" >&2
+    printf "  2. No hay conexión a internet disponible en este momento.\n\n" >&2
+    printf "%bSolución:%b Clona el repositorio con tus credenciales e instálalo localmente:\n" "$BOLD" "$RESET" >&2
+    printf "  %bgit clone https://github.com/ValentinZurita/vsdd.git%b\n" "$CYAN" "$RESET" >&2
+    printf "  %bcd vsdd && ./install.sh%b\n\n" "$CYAN" "$RESET" >&2
     pause_before_exit
     exit 1
   fi

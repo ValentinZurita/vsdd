@@ -179,9 +179,14 @@ function copyTree(sourceDir, destination, entries, { update = false } = {}) {
 
   function ensureDir(dir) {
     if (fs.existsSync(dir)) return;
-    ensureDir(path.dirname(dir));
-    fs.mkdirSync(dir);
-    created.push({ type: 'dir', path: dir });
+    const parent = path.dirname(dir);
+    if (parent && parent !== dir) {
+      ensureDir(parent);
+    }
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir);
+      created.push({ type: 'dir', path: dir });
+    }
   }
 
   try {
