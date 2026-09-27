@@ -72,12 +72,36 @@ A lo sumo 2 consultas genéricas breves. Si no es necesaria, omitir este paso y 
    2) Contradicciones internas o contra `idea.md`
    3) Casos límite no cubiertos
    4) Conflictos con las directrices del proyecto
-10. **Procesamiento de Hallazgos y Presentación Visual en Terminal:**
-    - Ajustes evidentes de redacción o formato: se aplican directamente en `spec.md`.
-    - Dudas que requieren decisión del usuario: se formula una pregunta puntual antes de cerrar.
-    - **Presentación en Terminal:** Imprimir en el chat la especificación estructurada y completa en Markdown limpio, permitiendo al usuario leerla con total comodidad sin abandonar la terminal ni abrir archivos externos.
-    - **Pregunta de Satisfacción (Reunión con Desarrollador Senior):**
-      En el mismo mensaje del recapitulativo, formular con calidez:
+10. **Protocolo Inteligente de Aclaraciones y Cierre:**
+    Tras recibir el informe del auditor de QA, el agente realiza un **auto-cuestionamiento crítico**:
+    *¿Qué aspectos de la especificación aún necesitan aclaración para que no queden ambigüedades al momento de planificar y programar?*
+    
+    El agente clasifica los vacíos y observaciones en dos categorías:
+    - **Bloqueantes:** Aspectos esenciales sin los cuales el comportamiento es ambiguo o no comprobable (reglas de negocio centrales, permisos críticos, qué ocurre en el camino de error principal).
+    - **No Bloqueantes:** Casos secundarios, comportamientos de borde tolerables o afinaciones de detalle que admiten una recomendación estándar.
+
+    **Resolución en Dos Tiempos para Puntos Bloqueantes:**
+    Por cada punto bloqueante identificado (tratados uno a la vez):
+    - **Paso 1 (Pregunta Abierta de Negocio/Cliente):** Formular una pregunta natural y cotidiana orientada a producto que cualquier dueño de producto pueda responder sin tecnicismos. **DETENERSE y esperar respuesta.**
+    - **Paso 2 (Evaluación de Suficiencia y Opciones Retroalimentadas):**
+      - *Si la respuesta del usuario resuelve la duda con claridad:* el agente lo confirma amablemente en una línea, actualiza `spec.md` y avanza al siguiente punto.
+      - *Si la respuesta es parcial, ambigua o deja caminos abiertos:* el agente **no adivina ni insiste a ciegas**; toma lo que el usuario acaba de expresar y formula una **pregunta estructurada con opciones** (`1 / 2 / 3` con `• Pro:`, `• Contra:`, `• Recomendada:`), contextualizada con las propias palabras del usuario. **DETENERSE y esperar respuesta.**
+      - *Salvaguarda:* Si tras las opciones estructuradas el usuario aún no define el rumbo, el agente adopta la opción más segura por defecto y registra el caso en `## Dudas abiertas` bajo `[NECESITA ATENCIÓN]` para no trabar el flujo.
+      - *Ajustes evidentes de redacción:* Se aplican directamente en `spec.md` sin consultar al usuario.
+
+    **Gestión Inteligente de Puntos No Bloqueantes:**
+    Una vez resueltos todos los puntos bloqueantes, el agente informa con claridad en la terminal:
+    `● Puntos bloqueantes resueltos con éxito. La especificación cuenta con bases firmes para continuar.`
+    `Quedan los siguientes aspectos secundarios no bloqueantes: [lista breve con recomendación para cada uno].`
+    `¿Deseas que los revisemos juntos o aplicamos las recomendaciones estándar en la especificación?`
+    `1. Revisar los puntos secundarios uno a uno`
+    `2. Aplicar las recomendaciones estándar y continuar [Recomendada]`
+    Si elige 2, el agente incorpora las recomendaciones estándar directamente en los criterios EARS de `spec.md`.
+
+    **Presentación en Terminal y Pregunta de Satisfacción:**
+    Con todos los puntos resueltos o consensuados:
+    - Imprimir en el chat la especificación estructurada y completa en Markdown limpio, permitiendo al usuario leerla con total comodidad sin abandonar la terminal ni abrir archivos externos.
+    - Formular con calidez la pregunta de satisfacción:
       `¿Estás satisfecho con esta especificación o deseas ajustar algo? (Sí / No, deseo realizar ajustes)`
       **DETENERSE (STOP).**
     - **Bucle de Iteración Continua:** Si el usuario responde "No" o plantea dudas, observaciones o cambios, el agente atiende cada punto como en una reunión de producto real: aclara dudas, modifica `spec.md` en disco, actualiza la visualización y vuelve a consultar. **No se da por terminada la fase hasta que el usuario exprese explícitamente estar satisfecho con un "Sí".**
