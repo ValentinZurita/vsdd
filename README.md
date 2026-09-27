@@ -1,94 +1,82 @@
-# VSDD (Valentin-Driven Development)
+<div align="center">
 
-> **Conductor VSDD portable para agentes de IA**: entrevista interactiva, el usuario dicta; no rellena supuestos por su cuenta.
+# ⚡ VSDD
+### Valentin-Driven Development
 
-VSDD es un bundle de **Agent Skills** agnóstico y portable, diseñado para funcionar en cualquier entorno que soporte el estándar de skills (Claude Code, Cursor, Codex, Antigravity, etc.).
+**El conductor interactivo de Spec-Driven Development para agentes de IA.**  
+*Tú dictas la arquitectura y los requisitos; la IA nunca asume ni inventa por su cuenta.*
 
----
+[![Version](https://img.shields.io/badge/version-0.42-blue.svg)](https://github.com/ValentinZurita/vsdd)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![Platforms](https://img.shields.io/badge/platform-macOS%20%7C%20Linux-lightgrey.svg)]()
+[![Compatible Agents](https://img.shields.io/badge/agents-Claude%20Code%20%7C%20Cursor%20%7C%20Codex%20%7C%20Antigravity-purple.svg)]()
 
-## 🎯 Filosofía y Principios
-
-1. **The User Owns Content**: Cada línea guardada en una especificación o plan proviene directamente de las respuestas del usuario, opciones elegidas o skips aceptados. Cero alucinación de requerimientos.
-2. **Una pregunta a la vez**: Detención estricta tras cada consulta (`Pregunta k de como máximo N`). Opciones claras con análisis de *Pro*, *Contra* y *Recomendada*.
-3. **Artefactos en Español Neutro**: Documentación profesional, limpia y estructurada (`idea.md`, `spec.md`, `plan.md`, `tasks.md`).
-4. **Puertas de Decisión Estrictas**:
-   - `intake` → Generación de `idea.md` tras aprobación explícita.
-   - `spec` → Entrevista de especificación y requerimientos (`spec.md`).
-   - `plan` → Arquitectura y diseño técnico (`plan.md`).
-   - `tasks` → Desglose atómico de tareas con TDD (`tasks.md`).
-   - `apply` → Implementación con aislamiento e hilos delgados.
-   - `verify` → Verificación contra especificación y matriz de pruebas.
+</div>
 
 ---
 
-## 🚀 Instalación y Uso
+## 🚀 Instalación en 5 segundos
 
-El repositorio incluye un instalador interactivo asistido ([install.sh](install.sh)) compatible con macOS y Linux sin requerir dependencias externas.
-
-### 1. Instalación Rápida Interactiva (Recomendada)
-
-Ejecuta el asistente paso a paso. Presiona `[Enter]` en cada consulta para aceptar automáticamente las opciones recomendadas:
+Abre tu terminal y ejecuta:
 
 ```bash
-# Si ya tienes el repositorio descargado:
-./install.sh
-
-# O desde cualquier máquina con una sola línea:
 curl -fsSL https://raw.githubusercontent.com/ValentinZurita/vsdd/main/install.sh | bash
 ```
 
-El instalador:
-1. Detecta automáticamente tus editores instalados (**Claude Code**, **Cursor**, **Codex**, **Antigravity**).
-2. Permite elegir instalación **Global** (para todos tus proyectos) o **Local** (únicamente en el proyecto actual).
-3. Si ya tienes instalada una versión anterior, detecta la actualización y sincroniza los cambios de forma segura.
+> **¿Ya tienes el repositorio descargado?** Simplemente ejecuta:
+> ```bash
+> ./install.sh
+> ```
+> *El asistente detectará automáticamente tus editores. Presiona **`[Enter]`** en cada pregunta para aceptar las opciones recomendadas.*
 
-### 2. Modo no interactivo (Automatización / CI/CD)
+---
 
-Para instalar de forma directa aceptando los valores recomendados sin confirmación manual:
+## 🎯 ¿Cómo se usa?
 
-```bash
-./install.sh -y
+Una vez instalada, abre cualquier chat en **Cursor**, **Claude Code** o **Google Antigravity** y escribe:
+
+```text
+vsdd
 ```
+*(O también: `sdd interactivo` o `mi sdd`)*
 
-### 3. Desinstalación limpia
+El agente tomará el rol de **conductor metodológico** y te entrevistará paso a paso para diseñar tu funcionalidad antes de tocar una sola línea de código.
 
-Para retirar la skill de todos los entornos configurados:
+---
 
-```bash
-./install.sh --uninstall
+## 🔄 El Flujo de Trabajo
+
+VSDD avanza a través de 6 puertas de calidad estrictas:
+
+```text
+💡 Intake        📋 Spec          📐 Plan          ✅ Tasks         ⚡ Apply         🛡️ Verify
+──────────       ─────────        ────────         ─────────        ─────────        ─────────
+Captura la       Define requi-    Diseña la        Desglosa tareas  Implementa en    Verifica tests
+idea y dolor     sitos y casos    arquitectura     atómicas con     hilos aislados   y matriz de
+del usuario.     de uso reales.   técnica.         estrategia TDD.  y puertas gates. requerimientos.
 ```
 
 ---
 
-## 🛠️ Instalador Avanzado para Node.js (Opcional)
+## 💎 ¿Por qué VSDD?
 
-Si prefieres usar Node.js directamente, dispones del script [scripts/install-skill.js](scripts/install-skill.js):
-
-```bash
-# Instalación global en todos los agentes
-node scripts/install-skill.js --scope global --hosts all --apply
-
-# Actualización segura
-node scripts/install-skill.js --scope global --hosts all --apply --update
-```
+* **El usuario es el dueño del dominio**: Cada línea escrita en la especificación proviene de tus respuestas, nunca de alucinaciones de la IA.
+* **Una pregunta a la vez**: Preguntas directas con opciones numeradas (`1 / 2 / 3`) y análisis de **Pro**, **Contra** y **Recomendada**.
+* **Documentación profesional**: Todos los artefactos se generan en español neutro y limpio (`idea.md`, `spec.md`, `plan.md`, `tasks.md`).
+* **Aislamiento de responsabilidades**: El conductor que te entrevista no es el mismo que escribe o valida el código, garantizando auditorías independientes reales.
 
 ---
 
-## 📂 Rutas de Instalación por Host
+## ⚙️ Comandos Útiles
 
-| Host | Alcance Proyecto | Alcance Global |
-| --- | --- | --- |
-| **Claude Code** | `.claude/skills/vsdd/` | `~/.claude/skills/vsdd/` |
-| **Codex** | `.agents/skills/vsdd/` | `~/.agents/skills/vsdd/` |
-| **Cursor** | `.agents/skills/vsdd/` | `~/.agents/skills/vsdd/` |
-| **Antigravity** | `.agents/skills/vsdd/` | `~/.gemini/config/skills/vsdd/` |
+| Acción | Comando |
+| :--- | :--- |
+| **Instalar o Actualizar** | `./install.sh` *(detecta automáticamente si ya existe y la actualiza)* |
+| **Instalación Directa (Sin preguntas)** | `./install.sh -y` |
+| **Desinstalar** | `./install.sh --uninstall` |
 
 ---
 
-## 🧪 Tests
-
-El instalador cuenta con tests unitarios nativos con `node:test`:
-
-```bash
-node --test tests/install-skill.test.js
-```
+<div align="center">
+  <sub>Desarrollado con arquitectura limpia y portable por <b>Valentin Zurita</b>. Licencia MIT.</sub>
+</div>
