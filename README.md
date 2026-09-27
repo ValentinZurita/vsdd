@@ -23,36 +23,52 @@ VSDD es un bundle de **Agent Skills** agnóstico y portable, diseñado para func
 
 ## 🚀 Instalación y Uso
 
-El repositorio incluye un instalador automático ([scripts/install-skill.js](scripts/install-skill.js)) que detecta las rutas oficiales para cada host y deduplica destinos compartidos.
+El repositorio incluye un instalador interactivo asistido ([install.sh](install.sh)) compatible con macOS y Linux sin requerir dependencias externas.
 
-### 1. Instalación Global (Disponible para todos tus proyectos)
+### 1. Instalación Rápida Interactiva (Recomendada)
+
+Ejecuta el asistente paso a paso. Presiona `[Enter]` en cada consulta para aceptar automáticamente las opciones recomendadas:
 
 ```bash
-# Simular instalación (dry-run por defecto)
-node scripts/install-skill.js --scope global --hosts all
+# Si ya tienes el repositorio descargado:
+./install.sh
 
-# Aplicar instalación en todos los agentes configurados
+# O desde cualquier máquina con una sola línea:
+curl -fsSL https://raw.githubusercontent.com/ValentinZurita/vsdd/main/install.sh | bash
+```
+
+El instalador:
+1. Detecta automáticamente tus editores instalados (**Claude Code**, **Cursor**, **Codex**, **Antigravity**).
+2. Permite elegir instalación **Global** (para todos tus proyectos) o **Local** (únicamente en el proyecto actual).
+3. Si ya tienes instalada una versión anterior, detecta la actualización y sincroniza los cambios de forma segura.
+
+### 2. Modo no interactivo (Automatización / CI/CD)
+
+Para instalar de forma directa aceptando los valores recomendados sin confirmación manual:
+
+```bash
+./install.sh -y
+```
+
+### 3. Desinstalación limpia
+
+Para retirar la skill de todos los entornos configurados:
+
+```bash
+./install.sh --uninstall
+```
+
+---
+
+## 🛠️ Instalador Avanzado para Node.js (Opcional)
+
+Si prefieres usar Node.js directamente, dispones del script [scripts/install-skill.js](scripts/install-skill.js):
+
+```bash
+# Instalación global en todos los agentes
 node scripts/install-skill.js --scope global --hosts all --apply
 
-# O elegir hosts específicos:
-node scripts/install-skill.js --scope global --hosts claude-code,cursor,antigravity --apply
-```
-
-### 2. Instalación Local (En el proyecto actual)
-
-```bash
-# Instalar en el directorio del proyecto
-node scripts/install-skill.js --scope project --hosts all --apply
-
-# O apuntar a otra carpeta de proyecto:
-node scripts/install-skill.js --scope project --hosts all --project /ruta/a/tu/proyecto --apply
-```
-
-### 3. Actualización de Versiones (`--update`)
-
-Cuando descargues mejoras o una nueva versión de este repositorio, podés actualizar tu instalación existente con el flag `--update`:
-
-```bash
+# Actualización segura
 node scripts/install-skill.js --scope global --hosts all --apply --update
 ```
 

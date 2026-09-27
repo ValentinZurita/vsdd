@@ -7,7 +7,9 @@
     "vsdd-install": "./scripts/install-skill.js"
   },
   "scripts": {
-    "test": "node --test tests/install-skill.test.js"
+    "test": "node --test tests/install-skill.test.js",
+    "install:skill": "./install.sh",
+    "uninstall:skill": "./install.sh --uninstall"
   },
   "keywords": [
     "vsdd",
