@@ -124,10 +124,12 @@ Devolver solo: archivos tocados, hash de commit y resultado de pruebas.
    - **Tras confirmación con "Sí":**
      - El conductor ejecuta: `git checkout <rama_base> && git merge --no-ff <rama_actual>`.
      - **Cláusula de aborto por conflictos:** Si el comando `git merge` reporta conflictos de fusión, DETENERSE de inmediato, ejecutar `git merge --abort`, notificar al usuario y devolver el control para resolución manual asistida.
-     - Si la fusión es exitosa, preguntar amablemente:
-       `¿Deseas eliminar la rama local integrada (<rama_actual>) y en el repositorio remoto si existe? (1: Solo local / 2: Local y remota / 3: Conservar ambas)`
-       Ejecutar la opción seleccionada limpiamente.
-     - Confirmar en el chat la finalización exitosa del ciclo VSDD.
+     - Si la fusión es exitosa:
+       1. Actualizar la cabecera de `tasks.md` y `spec.md` en disco a `Estado: completado`. Con esto la funcionalidad queda formalmente terminada y archivada.
+       2. Preguntar amablemente:
+          `¿Deseas eliminar la rama local integrada (<rama_actual>) y en el repositorio remoto si existe? (1: Solo local / 2: Local y remota / 3: Conservar ambas)`
+          Ejecutar la opción seleccionada limpiamente.
+       3. Confirmar en el chat la finalización exitosa del ciclo VSDD.
 
 ---
 

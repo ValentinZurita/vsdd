@@ -30,20 +30,35 @@ Load when the user starts or continues vsdd. Run **one phase** at a time.
 
 ## Decision Gates
 
-| Request                         | Load                   | Until                                                              |
+| Solicitud / Comando             | Acción / Cargar        | Condición de Cierre / Transición                                   |
 | ------------------------------- | ---------------------- | ------------------------------------------------------------------ |
-| Intake / idea / default         | `references/intake.md` | User is happy; idea.md saved                                       |
-| Spec / especificación           | `references/spec.md`   | Green light; spec.md listo-para-plan                               |
-| Plan / planificación            | `references/plan.md`   | Green light; plan.md listo-para-tareas                             |
-| Tasks / tareas                  | `references/tasks.md`  | Green light; tasks.md listo-para-aplicar                           |
-| Implement, apply, implementar   | `references/apply.md`  | Tasks executed with TDD & phase gates; tasks.md listo-para-verify  |
-| Verify, verificar, verificación | `references/verify.md` | Spec 100% verified & quality gates green; ready for delivery flow  |
+| `vsdd` (sin argumentos) / hub   | **Hub de Pendientes**  | Usuario selecciona funcionalidad pendiente o nueva idea            |
+| Intake / idea / nueva           | `references/intake.md` | Usuario satisfecho; idea.md guardado en disco                      |
+| Spec / especificación           | `references/spec.md`   | Luz verde auditoría; spec.md listo-para-plan                       |
+| Plan / planificación            | `references/plan.md`   | Luz verde auditoría; plan.md listo-para-tareas                     |
+| Tasks / tareas                  | `references/tasks.md`  | Luz verde auditoría; tasks.md listo-para-aplicar                   |
+| Implement, apply, implementar   | `references/apply.md`  | Tareas TDD y controles completados; tasks.md listo-para-verify     |
+| Verify, verificar, verificación | `references/verify.md` | Validación 100% verde y DoD integrado; tasks.md completado         |
+
+## Protocolo del Hub de Pendientes (`vsdd` sin argumentos)
+
+1. **Escaneo de Funcionalidades:** Escanear `docs/sdd/vsdd/` (o ejecutar `scripts/vsdd-status.js --json`).
+2. **Filtrar Incompletas:** Identificar todas las funcionalidades cuyo estado **no** sea `completado`.
+3. **Si no hay pendientes:** Informar amablemente: *«No tienes funcionalidades pendientes. ¿Deseas iniciar una nueva idea con vsdd intake?»* y esperar respuesta.
+4. **Si hay pendientes:** Mostrar el panel estructurado con opciones numeradas (`[1]`, `[2]`, ... `[N]`), detallando fase actual, tareas completadas vs pendientes y próximo comando. **DETENERSE y esperar selección.**
+5. **Cápsula de Contexto Previo al Arranque (Context Onboarding):**
+   Al elegir una opción, presentar un resumen ejecutivo de 4 puntos:
+   - **Objetivo:** Valor o dolor de negocio de la funcionalidad.
+   - **Dónde nos quedamos:** Qué se completó hasta el momento.
+   - **Acción inmediata siguiente:** Tarea o fase exacta a ejecutar.
+   - **Rama Git:** Rama de trabajo detectada.
+   Preguntar: `¿Listo para reanudar con <fase>? (Sí / No, deseo revisar antes)` y esperar confirmación.
 
 ## Execution Steps
 
-1. Route by the table. If STOP, one line.
-2. Read that reference and follow it. Spec: `spec-template.md` + project guides + idea. Plan: `plan-template.md` + project guides + spec. Tasks: `tasks-template.md` + project guides + plan+spec. Apply: `apply.md` + `tasks.md` headings. Verify: `verify.md` + independent auditor + gate runner.
-3. Wait after every question (Intake/Spec/Plan only; Tasks/Apply/Verify do not interview). Close **starts** the turn after 4c (or directly post-generation in Tasks: write, then auditor Task). Recap starts only after that Task returns.
+1. Enrutamiento según la tabla. Si la invocación es `vsdd` sin argumentos, ejecutar primero el Protocolo del Hub.
+2. Leer la referencia correspondiente y seguirla con rigor. Spec: `spec-template.md` + directrices del proyecto + `idea.md`. Plan: `plan-template.md` + directrices del proyecto + `spec.md`. Tasks: `tasks-template.md` + directrices del proyecto + `plan.md`. Apply: `apply.md` + encabezados de `tasks.md`. Verify: `verify.md` + auditor independiente + runner de pruebas.
+3. Detenerse y esperar tras cada pregunta (Intake/Spec/Plan). Tasks/Apply/Verify operan de forma autónoma con checkpoints y confirmación final de DoD.
 
 ## Output Contract
 
