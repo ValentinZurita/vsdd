@@ -42,17 +42,24 @@ Load when the user starts or continues vsdd. Run **one phase** at a time.
 
 ## Protocolo del Hub de Pendientes (`vsdd` sin argumentos)
 
-1. **Escaneo de Funcionalidades:** Escanear `docs/sdd/vsdd/` (o ejecutar `scripts/vsdd-status.js --json`).
+1. **Escaneo de Funcionalidades y Desfase:** Escanear `docs/sdd/vsdd/` ejecutando `scripts/vsdd-status.js --json` (inspección de estado, tareas y detección de drift).
 2. **Filtrar Incompletas:** Identificar todas las funcionalidades cuyo estado **no** sea `completado`.
 3. **Si no hay pendientes:** Informar amablemente: *«No tienes funcionalidades pendientes. ¿Deseas iniciar una nueva idea con vsdd intake?»* y esperar respuesta.
-4. **Si hay pendientes:** Mostrar el panel estructurado con opciones numeradas (`[1]`, `[2]`, ... `[N]`), detallando fase actual, tareas completadas vs pendientes y próximo comando. **DETENERSE y esperar selección.**
+4. **Si hay pendientes:** Mostrar el panel estructurado con opciones numeradas (`[1]`, `[2]`, ... `[N]`), detallando fase actual, tareas completadas vs pendientes, salud del repositorio con semáforo (🟢/🟡/🔴) y próximo comando. **DETENERSE y esperar selección.**
 5. **Cápsula de Contexto Previo al Arranque (Context Onboarding):**
-   Al elegir una opción, presentar un resumen ejecutivo de 4 puntos:
+   Al elegir una opción, presentar un resumen ejecutivo de 5 puntos:
    - **Objetivo:** Valor o dolor de negocio de la funcionalidad.
    - **Dónde nos quedamos:** Qué se completó hasta el momento.
+   - **Salud del Repositorio (Drift):** Estado del semáforo con detalle de archivos:
+     * 🟢 **Al día:** Repositorio en sincronía con el plan.
+     * 🟡 **Cambios detectados:** N archivos modificados en upstream o con cambios locales no commiteados.
+     * 🔴 **Desfase crítico:** Uno o más archivos declarados para modificar (`~`) no existen en disco (posible renombre o borrado).
    - **Acción inmediata siguiente:** Tarea o fase exacta a ejecutar.
-   - **Rama Git:** Rama de trabajo detectada.
-   Preguntar: `¿Listo para reanudar con <fase>? (Sí / No, deseo revisar antes)` y esperar confirmación.
+   - **Rama Git:** Rama de trabajo detectada vs rama original del plan.
+
+   *Alerta Proactiva de Desfase:* Si el semáforo es 🟡 o 🔴, advertir al usuario antes de reanudar:
+   *«Se detectó desfase en el repositorio: [detalle]. ¿Deseas que auditemos el impacto de estos cambios sobre el plan antes de comenzar o continuamos directamente?»*
+   De lo contrario, preguntar: `¿Listo para reanudar con <fase>? (Sí / No, deseo revisar antes)` y esperar confirmación.
 
 ## Execution Steps
 

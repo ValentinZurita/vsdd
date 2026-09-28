@@ -88,7 +88,10 @@ Máximo 2 búsquedas web breves. Si no es necesaria, omitir este paso y continua
 11. **Cierre Definitivo y Menú de Transición:**
     Únicamente en el turno donde el usuario confirme con **Sí**:
     - Actualizar en `plan.md` la cabecera a `Estado: listo-para-tareas`.
+    - Generar o actualizar `context.json` en la carpeta de la funcionalidad (`saveFeatureContext`): extraer la lista de archivos con sus acciones (`+` crear, `~` modificar, `-` eliminar) desde el `## Árbol de cambios`, y registrar el commit base actual (`git rev-parse HEAD`), la rama activa y el timestamp de captura.
     - Si Engram está disponible, persistir un resumen con `mem_save topic_key: vsdd-plan-<slug>`.
+    - Si el proyecto usa Git, preguntar cordialmente al usuario si desea registrar un commit convencional de documentación o prefiere continuar sin commitear:
+      *«¿Deseas que prepare un commit de git (`docs(sdd): aprobar plan técnico para <slug>`) o preferís continuar sin commitear?»*
     - Presentar en la terminal el menú de transición de 3 opciones:
 
 ```text

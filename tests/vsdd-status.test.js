@@ -3,7 +3,14 @@ const assert = require('node:assert/strict');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
-const { scanFeatures, formatHubMenu } = require('../scripts/vsdd-status');
+const { execSync } = require('child_process');
+const {
+  scanFeatures,
+  formatHubMenu,
+  calculateFeatureDrift,
+  extractTrackedFiles,
+  saveFeatureContext,
+} = require('../scripts/vsdd-status');
 
 test('scanFeatures returns empty array if docs/sdd/vsdd does not exist', () => {
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'vsdd-status-test-empty-'));
@@ -89,3 +96,266 @@ Estado: listo-para-aplicar
     fs.rmSync(tempDir, { recursive: true, force: true });
   }
 });
+
+test('calculateFeatureDrift returns UNKNOWN when directory is not a git repo or has 0 commits', () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'vsdd-drift-nogit-'));
+  try {
+    const featDir = path.join(tempDir, 'docs', 'sdd', 'vsdd', '001-test');
+    fs.mkdirSync(featDir, { recursive: true });
+    fs.writeFileSync(path.join(featDir, 'plan.md'), '# Plan\n## Árbol de cambios\n- ~ src/app.js\n');
+
+    const drift = calculateFeatureDrift(featDir, {}, tempDir);
+    assert.equal(drift.status, 'UNKNOWN');
+    assert.equal(drift.reason, 'NO_GIT_OR_NO_COMMITS');
+  } finally {
+    fs.rmSync(tempDir, { recursive: true, force: true });
+  }
+});
+
+test('extractTrackedFiles parses plan.md Árbol de cambios with correct action types', () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'vsdd-extract-'));
+  try {
+    const planContent = `# Plan de prueba
+## Árbol de cambios
+- ~ \`src/services/auth.service.ts\`
+- + \`src/dtos/login.dto.ts\`
+- - \`src/legacy/old-auth.ts\`
+`;
+    const res = extractTrackedFiles(tempDir, planContent);
+    assert.equal(res.trackedFiles.length, 3);
+    assert.deepEqual(res.trackedFiles[0], { path: 'src/services/auth.service.ts', action: 'modify' });
+    assert.deepEqual(res.trackedFiles[1], { path: 'src/dtos/login.dto.ts', action: 'create' });
+    assert.deepEqual(res.trackedFiles[2], { path: 'src/legacy/old-auth.ts', action: 'delete' });
+  } finally {
+    fs.rmSync(tempDir, { recursive: true, force: true });
+  }
+});
+
+test('calculateFeatureDrift does NOT trigger RED for new files (+) that do not exist yet (Judgment Day catch)', () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'vsdd-drift-newfiles-'));
+  try {
+    // Inicializar git con 1 commit
+    execSync('git init', { cwd: tempDir, stdio: 'ignore' });
+    execSync('git config user.name "Test"', { cwd: tempDir, stdio: 'ignore' });
+    execSync('git config user.email "test@example.com"', { cwd: tempDir, stdio: 'ignore' });
+
+    fs.mkdirSync(path.join(tempDir, 'src'), { recursive: true });
+    fs.writeFileSync(path.join(tempDir, 'src', 'existing.js'), 'console.log("hello");');
+    execSync('git add . && git commit -m "initial"', { cwd: tempDir, stdio: 'ignore' });
+
+    const featDir = path.join(tempDir, 'docs', 'sdd', 'vsdd', '001-test');
+    fs.mkdirSync(featDir, { recursive: true });
+
+    // Plan incluye archivo existente para modificar (~), y archivo nuevo (+) que NO existe
+    const planContent = `# Plan
+## Árbol de cambios
+- ~ src/existing.js
+- + src/brand-new-file.js
+`;
+    fs.writeFileSync(path.join(featDir, 'plan.md'), planContent);
+
+    const drift = calculateFeatureDrift(featDir, { planContent }, tempDir);
+    // No debe ser RED porque src/existing.js sí existe, y src/brand-new-file.js es '+'
+    assert.notEqual(drift.status, 'RED');
+    assert.equal(drift.status, 'GREEN');
+  } finally {
+    fs.rmSync(tempDir, { recursive: true, force: true });
+  }
+});
+
+test('calculateFeatureDrift triggers RED when a file marked to modify (~) does NOT exist on disk', () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'vsdd-drift-red-'));
+  try {
+    execSync('git init', { cwd: tempDir, stdio: 'ignore' });
+    execSync('git config user.name "Test"', { cwd: tempDir, stdio: 'ignore' });
+    execSync('git config user.email "test@example.com"', { cwd: tempDir, stdio: 'ignore' });
+
+    fs.writeFileSync(path.join(tempDir, 'README.md'), 'init');
+    execSync('git add . && git commit -m "initial"', { cwd: tempDir, stdio: 'ignore' });
+
+    const featDir = path.join(tempDir, 'docs', 'sdd', 'vsdd', '001-test');
+    fs.mkdirSync(featDir, { recursive: true });
+
+    // El plan dice que va a modificar src/deleted.js, pero ese archivo no existe
+    const planContent = `# Plan
+## Árbol de cambios
+- ~ src/deleted.js
+`;
+    fs.writeFileSync(path.join(featDir, 'plan.md'), planContent);
+
+    const drift = calculateFeatureDrift(featDir, { planContent }, tempDir);
+    assert.equal(drift.status, 'RED');
+    assert.equal(drift.reason, 'MISSING_MODIFIED_FILE');
+    assert.ok(drift.details.missingFiles.includes('src/deleted.js'));
+  } finally {
+    fs.rmSync(tempDir, { recursive: true, force: true });
+  }
+});
+
+test('calculateFeatureDrift triggers YELLOW when tracked files are modified in commits after baseCommit', () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'vsdd-drift-yellow-'));
+  try {
+    execSync('git init', { cwd: tempDir, stdio: 'ignore' });
+    execSync('git config user.name "Test"', { cwd: tempDir, stdio: 'ignore' });
+    execSync('git config user.email "test@example.com"', { cwd: tempDir, stdio: 'ignore' });
+
+    fs.mkdirSync(path.join(tempDir, 'src'), { recursive: true });
+    const serviceFile = path.join(tempDir, 'src', 'service.js');
+    fs.writeFileSync(serviceFile, 'function login() {}\n');
+    execSync('git add . && git commit -m "commit 1"', { cwd: tempDir, stdio: 'ignore' });
+
+    const baseCommit = execSync('git rev-parse HEAD', { cwd: tempDir, encoding: 'utf8' }).trim();
+
+    const featDir = path.join(tempDir, 'docs', 'sdd', 'vsdd', '001-test');
+    fs.mkdirSync(featDir, { recursive: true });
+
+    // Guardar context.json con baseCommit
+    saveFeatureContext(
+      featDir,
+      {
+        baseCommit,
+        trackedFiles: [{ path: 'src/service.js', action: 'modify' }],
+      },
+      tempDir
+    );
+
+    // Simular que en el repo alguien modifica src/service.js en un commit posterior
+    fs.writeFileSync(serviceFile, 'function login(token) { return true; }\n');
+    execSync('git add . && git commit -m "commit 2 por otro dev"', { cwd: tempDir, stdio: 'ignore' });
+
+    const drift = calculateFeatureDrift(featDir, {}, tempDir);
+    assert.equal(drift.status, 'YELLOW');
+    assert.equal(drift.reason, 'MODIFIED_UPSTREAM');
+    assert.equal(drift.details.commitsBehind, 1);
+    assert.ok(drift.details.modifiedFiles.includes('src/service.js'));
+  } finally {
+    fs.rmSync(tempDir, { recursive: true, force: true });
+  }
+});
+
+test('calculateFeatureDrift triggers YELLOW when tracked files have uncommitted local changes', () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'vsdd-drift-dirty-'));
+  try {
+    execSync('git init', { cwd: tempDir, stdio: 'ignore' });
+    execSync('git config user.name "Test"', { cwd: tempDir, stdio: 'ignore' });
+    execSync('git config user.email "test@example.com"', { cwd: tempDir, stdio: 'ignore' });
+
+    fs.mkdirSync(path.join(tempDir, 'src'), { recursive: true });
+    const file = path.join(tempDir, 'src', 'app.js');
+    fs.writeFileSync(file, 'const a = 1;\n');
+    execSync('git add . && git commit -m "initial"', { cwd: tempDir, stdio: 'ignore' });
+
+    const baseCommit = execSync('git rev-parse HEAD', { cwd: tempDir, encoding: 'utf8' }).trim();
+
+    const featDir = path.join(tempDir, 'docs', 'sdd', 'vsdd', '001-test');
+    fs.mkdirSync(featDir, { recursive: true });
+
+    saveFeatureContext(
+      featDir,
+      {
+        baseCommit,
+        trackedFiles: [{ path: 'src/app.js', action: 'modify' }],
+      },
+      tempDir
+    );
+
+    // Modificar localmente sin commitear
+    fs.writeFileSync(file, 'const a = 2; // dirty local\n');
+
+    const drift = calculateFeatureDrift(featDir, {}, tempDir);
+    assert.equal(drift.status, 'YELLOW');
+    assert.equal(drift.reason, 'DIRTY_LOCAL');
+    assert.ok(drift.details.dirtyLocalFiles.includes('src/app.js'));
+  } finally {
+    fs.rmSync(tempDir, { recursive: true, force: true });
+  }
+});
+
+test('extractTrackedFiles auto-syncs if plan.md is newer than context.json (Judgment Day catch)', () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'vsdd-drift-sync-'));
+  try {
+    const featDir = path.join(tempDir, 'docs', 'sdd', 'vsdd', '001-test');
+    fs.mkdirSync(featDir, { recursive: true });
+
+    const contextPath = path.join(featDir, 'context.json');
+    const planPath = path.join(featDir, 'plan.md');
+
+    // 1. Guardar context.json viejo
+    fs.writeFileSync(
+      contextPath,
+      JSON.stringify({
+        version: '1.0',
+        trackedFiles: [{ path: 'src/old.js', action: 'modify' }],
+      })
+    );
+
+    // Forzar timestamp anterior en context.json
+    const pastTime = (Date.now() - 50000) / 1000;
+    fs.utimesSync(contextPath, pastTime, pastTime);
+
+    // 2. Crear plan.md nuevo con otro archivo
+    fs.writeFileSync(
+      planPath,
+      `# Plan
+## Árbol de cambios
+- ~ src/new-service.js
+`
+    );
+
+    const res = extractTrackedFiles(featDir);
+    assert.equal(res.trackedFiles.length, 1);
+    assert.equal(res.trackedFiles[0].path, 'src/new-service.js');
+  } finally {
+    fs.rmSync(tempDir, { recursive: true, force: true });
+  }
+});
+
+test('calculateFeatureDrift resolves paths correctly when invoked from a subfolder', () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'vsdd-drift-subfolder-'));
+  try {
+    execSync('git init', { cwd: tempDir, stdio: 'ignore' });
+    execSync('git config user.name "Test"', { cwd: tempDir, stdio: 'ignore' });
+    execSync('git config user.email "test@example.com"', { cwd: tempDir, stdio: 'ignore' });
+
+    fs.mkdirSync(path.join(tempDir, 'src', 'nested'), { recursive: true });
+    fs.writeFileSync(path.join(tempDir, 'src', 'nested', 'index.js'), 'export {};\n');
+    execSync('git add . && git commit -m "initial"', { cwd: tempDir, stdio: 'ignore' });
+
+    const featDir = path.join(tempDir, 'docs', 'sdd', 'vsdd', '001-test');
+    fs.mkdirSync(featDir, { recursive: true });
+    const planContent = `# Plan\n## Árbol de cambios\n- ~ src/nested/index.js\n`;
+    fs.writeFileSync(path.join(featDir, 'plan.md'), planContent);
+
+    // Ejecutar simulando cwd en una subcarpeta profunda
+    const subfolderCwd = path.join(tempDir, 'src', 'nested');
+    const drift = calculateFeatureDrift(featDir, { planContent }, subfolderCwd);
+    assert.equal(drift.status, 'GREEN');
+    assert.equal(drift.reason, 'NO_BASE_COMMIT_CLEAN');
+  } finally {
+    fs.rmSync(tempDir, { recursive: true, force: true });
+  }
+});
+
+test('formatHubMenu renders drift status badge cleanly', () => {
+  const features = [
+    {
+      id: '001-test',
+      objective: 'Probar semáforo',
+      phaseDescription: 'Implementación en progreso',
+      totalTasks: 2,
+      completedTasks: 1,
+      pendingTasks: 1,
+      nextTaskTitle: 'Segunda tarea',
+      nextCommand: 'vsdd apply',
+      isCompleted: false,
+      drift: {
+        status: 'YELLOW',
+        label: '🟡 1 archivo(s) con cambios en upstream (+3 commits)',
+      },
+    },
+  ];
+
+  const menu = formatHubMenu(features);
+  assert.ok(menu.includes('Salud del Repo: 🟡 1 archivo(s) con cambios en upstream (+3 commits)'));
+});
+

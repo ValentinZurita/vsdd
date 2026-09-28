@@ -52,7 +52,10 @@ Leer plan aprobado → estructurar tareas autónomamente en fases lógicas con T
    5) Tareas cuyo alcance estimado supere los 30 minutos (exigir subdivisión), tareas sin especificación TDD o fases sin bloque de control.
 6. **Correcciones Autónomas en `tasks.md`:** El conductor lee el reporte del auditor (sin pegarlo crudo en el chat) y corrige directamente `tasks.md` en disco (subdivide tareas extensas, ajusta dependencias y completa mapeos). Prohibido editar código del producto.
    - Actualizar cabecera a `Estado: listo-para-aplicar`.
+   - Actualizar `context.json` en la carpeta de la funcionalidad (`saveFeatureContext`) registrando el estado `listo-para-aplicar` y el timestamp actual.
    - Si Engram está disponible, persistir estado con `mem_save topic_key: vsdd-tasks-<slug>`.
+   - Si el proyecto usa Git, preguntar cordialmente al usuario si desea registrar un commit convencional de documentación o prefiere continuar sin commitear:
+     *«¿Deseas que prepare un commit de git (`docs(sdd): aprobar tareas para <slug>`) o preferís continuar sin commitear?»*
 7. **Presentación Ejecutiva en Terminal y Menú de Transición:**
    Mostrar en el chat una vista ejecutiva estructurada con:
    - Resumen de Fases planificadas.

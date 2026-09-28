@@ -108,7 +108,10 @@ A lo sumo 2 consultas genéricas breves. Si no es necesaria, omitir este paso y 
 11. **Cierre Definitivo y Menú de Transición:**
     Únicamente en el turno donde el usuario confirme con **Sí**:
     - Actualizar en `spec.md` la cabecera a `Estado: listo-para-plan`.
+    - Actualizar `context.json` en la carpeta de la funcionalidad registrando la finalización de la fase spec (`saveFeatureContext`).
     - Si Engram está disponible, persistir un resumen con `mem_save topic_key: vsdd-spec-<slug>`.
+    - Si el proyecto usa Git, preguntar cordialmente al usuario si desea registrar un commit convencional de documentación o prefiere continuar sin commitear:
+      *«¿Deseas que prepare un commit de git (`docs(sdd): aprobar especificación para <slug>`) o preferís continuar sin commitear?»*
     - Presentar en la terminal el menú de transición de 3 opciones:
 
 ```text
