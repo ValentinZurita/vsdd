@@ -98,11 +98,12 @@ Si el reporte viene vacío o falla, continuar directamente a partir del texto de
    **DETENERSE (STOP). No escribir ningún archivo en este turno.**
 7. **Ajustes:** Si el usuario responde "No" o pide cambios, formular una pregunta puntual para aclarar el ajuste, actualizar el recapitulativo y volver a preguntar.
 8. **Cierre y guardado del artefacto:**
-   Únicamente en el turno donde el usuario responda **Sí**:
-   - Crear el directorio `docs/sdd/vsdd/<nnn>-<slug>/` si no existe (`nnn` correlativo de 3 dígitos, ej: `001-mi-idea`).
-   - Guardar `docs/sdd/vsdd/<nnn>-<slug>/idea.md` conteniendo los 4 encabezados más la línea final `Estado: listo-para-spec`.
-   - Si Engram está disponible, persistir un resumen con `mem_save topic_key: vsdd-intake-<slug>`.
-   - Confirmar en el chat que la idea ha quedado congelada con éxito e indicar que el siguiente paso natural es iniciar la especificación con `vsdd spec`.
+    Únicamente en el turno donde el usuario responda **Sí**:
+    - Crear el directorio `docs/sdd/vsdd/<nnn>-<slug>/` si no existe (`nnn` correlativo de 3 dígitos, ej: `001-mi-idea`).
+    - Guardar `docs/sdd/vsdd/<nnn>-<slug>/idea.md` conteniendo los 4 encabezados más la línea final `Estado: listo-para-spec`.
+    - Ejecutar la **Compuerta de Formato**: `node scripts/vsdd-validate.js docs/sdd/vsdd/<nnn>-<slug>/idea.md`. Si reporta errores, corregirlos en disco de inmediato.
+    - Si Engram está disponible, persistir un resumen con `mem_save topic_key: vsdd-intake-<slug>`.
+    - Confirmar en el chat que la idea ha quedado congelada con éxito e indicar que el siguiente paso natural es iniciar la especificación con `vsdd spec`.
 
 ## Contrato de Salida
 

@@ -26,6 +26,7 @@ Load when the user starts or continues vsdd. Run **one phase** at a time.
 - Load the reference for the current phase. Spec/Plan/Tasks also read their template, that folder's `idea.md`, and the chosen prior artifact **after it is chosen and before the first gap question**.
 - Close (Spec/Plan/Tasks): on the turn **after** 4c (or directly post-plan in Tasks), write the vsdd file, then spawn the **independent** host subagent (medium/reasoning model, e.g. `pro`, `sonnet`/`opus`). **Artifact exception:** conductor may patch `spec.md`/`plan.md`/`tasks.md` after the auditor; that exception does **not** apply to product code. Spec/Plan recap and contento after that report. Do not simulate. After Sí (or post-audit in Tasks), the message **is** the action menu.
 - Product-thread isolation (Apply/Verify): the main agent **never** edits product files directly, **never** applies auditor findings, and **never** pastes auditor reports or gate logs in chat. Distinct host subagents: implementer, auditor (readonly), repairer, gate/closer. Chat = thin checkpoints + Verify executive summary.
+- **Deterministic Format Gate (Zero-Token Linter):** Immediately upon writing or editing any VSDD artifact (`idea.md`, `spec.md`, `plan.md`, `tasks.md`), the conductor MUST run `node scripts/vsdd-validate.js <path-to-file>`. If the validator exits with code 1, the conductor MUST fix the line-numbered errors on disk before presenting any recap in chat and before launching any QA auditor subagent. The Minimum Viable Contract requires core baseline sections to be present, but allows custom extensible sections (e.g. `## Plan de Rollback`, `## Migración de Datos`) provided they pass syntactic hygiene (no residual `**Llenar:**` or `<placeholders>`, closed code fences). Never present a malformed artifact or dispatch QA on an unvalidated file.
 - If the requested phase has no file in `references/`, STOP. Do not improvise. Intake, Spec, and Plan **interview then write** their file; Tasks slices `plan.md` autonomously without interview; dumping `idea.md` into `spec.md`, `spec.md` into `plan.md`, or `plan.md` into `tasks.md` is a bug.
 
 ## Decision Gates
@@ -33,10 +34,10 @@ Load when the user starts or continues vsdd. Run **one phase** at a time.
 | Solicitud / Comando             | Acción / Cargar        | Condición de Cierre / Transición                                   |
 | ------------------------------- | ---------------------- | ------------------------------------------------------------------ |
 | `vsdd` (sin argumentos) / hub   | **Hub de Pendientes**  | Usuario selecciona funcionalidad pendiente o nueva idea            |
-| Intake / idea / nueva           | `references/intake.md` | Usuario satisfecho; idea.md guardado en disco                      |
-| Spec / especificación           | `references/spec.md`   | Luz verde auditoría; spec.md listo-para-plan                       |
-| Plan / planificación            | `references/plan.md`   | Luz verde auditoría; plan.md listo-para-tareas                     |
-| Tasks / tareas                  | `references/tasks.md`  | Luz verde auditoría; tasks.md listo-para-aplicar                   |
+| Intake / idea / nueva           | `references/intake.md` | Usuario satisfecho; idea.md validado con vsdd-validate y guardado  |
+| Spec / especificación           | `references/spec.md`   | vsdd-validate verde; luz verde auditoría; spec.md listo-para-plan  |
+| Plan / planificación            | `references/plan.md`   | vsdd-validate verde; luz verde auditoría; plan.md listo-para-tareas|
+| Tasks / tareas                  | `references/tasks.md`  | vsdd-validate verde; luz verde auditoría; tasks.md listo-para-aplicar |
 | Implement, apply, implementar   | `references/apply.md`  | Tareas TDD y controles completados; tasks.md listo-para-verify     |
 | Verify, verificar, verificación | `references/verify.md` | Validación 100% verde y DoD integrado; tasks.md completado         |
 

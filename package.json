@@ -6,11 +6,13 @@
   "bin": {
     "vsdd": "./scripts/vsdd-status.js",
     "vsdd-status": "./scripts/vsdd-status.js",
+    "vsdd-validate": "./scripts/vsdd-validate.js",
     "vsdd-install": "./scripts/install-skill.js"
   },
   "scripts": {
     "test": "node --test tests/*.test.js",
     "status": "./scripts/vsdd-status.js",
+    "validate": "./scripts/vsdd-validate.js",
     "install:skill": "./install.sh",
     "uninstall:skill": "./install.sh --uninstall"
   },

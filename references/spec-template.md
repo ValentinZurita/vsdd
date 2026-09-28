@@ -1,6 +1,6 @@
 # Plantilla de Especificación (Spec Template)
 
-El archivo `spec.md` guardado **debe contener exactamente** los encabezados que figuran a continuación, en este orden y con estos nombres. Sin encabezados `##` adicionales, sin renombrar y sin omitir secciones. Las líneas de instrucción (este bloque introductorio, los bloques **Llenar:**, **Forma:**, **Vacío:** y las ayudas entre corchetes angulares) nunca deben aparecer en el recapitulativo del chat ni en el archivo final.
+El archivo `spec.md` guardado **debe cumplir obligatoriamente con el Contrato Mínimo Viable** conteniendo los encabezados requeridos que figuran a continuación, sin omitir secciones base ni alterar su orden lógico. Se permite agregar secciones complementarias (ej: accesibilidad, matriz de permisos) si el corte lo amerita, siempre que cumplan con la higiene sintáctica. Las líneas de instrucción (este bloque introductorio, los bloques **Llenar:**, **Forma:**, **Vacío:** y las ayudas entre corchetes angulares) nunca deben aparecer en el recapitulativo del chat ni en el archivo final. Inmediatamente tras escribirlo, se valida con `node scripts/vsdd-validate.js`.
 
 Cada oración debe tener trazabilidad directa hacia `idea.md` o hacia una respuesta confirmada de la entrevista. Enfocarse en el **qué** y el **por qué**. Queda estrictamente prohibido incluir detalles de arquitectura, librerías, nombres de archivos, rutas de carpetas o código. El `Estado` inicial es `en-revision` hasta que el usuario responda **Sí** a la pregunta de satisfacción (momento en el cual pasa a `listo-para-plan`).
 

@@ -66,7 +66,8 @@ Máximo 2 búsquedas web breves. Si no es necesaria, omitir este paso y continua
 
 ## Cierre, Auditoría y Ciclo de Satisfacción
 
-8. **Redacción Inicial del Artefacto en Disco:** En el turno posterior a la respuesta de 4c, redactar `docs/sdd/vsdd/<nnn>-<slug>/plan.md` siguiendo estrictamente la estructura de `plan-template.md`, con todas las instrucciones de plantilla eliminadas y `Estado: en-revision`.
+8. **Redacción Inicial del Artefacto y Compuerta de Formato:** En el turno posterior a la respuesta de 4c, redactar `docs/sdd/vsdd/<nnn>-<slug>/plan.md` siguiendo el Contrato Mínimo Viable de `plan-template.md`, con todas las instrucciones de plantilla eliminadas y `Estado: en-revision`.
+   - **Compuerta Determinista de Formato (Obligatoria):** Ejecutar inmediatamente `node scripts/vsdd-validate.js docs/sdd/vsdd/<nnn>-<slug>/plan.md`. Si el validador emite algún error (línea, prefijos `+ `, `~ `, `- ` en el árbol, alternativas descartadas faltantes en DTs o tabla de cobertura), el conductor debe corregirlos en disco de inmediato. Queda estrictamente prohibido despachar la auditoría de QA sobre un archivo que no pase `vsdd-validate` con código 0.
 9. **Auditoría Independiente de QA (Obligatoria):**
    En el mismo turno, despachar un subagente de auditoría QA independiente (modelo analítico de alto razonamiento, ej: `pro` o `sonnet`):
    Anunciar en chat: `● [Subagente: Auditoría QA del Plan] Verificando cobertura de requisitos, decisiones técnicas y arquitectura con modelo: <modelo>...`
