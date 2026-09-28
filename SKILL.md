@@ -59,6 +59,7 @@ Load when the user starts or continues vsdd. Run **one phase** at a time.
 
    *Alerta Proactiva de Desfase:* Si el semáforo es 🟡 o 🔴, advertir al usuario antes de reanudar:
    *«Se detectó desfase en el repositorio: [detalle]. ¿Deseas que auditemos el impacto de estos cambios sobre el plan antes de comenzar o continuamos directamente?»*
+   Si el usuario autoriza la auditoría, despachar un subagente rápido y económico (modelo fast/cheap, ej: `flash`, `haiku`, `composer-2.5-fast`) anunciándolo visiblemente en el chat: `● [Subagente: Drift Auditor] Modelo: flash...`. El subagente opera en solo lectura sobre el diff puntual y la sección del `plan.md`, devolviendo un veredicto sintético de 2 oraciones sin inflar el contexto del hilo principal.
    De lo contrario, preguntar: `¿Listo para reanudar con <fase>? (Sí / No, deseo revisar antes)` y esperar confirmación.
 
 ## Execution Steps
