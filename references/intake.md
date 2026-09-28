@@ -48,17 +48,32 @@ Riesgo: (1 línea o "ninguno")
 ```
 Si el reporte viene vacío o falla, continuar directamente a partir del texto de la idea del usuario. Nunca pegar el reporte interno en el chat.
 
-**Ola 2 (Exploración externa / mejores prácticas):**
-Solo si tras resolver Ola 1 una consulta externa aportaría valor real al usuario sobre cómo se suele resolver este problema en la industria.
-Anunciar en chat: `● [Subagente: Exploración Web] Investigando referencias externas con modelo: <modelo>...`
-A lo sumo 2 consultas genéricas. Si no hay subagentes o no se requiere, continuar sin demora.
+**Ola 2 (Benchmarking Quirúrgico y Puntos Ciegos):**
+- **Momento de activación:** Tras responder `Q1` (cuando el problema central y la intención inicial están claros).
+- **Disparo condicional:** Se activa únicamente si la idea involucra: (1) seguridad/autenticación/permisos, (2) interacción de usuario/UX/CLI, (3) integración con servicios externos/APIs, o (4) dominios con librerías o estándares consagrados. Se omite si la idea es un cambio puramente cosmético, un script interno aislado o un refactor mecánico simple.
+- **Transparencia en chat:** Anuncio visible obligatorio:
+  `● [Subagente: Benchmarking y Referencias] Investigando patrones y proyectos líderes en la industria con modelo: flash...`
+- **Límite estricto de búsquedas:** Subagente rápido (`flash`, `haiku`) ejecutando como máximo 2 consultas específicas:
+  1. `<problema_conciso> architecture best practices modern github`
+  2. `<problema_conciso> common pitfalls edge cases security`
+- **Memo interno del subagente (≤8 líneas, prohibido volcar crudo en chat):**
+  ```text
+  Referente líder: <1 proyecto o librería open-source respetada>
+  Enfoque estándar: <1 línea de cómo se resuelve comúnmente en la industria>
+  Punto ciego crítico: <1 trampa de seguridad, caso límite o error de UX común>
+  Propuesta de alcance: <1 disyuntiva concreta de inclusión vs exclusión>
+  ```
+- **Integración en el diálogo (Q2 o Q3):**
+  El conductor formula la siguiente pregunta de opciones (**Pro**, **Contra**, **Recomendada**) presentando el hallazgo:
+  *«Mirando cómo lo resuelven proyectos de referencia como [Referente], encontramos que suelen contemplar [Punto Ciego]. ¿Te interesa incluirlo en el alcance de este corte o preferís dejarlo expresamente fuera de alcance para no inflar el MVP?»*
+  La elección del usuario alimenta directamente las viñetas de `## En alcance / Fuera de alcance` en `idea.md`.
 
 ## Ciclo de Conversación (Loop)
 
 0. `idea.md` se escribe **únicamente después** de que el usuario responda **Sí** a la pregunta de satisfacción del recapitulativo.
-1. **Capturar la idea:** Si el usuario no ha expuesto su idea, la primera pregunta es solicitarla en lenguaje cotidiano. Si ya la expuso, comenzar con la exploración transparente.
+1. **Capturar la idea:** Si el usuario no ha expuesto su idea, la primera pregunta es solicitarla en lenguaje cotidiano. Si ya la expuso, comenzar con la exploración transparente (Ola 1).
 2. **Formular Q1:** Basada en la decisión más importante de la idea, con formato estructurado de opciones (**Pro**, **Contra**, **Recomendada**). Esperar respuesta.
-3. **Explorar temas complementarios:** Abordar de 2 a 4 decisiones clave (alcance, excepciones principales, flujo principal). Mantener un máximo de 5 a 6 intercambios breves para no fatigar al usuario.
+3. **Explorar temas complementarios y Benchmarking:** Tras Q1, si aplica Ola 2, incorporar el hallazgo de benchmarking en Q2 como una decisión de alcance (En alcance / Fuera de alcance). Abordar de 2 a 4 decisiones clave en total. Mantener un máximo estricto de 5 a 6 intercambios breves para no fatigar al usuario.
 4. **Respuestas abiertas o fuera de menú:** Si el usuario responde algo distinto a las opciones numeradas, tomar su respuesta como la decisión elegida y confirmar con una línea amable en el siguiente turno.
 5. **Generar la propuesta estructurada (Recapitulativo en Chat):**
    Presentar en el chat la síntesis de la idea organizada bajo los 4 encabezados formales:
