@@ -864,3 +864,28 @@ test('CLI soporta --save-interview, --get-interview y --clear-interview', () => 
     fs.rmSync(tempDir, { recursive: true, force: true });
   }
 });
+
+test('CLI rechaza argumentos faltantes o banderas mal ubicadas con salida de error', () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'vsdd-cli-err-'));
+  try {
+    const cliPath = path.resolve(__dirname, '..', 'scripts', 'vsdd-status.js');
+
+    // Sin directorio para --save-interview
+    assert.throws(() => {
+      execSync(`node "${cliPath}" --save-interview --phase spec`, { cwd: tempDir, stdio: 'pipe' });
+    });
+
+    // Sin fase para --get-interview
+    assert.throws(() => {
+      execSync(`node "${cliPath}" --get-interview "${tempDir}"`, { cwd: tempDir, stdio: 'pipe' });
+    });
+
+    // Sin directorio para --promote-intake-draft
+    assert.throws(() => {
+      execSync(`node "${cliPath}" --promote-intake-draft`, { cwd: tempDir, stdio: 'pipe' });
+    });
+  } finally {
+    fs.rmSync(tempDir, { recursive: true, force: true });
+  }
+});
+

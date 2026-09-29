@@ -1013,6 +1013,26 @@ if (require.main === module) {
   const args = process.argv.slice(2);
   const cwd = process.cwd();
 
+  function getCliDir(cliArgs, commandFlag, workingDir) {
+    const dirIdx = cliArgs.indexOf(commandFlag);
+    if (dirIdx !== -1 && cliArgs[dirIdx + 1] && !cliArgs[dirIdx + 1].startsWith('--')) {
+      return path.resolve(workingDir, cliArgs[dirIdx + 1]);
+    }
+    const explicitDirIdx = cliArgs.indexOf('--dir');
+    if (explicitDirIdx !== -1 && cliArgs[explicitDirIdx + 1] && !cliArgs[explicitDirIdx + 1].startsWith('--')) {
+      return path.resolve(workingDir, cliArgs[explicitDirIdx + 1]);
+    }
+    return '';
+  }
+
+  function getCliPhase(cliArgs) {
+    const phaseIdx = cliArgs.indexOf('--phase');
+    if (phaseIdx !== -1 && cliArgs[phaseIdx + 1] && !cliArgs[phaseIdx + 1].startsWith('--')) {
+      return cliArgs[phaseIdx + 1];
+    }
+    return '';
+  }
+
   if (args.includes('--json')) {
     const features = scanFeatures(cwd);
     console.log(JSON.stringify(features, null, 2));
@@ -1034,15 +1054,20 @@ if (require.main === module) {
     const result = saveIntakeDraft(data, cwd);
     console.log(JSON.stringify(result, null, 2));
   } else if (args.includes('--promote-intake-draft')) {
-    const dirIdx = args.indexOf('--promote-intake-draft');
-    const featureDir = args[dirIdx + 1] ? path.resolve(cwd, args[dirIdx + 1]) : '';
+    const featureDir = getCliDir(args, '--promote-intake-draft', cwd);
+    if (!featureDir) {
+      console.error(JSON.stringify({ error: 'Directorio de funcionalidad requerido para --promote-intake-draft' }));
+      process.exit(1);
+    }
     const result = promoteIntakeDraft(featureDir, cwd);
     console.log(JSON.stringify(result, null, 2));
   } else if (args.includes('--save-exploration')) {
-    const dirIdx = args.indexOf('--save-exploration');
-    const featureDir = args[dirIdx + 1] ? path.resolve(cwd, args[dirIdx + 1]) : '';
-    const phaseIdx = args.indexOf('--phase');
-    const phase = phaseIdx !== -1 ? args[phaseIdx + 1] : '';
+    const featureDir = getCliDir(args, '--save-exploration', cwd);
+    const phase = getCliPhase(args);
+    if (!featureDir || !phase) {
+      console.error(JSON.stringify({ error: 'Parámetros requeridos: --save-exploration <dir> --phase <phase>' }));
+      process.exit(1);
+    }
     const dataIdx = args.indexOf('--data');
     const dataRaw = dataIdx !== -1 ? args[dataIdx + 1] : '{}';
     let data = {};
@@ -1054,17 +1079,21 @@ if (require.main === module) {
     const result = saveFeatureExploration(featureDir, phase, data, cwd);
     console.log(JSON.stringify(result, null, 2));
   } else if (args.includes('--get-exploration')) {
-    const dirIdx = args.indexOf('--get-exploration');
-    const featureDir = args[dirIdx + 1] ? path.resolve(cwd, args[dirIdx + 1]) : '';
-    const phaseIdx = args.indexOf('--phase');
-    const phase = phaseIdx !== -1 ? args[phaseIdx + 1] : '';
+    const featureDir = getCliDir(args, '--get-exploration', cwd);
+    const phase = getCliPhase(args);
+    if (!featureDir || !phase) {
+      console.error(JSON.stringify({ error: 'Parámetros requeridos: --get-exploration <dir> --phase <phase>' }));
+      process.exit(1);
+    }
     const result = getFeatureExploration(featureDir, phase);
     console.log(JSON.stringify(result, null, 2));
   } else if (args.includes('--save-interview')) {
-    const dirIdx = args.indexOf('--save-interview');
-    const featureDir = args[dirIdx + 1] ? path.resolve(cwd, args[dirIdx + 1]) : '';
-    const phaseIdx = args.indexOf('--phase');
-    const phase = phaseIdx !== -1 ? args[phaseIdx + 1] : '';
+    const featureDir = getCliDir(args, '--save-interview', cwd);
+    const phase = getCliPhase(args);
+    if (!featureDir || !phase) {
+      console.error(JSON.stringify({ error: 'Parámetros requeridos: --save-interview <dir> --phase <phase>' }));
+      process.exit(1);
+    }
     const dataIdx = args.indexOf('--data');
     const dataRaw = dataIdx !== -1 ? args[dataIdx + 1] : '{}';
     let data = {};
@@ -1076,17 +1105,21 @@ if (require.main === module) {
     const result = saveInterviewAnswer(featureDir, phase, data, cwd);
     console.log(JSON.stringify(result, null, 2));
   } else if (args.includes('--get-interview')) {
-    const dirIdx = args.indexOf('--get-interview');
-    const featureDir = args[dirIdx + 1] ? path.resolve(cwd, args[dirIdx + 1]) : '';
-    const phaseIdx = args.indexOf('--phase');
-    const phase = phaseIdx !== -1 ? args[phaseIdx + 1] : '';
+    const featureDir = getCliDir(args, '--get-interview', cwd);
+    const phase = getCliPhase(args);
+    if (!featureDir || !phase) {
+      console.error(JSON.stringify({ error: 'Parámetros requeridos: --get-interview <dir> --phase <phase>' }));
+      process.exit(1);
+    }
     const result = getInterviewProgress(featureDir, phase);
     console.log(JSON.stringify(result, null, 2));
   } else if (args.includes('--clear-interview')) {
-    const dirIdx = args.indexOf('--clear-interview');
-    const featureDir = args[dirIdx + 1] ? path.resolve(cwd, args[dirIdx + 1]) : '';
-    const phaseIdx = args.indexOf('--phase');
-    const phase = phaseIdx !== -1 ? args[phaseIdx + 1] : '';
+    const featureDir = getCliDir(args, '--clear-interview', cwd);
+    const phase = getCliPhase(args);
+    if (!featureDir || !phase) {
+      console.error(JSON.stringify({ error: 'Parámetros requeridos: --clear-interview <dir> --phase <phase>' }));
+      process.exit(1);
+    }
     const result = clearInterviewProgress(featureDir, phase, cwd);
     console.log(JSON.stringify(result, null, 2));
   } else if (args.includes('--save-intake-interview')) {
