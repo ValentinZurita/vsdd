@@ -78,15 +78,23 @@ Al recibir el memo, persistir inmediatamente con `saveIntakeDraft` antes de form
 
 0. **Verificación de borrador previo y regla de escritura:**
    - Comprobar si existe `docs/sdd/vsdd/.draft-intake.json` (`getIntakeDraft`). Si existe:
-     `● [Borrador detectado] Se encontró una exploración previa: "<ideaSummary>".`
-     `¿Deseas retomar este borrador o empezar una nueva idea desde cero?`
-     `1. Retomar borrador en progreso [Recomendada]`
-     `2. Descartar borrador y comenzar nueva idea`
-     Si elige 1, cargar la idea y hallazgos guardados y formular la siguiente pregunta pendiente. Si elige 2, ejecutar `clearIntakeDraft` y comenzar desde cero.
+     `● [Borrador detectado] Se encontró una sesión previa para: "<ideaSummary>".`
+     Si ya cuenta con preguntas respondidas en `interview.questions`:
+       Listar acuerdos previos en viñetas:
+       `  • Q1: <respuesta>`
+       `¿Deseas retomar la entrevista desde la siguiente pregunta o reiniciar?`
+       `1. Retomar entrevista desde la pregunta pendiente [Recomendada]`
+       `2. Reiniciar preguntas de la idea (mantiene exploración)`
+       `3. Descartar borrador y comenzar nueva idea desde cero`
+       Si elige 1, continuar con la siguiente pregunta. Si elige 2, reiniciar `interview.questions = []` y formular Q1. Si elige 3, ejecutar `clearIntakeDraft` y empezar de cero.
+     De lo contrario:
+       `¿Deseas retomar este borrador o empezar una nueva idea desde cero?`
+       `1. Retomar borrador en progreso [Recomendada]`
+       `2. Descartar borrador y comenzar nueva idea`
    - `idea.md` se escribe **únicamente después** de que el usuario responda **Sí** a la pregunta de satisfacción del recapitulativo.
 1. **Capturar la idea:** Si el usuario no ha expuesto su idea, la primera pregunta es solicitarla en lenguaje cotidiano. Si ya la expuso, comenzar con la exploración transparente (Ola 1) y persistir de inmediato en `.draft-intake.json`.
-2. **Formular Q1:** Basada en la decisión más importante de la idea, con formato estructurado de opciones (**Pro**, **Contra**, **Recomendada**). Esperar respuesta.
-3. **Explorar temas complementarios y Benchmarking:** Tras Q1, si aplica Ola 2, incorporar el hallazgo de benchmarking en Q2 como una decisión de alcance (En alcance / Fuera de alcance) y persistir en `.draft-intake.json`. Abordar de 2 a 4 decisiones clave en total. Mantener un máximo estricto de 5 a 6 intercambios breves para no fatigar al usuario.
+2. **Formular Q1:** Basada en la decisión más importante de la idea, con formato estructurado de opciones (**Pro**, **Contra**, **Recomendada**). Al recibir la respuesta del usuario, persistir de inmediato con `saveIntakeInterviewAnswer({ index: 1, question: '...', answer: '...' })`. Esperar respuesta.
+3. **Explorar temas complementarios y Benchmarking:** Tras Q1, si aplica Ola 2, incorporar el hallazgo de benchmarking en Q2 como una decisión de alcance (En alcance / Fuera de alcance). Al consensuar cada decisión, persistir con `saveIntakeInterviewAnswer`. Abordar de 2 a 4 decisiones clave en total. Mantener un máximo estricto de 5 a 6 intercambios breves para no fatigar al usuario.
 4. **Respuestas abiertas o fuera de menú:** Si el usuario responde algo distinto a las opciones numeradas, tomar su respuesta como la decisión elegida y confirmar con una línea amable en el siguiente turno.
 5. **Generar la propuesta estructurada (Recapitulativo en Chat):**
    Presentar en el chat la síntesis de la idea organizada bajo los 4 encabezados formales:

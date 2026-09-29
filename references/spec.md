@@ -54,7 +54,7 @@ A lo sumo 2 consultas genéricas breves. Al recibir el reporte, persistir acumul
 
 ## Ciclo de Conversación (Entrevista Consultiva)
 
-0. **Cargar la idea y comprobar exploraciones previas:**
+0. **Cargar la idea y comprobar estado previo (Exploración y Entrevista):**
    - Requiere un archivo `idea.md` con `Estado: listo-para-spec`. Si no existe, invitar primero a ejecutar `vsdd intake`. Si hay varias, listar opciones numeradas en el chat y esperar selección.
    - Si ya existe un `spec.md` en esa carpeta, ofrecer: 1) Continuar revisión, 2) Rehacer, 3) Seleccionar otra idea.
    - **Detección de Exploración Previa:** Antes de despachar subagentes, comprobar si existe `phases.spec.exploration` en `context.json` (`getFeatureExploration`). Si existe:
@@ -62,10 +62,19 @@ A lo sumo 2 consultas genéricas breves. Al recibir el reporte, persistir acumul
      `¿Deseas retomar con estos hallazgos o realizar una nueva exploración?`
      `1. Usar exploración guardada y continuar con la entrevista [Recomendada]`
      `2. Descartar y re-explorar requisitos`
-     Si elige 1, avanzar directamente a `Q1` o a la pregunta pendiente sin relanzar el subagente.
+     Si elige 1, avanzar directamente a la entrevista.
+   - **Detección de Entrevista Previa en Progreso:** Comprobar si existen preguntas respondidas en `phases.spec.interview.questions` (`getInterviewProgress(featDir, 'spec')`). Si existen:
+     `● [Entrevista en progreso detectada] Se encontraron acuerdos funcionales previos:`
+     Listar acuerdos previos en viñetas:
+     `  • Q1 (<tema>): <respuesta>`
+     `¿Deseas retomar la entrevista desde la pregunta pendiente o reiniciar?`
+     `1. Retomar desde la pregunta pendiente [Recomendada]`
+     `2. Ajustar respuesta previa`
+     `3. Reiniciar entrevista de especificación (mantiene exploración previa)`
+     Si elige 1, continuar con la siguiente pregunta pendiente. Si elige 2, permitir redefinir el tema y actualizar la respuesta. Si elige 3, ejecutar `clearInterviewProgress(featDir, 'spec')` y formular Q1 desde cero sin perder la exploración técnica de requisitos.
 1. **Inicio de sesión:** Leer las directrices del proyecto (si existen) y el `idea.md` seleccionado. Indicar en una línea amable que iniciaremos la especificación para cerrar los detalles de comportamiento paso a paso.
-2. **Primera Pregunta (Q1):** Anunciar el tope estimado $N$ y formular la pregunta 1 abordando la decisión funcional más importante, con opciones formateadas con viñetas. **DETENERSE y esperar respuesta.**
-3. **Recorrido de Temas:** Avanzar por los temas clave (casos límite, errores, permisos, reglas de negocio), siempre una pregunta por turno encabezada con `Pregunta k de como máximo N.`.
+2. **Primera Pregunta (Q1):** Anunciar el tope estimado $N$ y formular la pregunta 1 abordando la decisión funcional más importante, con opciones formateadas con viñetas. Al recibir la respuesta del usuario, persistir de inmediato con `saveInterviewAnswer(featDir, 'spec', { index: 1, topic: '<tema>', question: '...', answer: '...' })`. **DETENERSE y esperar respuesta.**
+3. **Recorrido de Temas:** Avanzar por los temas clave (casos límite, errores, permisos, reglas de negocio), siempre una pregunta por turno encabezada con `Pregunta k de como máximo N.`. Al recibir cada respuesta del usuario, persistir de inmediato con `saveInterviewAnswer(featDir, 'spec', { index: k, topic: '<tema>', question: '...', answer: '...' })`.
 4. **Pregunta de Cierre del Diálogo (4c):** Al agotar los temas o alcanzar el tope, formular de manera obligatoria:
    `Última pregunta: ¿Deseas agregar o aclarar algún punto adicional sobre el comportamiento de la funcionalidad, o dejamos la propuesta así?`
    **DETENERSE y esperar respuesta.** No escribir el archivo ni generar el recapitulativo antes de esta respuesta.

@@ -679,6 +679,8 @@ function saveIntakeDraft(draftData = {}, cwd = process.cwd()) {
 
   const existingExploration = existing.exploration || {};
   const newExploration = draftData.exploration || {};
+  const existingInterview = existing.interview || {};
+  const newInterview = draftData.interview || {};
 
   const updated = {
     $schema: 'https://json-schema.org/draft/2020-12/schema',
@@ -690,6 +692,12 @@ function saveIntakeDraft(draftData = {}, cwd = process.cwd()) {
       ...existingExploration,
       ...newExploration,
       completedAt: newExploration.completedAt || existingExploration.completedAt || new Date().toISOString(),
+    },
+    interview: {
+      ...existingInterview,
+      ...newInterview,
+      questions: newInterview.questions || existingInterview.questions || [],
+      updatedAt: newInterview.updatedAt || existingInterview.updatedAt || new Date().toISOString(),
     },
     ...(draftData.extra || {}),
   };
@@ -754,6 +762,7 @@ function promoteIntakeDraft(featureDir, cwd = process.cwd()) {
           status: 'completado',
           completedAt: new Date().toISOString(),
           exploration: draft.exploration || {},
+          interview: draft.interview || { questions: [] },
         },
       },
     },
@@ -762,6 +771,152 @@ function promoteIntakeDraft(featureDir, cwd = process.cwd()) {
 
   clearIntakeDraft(cwd);
   return updatedContext;
+}
+
+/**
+ * Guarda o actualiza una respuesta consensuada de la entrevista en context.json.
+ */
+function saveInterviewAnswer(featureDir, phase, questionData = {}, cwd = process.cwd()) {
+  const contextPath = path.join(featureDir, 'context.json');
+  let existing = {};
+  if (fs.existsSync(contextPath)) {
+    try {
+      existing = JSON.parse(fs.readFileSync(contextPath, 'utf8'));
+    } catch (err) {}
+  }
+
+  const existingPhase = (existing.phases && existing.phases[phase]) || {};
+  const existingInterview = existingPhase.interview || {};
+  const questions = Array.isArray(existingInterview.questions) ? [...existingInterview.questions] : [];
+
+  if (questionData && (questionData.question || questionData.answer)) {
+    const qIndex = questionData.index || questionData.q || (questions.length + 1);
+    const entry = {
+      index: qIndex,
+      topic: questionData.topic || '',
+      question: questionData.question || '',
+      answer: questionData.answer || '',
+      recordedAt: questionData.recordedAt || new Date().toISOString(),
+    };
+
+    const existingPos = questions.findIndex((q) => q.index === qIndex);
+    if (existingPos !== -1) {
+      questions[existingPos] = { ...questions[existingPos], ...entry };
+    } else {
+      questions.push(entry);
+    }
+  }
+
+  questions.sort((a, b) => (a.index || 0) - (b.index || 0));
+
+  return saveFeatureContext(
+    featureDir,
+    {
+      phases: {
+        [phase]: {
+          ...existingPhase,
+          status: existingPhase.status || 'en-progreso',
+          interview: {
+            ...existingInterview,
+            maxQuestions: questionData.maxQuestions || existingInterview.maxQuestions || 0,
+            updatedAt: new Date().toISOString(),
+            questions,
+          },
+        },
+      },
+    },
+    cwd
+  );
+}
+
+/**
+ * Obtiene el progreso de la entrevista de una fase.
+ */
+function getInterviewProgress(featureDir, phase) {
+  const contextPath = path.join(featureDir, 'context.json');
+  if (!fs.existsSync(contextPath)) {
+    return null;
+  }
+  try {
+    const data = JSON.parse(fs.readFileSync(contextPath, 'utf8'));
+    if (data.phases && data.phases[phase] && data.phases[phase].interview) {
+      return data.phases[phase].interview;
+    }
+  } catch (err) {
+    return null;
+  }
+  return null;
+}
+
+/**
+ * Reinicia las preguntas de la entrevista de una fase sin borrar la exploración previa.
+ */
+function clearInterviewProgress(featureDir, phase, cwd = process.cwd()) {
+  const contextPath = path.join(featureDir, 'context.json');
+  let existing = {};
+  if (fs.existsSync(contextPath)) {
+    try {
+      existing = JSON.parse(fs.readFileSync(contextPath, 'utf8'));
+    } catch (err) {}
+  }
+
+  const existingPhase = (existing.phases && existing.phases[phase]) || {};
+  return saveFeatureContext(
+    featureDir,
+    {
+      phases: {
+        [phase]: {
+          ...existingPhase,
+          interview: {
+            questions: [],
+            updatedAt: new Date().toISOString(),
+          },
+        },
+      },
+    },
+    cwd
+  );
+}
+
+/**
+ * Guarda o actualiza una respuesta en el borrador de intake.
+ */
+function saveIntakeInterviewAnswer(questionData = {}, cwd = process.cwd()) {
+  const draft = getIntakeDraft(cwd) || {};
+  const existingInterview = draft.interview || {};
+  const questions = Array.isArray(existingInterview.questions) ? [...existingInterview.questions] : [];
+
+  if (questionData && (questionData.question || questionData.answer)) {
+    const qIndex = questionData.index || questionData.q || (questions.length + 1);
+    const entry = {
+      index: qIndex,
+      topic: questionData.topic || '',
+      question: questionData.question || '',
+      answer: questionData.answer || '',
+      recordedAt: questionData.recordedAt || new Date().toISOString(),
+    };
+
+    const existingPos = questions.findIndex((q) => q.index === qIndex);
+    if (existingPos !== -1) {
+      questions[existingPos] = { ...questions[existingPos], ...entry };
+    } else {
+      questions.push(entry);
+    }
+  }
+
+  questions.sort((a, b) => (a.index || 0) - (b.index || 0));
+
+  return saveIntakeDraft(
+    {
+      ...draft,
+      interview: {
+        ...existingInterview,
+        updatedAt: new Date().toISOString(),
+        questions,
+      },
+    },
+    cwd
+  );
 }
 
 // -------------------------------------------------------------
@@ -905,6 +1060,46 @@ if (require.main === module) {
     const phase = phaseIdx !== -1 ? args[phaseIdx + 1] : '';
     const result = getFeatureExploration(featureDir, phase);
     console.log(JSON.stringify(result, null, 2));
+  } else if (args.includes('--save-interview')) {
+    const dirIdx = args.indexOf('--save-interview');
+    const featureDir = args[dirIdx + 1] ? path.resolve(cwd, args[dirIdx + 1]) : '';
+    const phaseIdx = args.indexOf('--phase');
+    const phase = phaseIdx !== -1 ? args[phaseIdx + 1] : '';
+    const dataIdx = args.indexOf('--data');
+    const dataRaw = dataIdx !== -1 ? args[dataIdx + 1] : '{}';
+    let data = {};
+    try {
+      data = JSON.parse(dataRaw);
+    } catch (e) {
+      data = { answer: dataRaw };
+    }
+    const result = saveInterviewAnswer(featureDir, phase, data, cwd);
+    console.log(JSON.stringify(result, null, 2));
+  } else if (args.includes('--get-interview')) {
+    const dirIdx = args.indexOf('--get-interview');
+    const featureDir = args[dirIdx + 1] ? path.resolve(cwd, args[dirIdx + 1]) : '';
+    const phaseIdx = args.indexOf('--phase');
+    const phase = phaseIdx !== -1 ? args[phaseIdx + 1] : '';
+    const result = getInterviewProgress(featureDir, phase);
+    console.log(JSON.stringify(result, null, 2));
+  } else if (args.includes('--clear-interview')) {
+    const dirIdx = args.indexOf('--clear-interview');
+    const featureDir = args[dirIdx + 1] ? path.resolve(cwd, args[dirIdx + 1]) : '';
+    const phaseIdx = args.indexOf('--phase');
+    const phase = phaseIdx !== -1 ? args[phaseIdx + 1] : '';
+    const result = clearInterviewProgress(featureDir, phase, cwd);
+    console.log(JSON.stringify(result, null, 2));
+  } else if (args.includes('--save-intake-interview')) {
+    const dataIdx = args.indexOf('--data');
+    const dataRaw = dataIdx !== -1 ? args[dataIdx + 1] : '{}';
+    let data = {};
+    try {
+      data = JSON.parse(dataRaw);
+    } catch (e) {
+      data = { answer: dataRaw };
+    }
+    const result = saveIntakeInterviewAnswer(data, cwd);
+    console.log(JSON.stringify(result, null, 2));
   } else {
     const features = scanFeatures(cwd);
     process.stdout.write(formatHubMenu(features));
@@ -926,6 +1121,10 @@ module.exports = {
   getIntakeDraft,
   clearIntakeDraft,
   promoteIntakeDraft,
+  saveInterviewAnswer,
+  getInterviewProgress,
+  clearInterviewProgress,
+  saveIntakeInterviewAnswer,
   getGitRoot,
   hasGitCommits,
   isCommitInTree,

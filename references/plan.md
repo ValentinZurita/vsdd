@@ -58,7 +58,7 @@ Máximo 2 búsquedas web breves. Al recibir el reporte, persistir acumulativamen
 
 ## Ciclo de Conversación (Entrevista Técnica)
 
-0. **Cargar la especificación y comprobar exploraciones previas:**
+0. **Cargar la especificación y comprobar estado previo (Exploración y Entrevista):**
    - Requiere un archivo `spec.md` con `Estado: listo-para-plan`. Si no existe, invitar a ejecutar `vsdd spec`. Si hay varias, listar opciones numeradas en el chat.
    - Si ya existe un `plan.md` en esa carpeta, ofrecer: 1) Continuar revisión, 2) Rehacer, 3) Seleccionar otra especificación.
    - **Detección de Exploración Previa y Salud de Git:** Antes de despachar subagentes, comprobar si existe `phases.plan.exploration` en `context.json` (`getFeatureExploration`). Si existe:
@@ -69,10 +69,19 @@ Máximo 2 búsquedas web breves. Al recibir el reporte, persistir acumulativamen
        `2. Descartar y re-explorar arquitectura`
      * Si el repositorio avanzó (drift detectado): advertir:
        `▲ Se detectaron commits nuevos en el repositorio desde la última exploración. ¿Deseas re-explorar la arquitectura o mantener los hallazgos previos?`
-     Si elige usar la previa, avanzar directamente a `Q1` o a la pregunta técnica pendiente.
+     Si elige usar la previa, avanzar a la entrevista técnica.
+   - **Detección de Entrevista Técnica Previa en Progreso:** Comprobar si existen decisiones técnicas acordadas en `phases.plan.interview.questions` (`getInterviewProgress(featDir, 'plan')`). Si existen:
+     `● [Entrevista técnica en progreso detectada] Se encontraron decisiones técnicas acordadas:`
+     Listar decisiones previas en viñetas:
+     `  • DT1 (<tema>): <respuesta / alternativa elegida>`
+     `¿Deseas retomar la entrevista desde la siguiente decisión técnica o reiniciar?`
+     `1. Retomar desde la decisión pendiente [Recomendada]`
+     `2. Ajustar decisión técnica previa`
+     `3. Reiniciar entrevista de arquitectura (mantiene exploración previa)`
+     Si elige 1, continuar con la siguiente pregunta técnica pendiente. Si elige 2, permitir redefinir la DT seleccionada y actualizar la decisión. Si elige 3, ejecutar `clearInterviewProgress(featDir, 'plan')` y formular Q1 desde cero manteniendo intacta la exploración de módulos.
 1. **Inicio de sesión:** Leer las directrices del proyecto (si existen), `idea.md` y `spec.md`. Indicar en una línea amable que definiremos la arquitectura y las decisiones técnicas paso a paso.
-2. **Primera Pregunta (Q1):** Anunciar el tope estimado $N$ y formular la pregunta 1 abordando la disyuntiva técnica más importante, con opciones estructuradas con pros, contras y recomendación basada en evidencia. **DETENERSE y esperar respuesta.**
-3. **Recorrido de Temas Técnicos:** Avanzar por las decisiones clave (módulos, datos, contratos, pruebas), siempre una pregunta por turno encabezada con `Pregunta k de como máximo N.`.
+2. **Primera Pregunta (Q1):** Anunciar el tope estimado $N$ y formular la pregunta 1 abordando la disyuntiva técnica más importante, con opciones estructuradas con pros, contras y recomendación basada en evidencia. Al recibir la respuesta del usuario, persistir de inmediato con `saveInterviewAnswer(featDir, 'plan', { index: 1, topic: '<tema/DT>', question: '...', answer: '...' })`. **DETENERSE y esperar respuesta.**
+3. **Recorrido de Temas Técnicos:** Avanzar por las decisiones clave (módulos, datos, contratos, pruebas), siempre una pregunta por turno encabezada con `Pregunta k de como máximo N.`. Al recibir cada respuesta del usuario, persistir de inmediato con `saveInterviewAnswer(featDir, 'plan', { index: k, topic: '<tema/DT>', question: '...', answer: '...' })`.
 4. **Pregunta de Cierre del Diálogo Técnico (4c):** Al agotar los temas o alcanzar el tope, formular de manera obligatoria:
    `Última pregunta: ¿Deseas agregar o aclarar algún punto técnico o arquitectónico adicional, o dejamos la propuesta así?`
    **DETENERSE y esperar respuesta.** No escribir el archivo ni generar el recapitulativo antes de esta respuesta.

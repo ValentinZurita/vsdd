@@ -16,6 +16,10 @@ const {
   getIntakeDraft,
   clearIntakeDraft,
   promoteIntakeDraft,
+  saveInterviewAnswer,
+  getInterviewProgress,
+  clearInterviewProgress,
+  saveIntakeInterviewAnswer,
 } = require('../scripts/vsdd-status');
 
 test('scanFeatures returns empty array if docs/sdd/vsdd does not exist', () => {
@@ -711,6 +715,151 @@ test('CLI soporta --save-exploration, --get-exploration e --intake-draft', () =>
     const draftOut = execSync(checkDraftCmd, { cwd: tempDir, encoding: 'utf8' });
     const draftParsed = JSON.parse(draftOut);
     assert.equal(draftParsed.ideaSummary, 'cli test draft');
+  } finally {
+    fs.rmSync(tempDir, { recursive: true, force: true });
+  }
+});
+
+test('saveInterviewAnswer acumula respuestas ordenadas y getInterviewProgress las recupera', () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'vsdd-interview-test-'));
+  try {
+    const featDir = path.join(tempDir, 'docs', 'sdd', 'vsdd', '005-interview');
+    fs.mkdirSync(featDir, { recursive: true });
+
+    // Guardar respuesta Q1
+    saveInterviewAnswer(
+      featDir,
+      'spec',
+      {
+        index: 1,
+        topic: 'Autenticación',
+        question: '¿Qué método de autenticación usar?',
+        answer: 'OAuth2 con GitHub',
+        maxQuestions: 4,
+      },
+      tempDir
+    );
+
+    // Guardar respuesta Q2
+    saveInterviewAnswer(
+      featDir,
+      'spec',
+      {
+        index: 2,
+        topic: 'Sesión',
+        question: '¿Dónde almacenar el token?',
+        answer: 'Cookies HTTP-only',
+      },
+      tempDir
+    );
+
+    const progress = getInterviewProgress(featDir, 'spec');
+    assert.ok(progress);
+    assert.equal(progress.maxQuestions, 4);
+    assert.equal(progress.questions.length, 2);
+    assert.equal(progress.questions[0].index, 1);
+    assert.equal(progress.questions[0].answer, 'OAuth2 con GitHub');
+    assert.equal(progress.questions[1].index, 2);
+    assert.equal(progress.questions[1].answer, 'Cookies HTTP-only');
+  } finally {
+    fs.rmSync(tempDir, { recursive: true, force: true });
+  }
+});
+
+test('clearInterviewProgress reinicia las preguntas preservando la exploración técnica', () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'vsdd-clear-interview-test-'));
+  try {
+    const featDir = path.join(tempDir, 'docs', 'sdd', 'vsdd', '006-clear');
+    fs.mkdirSync(featDir, { recursive: true });
+
+    // 1. Guardar exploración
+    saveFeatureExploration(
+      featDir,
+      'plan',
+      {
+        ola1: { modules: ['src/index.js'] },
+      },
+      tempDir
+    );
+
+    // 2. Guardar respuesta de entrevista
+    saveInterviewAnswer(
+      featDir,
+      'plan',
+      {
+        index: 1,
+        question: '¿Framework de testing?',
+        answer: 'node:test',
+      },
+      tempDir
+    );
+
+    // 3. Limpiar entrevista
+    clearInterviewProgress(featDir, 'plan', tempDir);
+
+    const interview = getInterviewProgress(featDir, 'plan');
+    assert.deepEqual(interview.questions, []);
+
+    // La exploración debe seguir intacta
+    const exploration = getFeatureExploration(featDir, 'plan');
+    assert.ok(exploration);
+    assert.deepEqual(exploration.ola1.modules, ['src/index.js']);
+  } finally {
+    fs.rmSync(tempDir, { recursive: true, force: true });
+  }
+});
+
+test('saveIntakeInterviewAnswer y promoteIntakeDraft migran las respuestas de entrevista a context.json', () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'vsdd-intake-interview-test-'));
+  try {
+    saveIntakeInterviewAnswer(
+      {
+        index: 1,
+        question: '¿Enfoque MVP?',
+        answer: 'Solo lectura inicial',
+      },
+      tempDir
+    );
+
+    const featDir = path.join(tempDir, 'docs', 'sdd', 'vsdd', '007-promoted');
+    fs.mkdirSync(featDir, { recursive: true });
+
+    const promoted = promoteIntakeDraft(featDir, tempDir);
+    assert.ok(promoted);
+    assert.equal(promoted.phases.intake.status, 'completado');
+    assert.equal(promoted.phases.intake.interview.questions.length, 1);
+    assert.equal(promoted.phases.intake.interview.questions[0].answer, 'Solo lectura inicial');
+  } finally {
+    fs.rmSync(tempDir, { recursive: true, force: true });
+  }
+});
+
+test('CLI soporta --save-interview, --get-interview y --clear-interview', () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'vsdd-cli-interview-'));
+  try {
+    const featDir = path.join(tempDir, 'docs', 'sdd', 'vsdd', '008-cli-interview');
+    fs.mkdirSync(featDir, { recursive: true });
+
+    const cliPath = path.resolve(__dirname, '..', 'scripts', 'vsdd-status.js');
+
+    // 1. Guardar respuesta vía CLI
+    const saveCmd = `node "${cliPath}" --save-interview "${featDir}" --phase spec --data '{"index":1,"question":"q1","answer":"ans1"}'`;
+    execSync(saveCmd, { cwd: tempDir, stdio: 'pipe' });
+
+    // 2. Obtener progreso vía CLI
+    const getCmd = `node "${cliPath}" --get-interview "${featDir}" --phase spec`;
+    const getOut = execSync(getCmd, { cwd: tempDir, encoding: 'utf8' });
+    const parsed = JSON.parse(getOut);
+    assert.equal(parsed.questions.length, 1);
+    assert.equal(parsed.questions[0].answer, 'ans1');
+
+    // 3. Limpiar vía CLI
+    const clearCmd = `node "${cliPath}" --clear-interview "${featDir}" --phase spec`;
+    execSync(clearCmd, { cwd: tempDir, stdio: 'pipe' });
+
+    const clearCheckOut = execSync(getCmd, { cwd: tempDir, encoding: 'utf8' });
+    const clearParsed = JSON.parse(clearCheckOut);
+    assert.deepEqual(clearParsed.questions, []);
   } finally {
     fs.rmSync(tempDir, { recursive: true, force: true });
   }
