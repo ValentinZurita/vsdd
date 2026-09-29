@@ -258,7 +258,7 @@ function validateIdea(parsed, errors, warnings) {
 
   // 2. Metadata Estado
   const estadoLine = parsed.lines.find((l) =>
-    /^\s*Estado:\s*([a-zA-Z0-9_-]+)/i.test(l.trimmed)
+    !l.inCodeBlock && /^\s*Estado:\s*([a-zA-Z0-9_-]+)/i.test(l.trimmed)
   );
   if (!estadoLine) {
     errors.push({
@@ -379,7 +379,7 @@ function validateSpec(parsed, errors, warnings) {
 
   // 2. Metadata Estado
   const estadoLine = parsed.lines.find((l) =>
-    /^\s*Estado:\s*([a-zA-Z0-9_-]+)/i.test(l.trimmed)
+    !l.inCodeBlock && /^\s*Estado:\s*([a-zA-Z0-9_-]+)/i.test(l.trimmed)
   );
   if (!estadoLine) {
     errors.push({
@@ -517,10 +517,9 @@ function validateSpec(parsed, errors, warnings) {
   );
   if (criteriosSection) {
     const contentLines = criteriosSection.lines.filter((l) => l.trimmed.length > 0);
-    // Solo viñetas de primer nivel en CommonMark (0 o 1 espacio inicial)
-    const topLevelBullets = contentLines.filter((l) => /^ {0,1}[-*]\s+/.test(l.text));
+    const allBullets = contentLines.filter((l) => /^\s*[-*]\s+/.test(l.text));
 
-    if (topLevelBullets.length === 0) {
+    if (allBullets.length === 0) {
       errors.push({
         line: criteriosSection.lineNumber,
         rule: 'criterios-sin-vinetas',
@@ -529,8 +528,11 @@ function validateSpec(parsed, errors, warnings) {
         found: 'Sin viñetas',
       });
     } else {
+      const minIndent = Math.min(...allBullets.map((b) => b.text.match(/^(\s*)/)[1].length));
+      const topLevelBullets = allBullets.filter((b) => b.text.match(/^(\s*)/)[1].length <= minIndent + 1);
+
       for (const bullet of topLevelBullets) {
-        if (!/^ {0,1}[-*]\s+Se puede comprobar que:?\s*\S+/i.test(bullet.text.replace(/\\/g, ''))) {
+        if (!/^\s*[-*]\s+Se puede comprobar que:?\s*\S+/i.test(bullet.text.replace(/\\/g, ''))) {
           errors.push({
             line: bullet.lineNumber,
             rule: 'criterio-finalizacion-prefijo-estricto',
@@ -562,7 +564,7 @@ function validatePlan(parsed, errors, warnings) {
 
   // 2. Metadata Estado
   const estadoLine = parsed.lines.find((l) =>
-    /^\s*Estado:\s*([a-zA-Z0-9_-]+)/i.test(l.trimmed)
+    !l.inCodeBlock && /^\s*Estado:\s*([a-zA-Z0-9_-]+)/i.test(l.trimmed)
   );
   if (!estadoLine) {
     errors.push({
@@ -572,11 +574,23 @@ function validatePlan(parsed, errors, warnings) {
       expected: 'Estado: en-revision o Estado: listo-para-tareas',
       found: 'No declarada',
     });
+  } else {
+    const match = estadoLine.trimmed.match(/^\s*Estado:\s*([a-zA-Z0-9_-]+)/i);
+    const estadoVal = match[1].toLowerCase();
+    if (estadoVal !== 'en-revision' && estadoVal !== 'listo-para-tareas') {
+      errors.push({
+        line: estadoLine.lineNumber,
+        rule: 'estado-invalido',
+        message: `Estado '${estadoVal}' no es válido para plan.md. Debe ser 'en-revision' o 'listo-para-tareas'.`,
+        expected: 'Estado: en-revision o Estado: listo-para-tareas',
+        found: estadoLine.trimmed,
+      });
+    }
   }
 
   // 3. Trazabilidad requerida: Idea y Spec
-  const hasIdeaRef = parsed.lines.some((l) => /^\s*Idea:\s*\S+/i.test(l.trimmed));
-  const hasSpecRef = parsed.lines.some((l) => /^\s*Spec:\s*\S+/i.test(l.trimmed));
+  const hasIdeaRef = parsed.lines.some((l) => !l.inCodeBlock && /^\s*Idea:\s*\S+/i.test(l.trimmed));
+  const hasSpecRef = parsed.lines.some((l) => !l.inCodeBlock && /^\s*Spec:\s*\S+/i.test(l.trimmed));
   if (!hasIdeaRef || !hasSpecRef) {
     errors.push({
       line: h1 ? h1.lineNumber + 2 : 3,
@@ -628,10 +642,9 @@ function validatePlan(parsed, errors, warnings) {
   );
   if (arbolSection) {
     const contentLines = arbolSection.lines.filter((l) => l.trimmed.length > 0);
-    // Solo viñetas de primer nivel en CommonMark (0 o 1 espacio inicial)
-    const topLevelBullets = contentLines.filter((l) => /^ {0,1}[-*]\s+/.test(l.text));
+    const allBullets = contentLines.filter((l) => /^\s*[-*]\s+/.test(l.text));
 
-    if (topLevelBullets.length === 0) {
+    if (allBullets.length === 0) {
       errors.push({
         line: arbolSection.lineNumber,
         rule: 'arbol-sin-archivos',
@@ -640,10 +653,13 @@ function validatePlan(parsed, errors, warnings) {
         found: 'Sin archivos declarados',
       });
     } else {
+      const minIndent = Math.min(...allBullets.map((b) => b.text.match(/^(\s*)/)[1].length));
+      const topLevelBullets = allBullets.filter((b) => b.text.match(/^(\s*)/)[1].length <= minIndent + 1);
+
       for (const bullet of topLevelBullets) {
         // Tolerancia: viñeta con backticks o comillas (- `+ ruta`, - `~ ruta`, - + ruta)
         const cleanedBulletText = bullet.text.replace(/\\/g, '');
-        const hasValidPrefix = /^ {0,1}[-*]\s+[`'"]?[+~-][\s`'"]\s*\S+/.test(cleanedBulletText);
+        const hasValidPrefix = /^\s*[-*]\s+[`'"]?[+~-][\s`'"]\s*\S+/.test(cleanedBulletText);
         if (!hasValidPrefix) {
           errors.push({
             line: bullet.lineNumber,
@@ -757,7 +773,7 @@ function validateTasks(parsed, errors, warnings) {
 
   // 2. Metadata Estado
   const estadoLine = parsed.lines.find((l) =>
-    /^\s*Estado:\s*([a-zA-Z0-9_-]+)/i.test(l.trimmed)
+    !l.inCodeBlock && /^\s*Estado:\s*([a-zA-Z0-9_-]+)/i.test(l.trimmed)
   );
   if (!estadoLine) {
     errors.push({
@@ -767,9 +783,35 @@ function validateTasks(parsed, errors, warnings) {
       expected: 'Estado: listo-para-aplicar',
       found: 'No declarada',
     });
+  } else {
+    const match = estadoLine.trimmed.match(/^\s*Estado:\s*([a-zA-Z0-9_-]+)/i);
+    const estadoVal = match[1].toLowerCase();
+    const validStates = ['en-revision', 'listo-para-aplicar', 'listo-para-verify', 'completado'];
+    if (!validStates.includes(estadoVal)) {
+      errors.push({
+        line: estadoLine.lineNumber,
+        rule: 'estado-invalido',
+        message: `Estado '${estadoVal}' no es válido para tasks.md. Debe ser uno de: ${validStates.join(', ')}.`,
+        expected: 'Estado: listo-para-aplicar',
+        found: estadoLine.trimmed,
+      });
+    }
   }
 
-  // 3. Secciones Obligatorias del Contrato Mínimo Viable
+  // 3. Trazabilidad requerida: Idea y Plan
+  const hasIdeaRef = parsed.lines.some((l) => !l.inCodeBlock && /^\s*Idea:\s*\S+/i.test(l.trimmed));
+  const hasPlanRef = parsed.lines.some((l) => !l.inCodeBlock && /^\s*Plan:\s*\S+/i.test(l.trimmed));
+  if (!hasIdeaRef || !hasPlanRef) {
+    errors.push({
+      line: h1 ? h1.lineNumber + 2 : 3,
+      rule: 'referencias-origen-requeridas',
+      message: "tasks.md debe incluir referencias de trazabilidad 'Idea: <ruta>' y 'Plan: <ruta>'.",
+      expected: "Idea: '<ruta>/idea.md' y Plan: '<ruta>/plan.md'",
+      found: `Idea: ${hasIdeaRef ? 'OK' : 'FALTA'}, Plan: ${hasPlanRef ? 'OK' : 'FALTA'}`,
+    });
+  }
+
+  // 4. Secciones Obligatorias del Contrato Mínimo Viable
   const requiredH2 = [
     { key: 'reglas de ejecución', title: 'Reglas de ejecución' },
   ];
