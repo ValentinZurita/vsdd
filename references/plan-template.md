@@ -83,10 +83,19 @@ Prohibido usar párrafos conversacionales; este árbol es el blueprint directo p
 
 **Llenar:** enfoque de pruebas (TDD: prueba primero, luego implementación). Describir qué comportamientos se verifican, cómo se prueban los casos límite y **mapear explícitamente cómo se valida cada una de las condiciones del "Listo cuando"** heredadas de `idea.md` y `spec.md`. Cada grupo de pruebas debe indicar qué requisitos cubre.
 
+Adicionalmente, si la funcionalidad cuenta con superficie de interacción visible (CLI interactivo, Web, API o comandos con flags), definir la receta del **Paseo de Verificación Manual (Golden Path Walkthrough)** para que el desarrollador o el asistente de humo puedan verificar el flujo crítico en ≤ 2 minutos. Si el corte es puramente interno o headless, registrar `No aplica (cambio 100% interno cubierto por pruebas automatizadas)`.
+
 **Vacío:** no permitido. Todo plan técnico debe definir cómo se comprueba el corte.
 
-**Forma:** viñetas. Cada una:
+**Forma:** viñetas para suites automáticas y subsección estructurada para el Golden Path:
 - **<Nombre de la suite o prueba>:** <qué comportamiento valida>. Valida Listo cuando: <condición observable>. Cubre: RF-xx.
+
+### Paseo de Verificación Manual (Golden Path Walkthrough)
+- **Superficie:** <CLI Interactivo | Web | API | Headless>
+- **Duración estimada:** ≤ 2 minutos
+- **Paso 1 (Arranque):** `<comando exacto o URL>`
+- **Paso 2 (Acción):** `<input, clics o parámetros exactos>`
+- **Paso 3 (Resultado esperado observable):** `<qué se debe observar en pantalla>`
 
 ## Cobertura RF / RNF
 

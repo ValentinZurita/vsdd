@@ -15,6 +15,7 @@ Valida de forma exhaustiva que la funcionalidad implementada cumple al 100% con 
   2. **Runner de Calidad:** Ejecuta el comando de pruebas y calidad del proyecto.
   3. **Reparador:** Aplica correcciones técnicas mínimas si hay fallos.
   4. **Closer (DoD):** Prepara la consolidación hacia la rama base.
+  5. **Asistente Golden Path (modo asistido opcional):** Ejecuta simulación de humo en segundo plano con modelo económico recomendado (`flash` / `haiku`).
 - **Trazabilidad Estricta y Validación del "Listo cuando":**
   - Cada `RF-xx` y `RNF-xx` de `spec.md` debe estar mapeado a código y pruebas automatizadas.
   - El auditor debe verificar explícitamente el cumplimiento de las 1 a 3 condiciones observables del **"Listo cuando"** heredadas de `idea.md` y formalizadas en los criterios de finalización de `spec.md`.
@@ -26,8 +27,13 @@ Valida de forma exhaustiva que la funcionalidad implementada cumple al 100% con 
     * `● [Subagente: Runner de Calidad] Ejecutando pruebas (<comando>) con modelo: <modelo>...`
     * `● [Subagente: Reparador de Verificación] Aplicando correcciones con modelo: <modelo>...`
     * `● [Subagente: Preparación DoD] Consolidando entrega hacia <rama_base> con modelo: <modelo>...`
+    * `● [Subagente: Asistente Golden Path] Ejecutando simulación de humo con modelo económico: <modelo>...`
   - **Fallback transparente:** Si un modelo no está soportado o la inicialización falla:
     `▲ [Aviso] No fue posible despachar el subagente; el agente principal asume la tarea localmente.`
+- **Soberanía del Entorno y Seguridad (No-Invasion):**
+  - Prohibido que la IA intente controlar periféricos de escritorio, teclado físico, cursor de mouse o ventanas activas del usuario sin consentimiento explícito. Toda simulación interactiva se ejecuta en subprocesos aislados (pipes, background runners, curl).
+- **Eficiencia Radical de Costos en Modo Asistido:**
+  - Para simulaciones mecánicas de humo solicitadas por el usuario ("Pruébalo tú"), jamás utilizar modelos pesados (Opus o Pro); despachar obligatoriamente modelos rápidos y económicos (`flash` o `haiku`).
 - **Bucle de Auto-Corrección (Self-Healing):**
   - Si el auditor detecta discrepancias o el runner reporta pruebas fallidas:
     1. Invocar **subagente reparador** pasando los hallazgos exclusivamente en su prompt.
@@ -86,7 +92,7 @@ Devolver solo: archivos tocados, hash de commit y resultado de pruebas.
 ```
 
 5. **Informe Ejecutivo en Terminal (Conductor):**
-   Al alcanzar luz verde en auditoría y pruebas, presentar en el chat el informe ejecutivo estructurado:
+   Al alcanzar luz verde en auditoría y pruebas, presentar en el chat el informe ejecutivo estructurado con la guía de verificación manual (Golden Path):
 
 ```text
 ╭────────────────────────────────────────────────────────╮
@@ -102,21 +108,42 @@ Devolver solo: archivos tocados, hash de commit y resultado de pruebas.
 2. Evidencia de Calidad del Proyecto:
    ✔ Pruebas del proyecto (<comando>): PASS (0 errores)
 
-3. Notas Técnicas y Runtime:
+3. 🚶‍♂️ Guía de Verificación Manual (Golden Path en ≤ 2 min):
+   Superficie: [CLI Interactivo | Web | API | Headless]
+   (Si es Headless/Interno: "No requiere verificación manual de usuario; 100% automatizado vía pruebas de integración")
+
+   • [ARRANCAR]: Copia y ejecuta:
+     $ <comando exacto o URL local>
+   • [INTERACCIÓN]: Acción concreta:
+     <qué escribir, teclear o cliquear paso a paso>
+   • [QUÉ DEBES VER CON TUS OJOS]: Criterio observable inequívoco:
+     ✔ Éxito: Verás <mensaje o componente esperado>.
+     ✖ Fallo: Si aparece <error conocido>, la prueba falló.
+
+4. Notas Técnicas y Runtime:
    • <Máximo 3 viñetas breves de contexto útil. Si no hay: Ninguna.>
 
-4. Próximo Paso (Definition of Done):
+5. Próximo Paso (Definition of Done):
    Rama activa: <rama_actual> · Rama base: <rama_base>
 
    ¿Cómo deseas proceder con la entrega de esta funcionalidad?
-   1. Integrar y fusionar hacia <rama_base> (git merge --no-ff)
-   2. Mantener la rama abierta para revisión manual o Pull Request
-   3. Relanzar verificación completa
+   1. Lo probé y funcionó perfecto → Integrar y fusionar hacia <rama_base> (git merge --no-ff)
+   2. Confío en los tests automáticos / Sin tiempo ahora → Integrar y fusionar directamente
+   3. ¿Prefieres que yo simule el Golden Path en segundo plano? Escribe: "Pruébalo tú"
+      (Ejecuta subagente asistente con modelo económico recomendado: flash)
+   4. Mantener la rama abierta para revisión manual o Pull Request
+   5. Relanzar verificación completa
 ```
+
+- **Si el usuario elige "Pruébalo tú" (Modo Asistido):**
+  1. Anunciar en chat: `● [Subagente: Asistente Golden Path] Ejecutando simulación de humo en segundo plano con modelo económico: flash...`
+  2. Despachar subagente asistente con modelo rápido (`flash` / `haiku`). El subagente ejecuta el comando de prueba en subproceso no destructivo (buffer/pipe/curl) sin invadir el monitor del usuario y confirma la salida observable.
+  3. Checkpoint en chat: `✔ [ASISTENTE GOLDEN PATH] Simulación exitosa: Salida observable confirmada.`
+  4. Devolver el control al menú de DoD (Opciones 1 o 4).
 
 - Persistir estado en memoria: `mem_save topic_key: vsdd-verify-<slug>`.
 
-6. **Consolidación y Definition of Done (si elige Opción 1):**
+6. **Consolidación y Definition of Done (si elige Opción 1 o 2):**
    - Anunciar en chat: `● [Subagente: Preparación DoD] Consolidando entrega hacia <rama_base> con modelo: <modelo>...`
    - Despachar subagente closer para inspeccionar commits y diff de la rama vs. `<rama_base>` (`git log --oneline <rama_base>..<rama>`, `git diff --stat <rama_base>..<rama>`).
    - Presentar en chat el resumen conciso (número de commits y archivos modificados) y **solicitar confirmación explícita antes de fusionar**:
@@ -125,11 +152,39 @@ Devolver solo: archivos tocados, hash de commit y resultado de pruebas.
      - El conductor ejecuta: `git checkout <rama_base> && git merge --no-ff <rama_actual>`.
      - **Cláusula de aborto por conflictos:** Si el comando `git merge` reporta conflictos de fusión, DETENERSE de inmediato, ejecutar `git merge --abort`, notificar al usuario y devolver el control para resolución manual asistida.
      - Si la fusión es exitosa:
-       1. Actualizar la cabecera de `tasks.md` y `spec.md` en disco a `Estado: completado`. Con esto la funcionalidad queda formalmente terminada y archivada.
-       2. Preguntar amablemente:
+       1. **Generación automática del artefacto permanente de cierre (`resumen.md`):**
+          Escribir en `docs/sdd/vsdd/<nnn>-<slug>/resumen.md` un resumen conciso (≤ 35 líneas, breve y sin paja) que sintetice qué se hizo, componentes clave, tests en verde y **el Golden Path exacto** para mantenimiento futuro:
+
+```markdown
+# Resumen de Entrega: <Nombre de la funcionalidad>
+
+Fecha: <YYYY-MM-DD>
+Rama integrada: <rama_actual> → <rama_base>
+Estado: completado
+
+## 1. Qué se hizo
+<2 a 3 oraciones concisas explicando el problema resuelto y la solución técnica implementada>
+
+## 2. Componentes y Pruebas
+- Archivos clave: `<ruta/principal.ext>`
+- Calidad: <X>/<X> pruebas en verde (<comando de pruebas>)
+
+## 3. Golden Path (Cómo probar esta funcionalidad)
+Superficie: <CLI Interactivo | Web | API | Headless>
+- **Paso 1 (Arranque):** `<comando o URL>`
+- **Paso 2 (Acción):** `<input, clics o parámetros exactos>`
+- **Paso 3 (Resultado esperado observable):** `<qué se debe observar en pantalla>`
+
+## 4. Notas de entrega
+- <Máximo 2 viñetas con observaciones técnicas relevantes. Si no: Ninguna.>
+```
+
+       2. Actualizar la cabecera de `tasks.md` y `spec.md` en disco a `Estado: completado`. Con esto la funcionalidad queda formalmente terminada y archivada.
+       3. Persistir en Engram el cierre formal: `mem_save(topic_key: "sdd/<slug>/archive-report", title: "Resumen de Entrega: <slug>")`.
+       4. Preguntar amablemente:
           `¿Deseas eliminar la rama local integrada (<rama_actual>) y en el repositorio remoto si existe? (1: Solo local / 2: Local y remota / 3: Conservar ambas)`
           Ejecutar la opción seleccionada limpiamente.
-       3. Confirmar en el chat la finalización exitosa del ciclo VSDD.
+       5. Confirmar en el chat la finalización exitosa del ciclo VSDD.
 
 ---
 

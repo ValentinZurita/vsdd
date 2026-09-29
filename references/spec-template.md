@@ -83,7 +83,7 @@ Estado: <en-revision | listo-para-plan>
 
 ## Criterios de finalización
 
-**Llenar:** contrato objetivo de aceptación. **Heredar obligatoriamente las 1 a 3 condiciones del "Listo cuando" acordadas en `idea.md`**, expandiéndolas o precisándolas para que cualquier persona pueda verificar la entrega de forma independiente sin consultar al desarrollador. Redactar exclusivamente como resultados observables. Prohibido usar jerga de commits, tickets o tareas técnicas.
+**Llenar:** contrato objetivo de aceptación. **Heredar obligatoriamente las 1 a 3 condiciones del "Listo cuando" acordadas en `idea.md`**, expandiéndolas o precisándolas para articular el camino crítico de valor (Golden Path) de modo que cualquier persona pueda verificar la entrega de forma independiente sin consultar al desarrollador. Redactar exclusivamente como resultados observables. Prohibido usar jerga de commits, tickets o tareas técnicas.
 
 **Forma:** viñetas iniciando estrictamente con:
 - Se puede comprobar que: <condición observable 1 heredada de Listo cuando>

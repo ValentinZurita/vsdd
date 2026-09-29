@@ -65,11 +65,15 @@ Estado: listo-para-aplicar
 `
     );
 
-    // Feature 3: Completada
+    // Feature 3: Completada con resumen
     const feat3 = path.join(vsddRoot, '003-perfil-usuario');
     fs.mkdirSync(feat3);
     fs.writeFileSync(path.join(feat3, 'idea.md'), '# Idea Perfil\nEstado: listo-para-spec\n');
     fs.writeFileSync(path.join(feat3, 'tasks.md'), '# Tasks Perfil\nEstado: completado\n');
+    fs.writeFileSync(
+      path.join(feat3, 'resumen.md'),
+      '# Resumen Perfil\nEstado: completado\n\n## 1. Qué se hizo\nPerfil creado.\n'
+    );
 
     const features = scanFeatures(tempDir);
     assert.equal(features.length, 3);
@@ -80,6 +84,8 @@ Estado: listo-para-aplicar
     assert.equal(f1.nextCommand, 'vsdd spec');
     assert.equal(f1.isCompleted, false);
     assert.equal(f1.objective, 'Los usuarios no pueden iniciar sesión con Google.');
+    assert.equal(f1.hasResumen, false);
+    assert.equal(f1.states.resumen, 'no-generado');
 
     // Verificar Feature 2
     const f2 = features.find((f) => f.id === '002-carrito-compras');
@@ -90,11 +96,14 @@ Estado: listo-para-aplicar
     assert.equal(f2.completedTasks, 2);
     assert.equal(f2.pendingTasks, 2);
     assert.equal(f2.nextTaskTitle, 'Cálculo de totales y cupones');
+    assert.equal(f2.hasResumen, false);
 
     // Verificar Feature 3
     const f3 = features.find((f) => f.id === '003-perfil-usuario');
     assert.equal(f3.isCompleted, true);
     assert.equal(f3.phase, 'completado');
+    assert.equal(f3.hasResumen, true);
+    assert.equal(f3.states.resumen, 'presente');
 
     // Verificar formateo de menú
     const menu = formatHubMenu(features);

@@ -372,3 +372,22 @@ test('tasks.md: detecta tarea que no contiene el campo obligatorio Test primero 
   assert.ok(tddError, 'Debe exigir campo Test primero (TDD)');
 });
 
+test('plan.md: aprueba estructura con subsección de Golden Path Walkthrough con 0 errores', () => {
+  const planWithGoldenPath = VALID_PLAN.replace(
+    '## Estrategia de tests\n- **AuthOAuthTest:** Valida Listo cuando: el usuario autenticado visualiza su nombre. Cubre: RF-01.\n',
+    `## Estrategia de tests
+- **AuthOAuthTest:** Valida Listo cuando: el usuario autenticado visualiza su nombre. Cubre: RF-01.
+
+### Paseo de Verificación Manual (Golden Path Walkthrough)
+- **Superficie:** CLI Interactivo
+- **Duración estimada:** ≤ 2 minutos
+- **Paso 1 (Arranque):** \`node src/cli.js --login\`
+- **Paso 2 (Acción):** Ingresar credenciales de prueba y presionar Enter
+- **Paso 3 (Resultado esperado observable):** Mensaje de bienvenida en verde
+`
+  );
+  const result = validateContent(planWithGoldenPath, 'plan.md');
+  assert.equal(result.valid, true);
+  assert.equal(result.errors.length, 0);
+});
+

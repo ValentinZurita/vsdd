@@ -75,13 +75,15 @@ function parseFeatureDirectory(dirName, dirPath, cwd = process.cwd()) {
   const specPath = path.join(dirPath, 'spec.md');
   const planPath = path.join(dirPath, 'plan.md');
   const tasksPath = path.join(dirPath, 'tasks.md');
+  const resumenPath = path.join(dirPath, 'resumen.md');
 
   const hasIdea = fs.existsSync(ideaPath);
   const hasSpec = fs.existsSync(specPath);
   const hasPlan = fs.existsSync(planPath);
   const hasTasks = fs.existsSync(tasksPath);
+  const hasResumen = fs.existsSync(resumenPath);
 
-  if (!hasIdea && !hasSpec && !hasPlan && !hasTasks) {
+  if (!hasIdea && !hasSpec && !hasPlan && !hasTasks && !hasResumen) {
     return null;
   }
 
@@ -89,6 +91,7 @@ function parseFeatureDirectory(dirName, dirPath, cwd = process.cwd()) {
   const specContent = hasSpec ? readFileSafe(specPath) : '';
   const planContent = hasPlan ? readFileSafe(planPath) : '';
   const tasksContent = hasTasks ? readFileSafe(tasksPath) : '';
+  const resumenContent = hasResumen ? readFileSafe(resumenPath) : '';
 
   const ideaState = extractHeaderState(ideaContent);
   const specState = extractHeaderState(specContent);
@@ -190,7 +193,10 @@ function parseFeatureDirectory(dirName, dirPath, cwd = process.cwd()) {
       spec: specState,
       plan: planState,
       tasks: tasksState,
+      resumen: hasResumen ? 'presente' : 'no-generado',
     },
+    hasResumen,
+    resumenContent,
     planContent,
   };
 
