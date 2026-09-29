@@ -97,9 +97,10 @@ function parseFeatureDirectory(dirName, dirPath, cwd = process.cwd()) {
   const specState = extractHeaderState(specContent);
   const planState = extractHeaderState(planContent);
   const tasksState = extractHeaderState(tasksContent);
+  const resumenState = extractHeaderState(resumenContent);
 
   // Extraer resumen del objetivo
-  const objective = extractObjective(ideaContent, specContent, dirName);
+  const objective = extractObjective(ideaContent, specContent, dirName, resumenContent);
 
   // Analizar tareas si existen
   let totalTasks = 0;
@@ -133,9 +134,9 @@ function parseFeatureDirectory(dirName, dirPath, cwd = process.cwd()) {
   let nextCommand = 'vsdd intake';
   let isCompleted = false;
 
-  if (tasksState === 'completado') {
+  if (tasksState === 'completado' || resumenState === 'completado') {
     phase = 'completado';
-    phaseDescription = 'Completada y cerrada';
+    phaseDescription = hasResumen ? 'Completada y cerrada con resumen' : 'Completada y cerrada';
     nextCommand = '';
     isCompleted = true;
   } else if (hasTasks) {
@@ -193,7 +194,7 @@ function parseFeatureDirectory(dirName, dirPath, cwd = process.cwd()) {
       spec: specState,
       plan: planState,
       tasks: tasksState,
-      resumen: hasResumen ? 'presente' : 'no-generado',
+      resumen: resumenState || (hasResumen ? 'presente' : 'no-generado'),
     },
     hasResumen,
     resumenContent,
@@ -935,7 +936,7 @@ function extractHeaderState(content) {
   return match ? match[1].trim().toLowerCase() : '';
 }
 
-function extractObjective(ideaContent, specContent, dirName) {
+function extractObjective(ideaContent, specContent, dirName, resumenContent = '') {
   if (ideaContent) {
     const problemaMatch = ideaContent.match(/## Problema\s+([\s\S]*?)(?=\n##|$)/i);
     if (problemaMatch && problemaMatch[1].trim()) {
@@ -950,6 +951,12 @@ function extractObjective(ideaContent, specContent, dirName) {
     const contextoMatch = specContent.match(/## Contexto y objetivos\s+([\s\S]*?)(?=\n##|$)/i);
     if (contextoMatch && contextoMatch[1].trim()) {
       return truncateText(contextoMatch[1].trim(), 120);
+    }
+  }
+  if (resumenContent) {
+    const queSeHizoMatch = resumenContent.match(/## 1\.\s*Qué se hizo\s+([\s\S]*?)(?=\n##|$)/i);
+    if (queSeHizoMatch && queSeHizoMatch[1].trim()) {
+      return truncateText(queSeHizoMatch[1].trim(), 120);
     }
   }
   return `Funcionalidad ${dirName.replace(/^\d+-/, '').replace(/-/g, ' ')}`;

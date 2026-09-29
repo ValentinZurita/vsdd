@@ -103,7 +103,7 @@ Estado: listo-para-aplicar
     assert.equal(f3.isCompleted, true);
     assert.equal(f3.phase, 'completado');
     assert.equal(f3.hasResumen, true);
-    assert.equal(f3.states.resumen, 'presente');
+    assert.equal(f3.states.resumen, 'completado');
 
     // Verificar formateo de menú
     const menu = formatHubMenu(features);
@@ -897,4 +897,46 @@ test('CLI rechaza argumentos faltantes o banderas mal ubicadas con salida de err
     fs.rmSync(tempDir, { recursive: true, force: true });
   }
 });
+
+test('scanFeatures clasifica como completada una feature que solo contiene resumen.md', () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'vsdd-resumen-only-'));
+  try {
+    const vsddRoot = path.join(tempDir, 'docs', 'sdd', 'vsdd');
+    const featDir = path.join(vsddRoot, '099-feature-archivada');
+    fs.mkdirSync(featDir, { recursive: true });
+
+    fs.writeFileSync(
+      path.join(featDir, 'resumen.md'),
+      `# Resumen de Entrega: Feature Archivada
+
+Fecha: 2026-09-29
+Rama integrada: feature/arch → main
+Estado: completado
+
+## 1. Qué se hizo
+Migración de datos histórica completada sin pérdidas.
+
+## 2. Componentes y Pruebas
+- Archivos clave: \`src/migracion.js\`
+`
+    );
+
+    const features = scanFeatures(tempDir);
+    assert.equal(features.length, 1);
+
+    const f = features[0];
+    assert.equal(f.id, '099-feature-archivada');
+    assert.equal(f.isCompleted, true);
+    assert.equal(f.phase, 'completado');
+    assert.equal(f.hasResumen, true);
+    assert.equal(f.states.resumen, 'completado');
+    assert.equal(f.objective, 'Migración de datos histórica completada sin pérdidas.');
+
+    const menu = formatHubMenu(features);
+    assert.match(menu, /No se encontraron funcionalidades pendientes/i);
+  } finally {
+    fs.rmSync(tempDir, { recursive: true, force: true });
+  }
+});
+
 
