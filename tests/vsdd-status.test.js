@@ -226,7 +226,8 @@ test('calculateFeatureDrift triggers YELLOW when tracked files are modified in c
     const drift = calculateFeatureDrift(featDir, {}, tempDir);
     assert.equal(drift.status, 'YELLOW');
     assert.equal(drift.reason, 'MODIFIED_UPSTREAM');
-    assert.equal(drift.details.commitsBehind, 1);
+    assert.equal(drift.details.commitsSinceBase, 1);
+    assert.equal(drift.details.commitsBehind, 1); // Deprecated compatibility alias.
     assert.ok(drift.details.modifiedFiles.includes('src/service.js'));
   } finally {
     fs.rmSync(tempDir, { recursive: true, force: true });
@@ -266,6 +267,136 @@ test('calculateFeatureDrift triggers YELLOW when tracked files have uncommitted 
     assert.equal(drift.status, 'YELLOW');
     assert.equal(drift.reason, 'DIRTY_LOCAL');
     assert.ok(drift.details.dirtyLocalFiles.includes('src/app.js'));
+  } finally {
+    fs.rmSync(tempDir, { recursive: true, force: true });
+  }
+});
+
+test('calculateFeatureDrift returns BRANCH_MISMATCH when the baseline branch changed', () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'vsdd-drift-branch-mismatch-'));
+  try {
+    execSync('git init', { cwd: tempDir, stdio: 'ignore' });
+    execSync('git config user.name "Test"', { cwd: tempDir, stdio: 'ignore' });
+    execSync('git config user.email "test@example.com"', { cwd: tempDir, stdio: 'ignore' });
+
+    const file = path.join(tempDir, 'README.md');
+    fs.writeFileSync(file, 'baseline\n');
+    execSync('git add . && git commit -m "initial"', { cwd: tempDir, stdio: 'ignore' });
+    const baseCommit = execSync('git rev-parse HEAD', { cwd: tempDir, encoding: 'utf8' }).trim();
+    const currentBranch = execSync('git branch --show-current', { cwd: tempDir, encoding: 'utf8' }).trim();
+    const originalBranch = currentBranch === 'baseline-branch' ? 'other-branch' : 'baseline-branch';
+
+    const featDir = path.join(tempDir, 'docs', 'sdd', 'vsdd', '001-test');
+    fs.mkdirSync(featDir, { recursive: true });
+    saveFeatureContext(featDir, {
+      baseCommit,
+      branch: originalBranch,
+      trackedFiles: [{ path: 'README.md', action: 'modify' }],
+    }, tempDir);
+
+    const drift = calculateFeatureDrift(featDir, {}, tempDir);
+    assert.equal(drift.status, 'YELLOW');
+    assert.equal(drift.reason, 'BRANCH_MISMATCH');
+    assert.equal(drift.details.branchMismatch, true);
+    assert.equal(drift.details.originalBranch, originalBranch);
+    assert.equal(drift.details.currentBranch, currentBranch);
+  } finally {
+    fs.rmSync(tempDir, { recursive: true, force: true });
+  }
+});
+
+test('calculateFeatureDrift returns GREEN when the baseline branch is unchanged', () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'vsdd-drift-same-branch-'));
+  try {
+    execSync('git init', { cwd: tempDir, stdio: 'ignore' });
+    execSync('git config user.name "Test"', { cwd: tempDir, stdio: 'ignore' });
+    execSync('git config user.email "test@example.com"', { cwd: tempDir, stdio: 'ignore' });
+
+    fs.writeFileSync(path.join(tempDir, 'README.md'), 'baseline\n');
+    execSync('git add . && git commit -m "initial"', { cwd: tempDir, stdio: 'ignore' });
+    const baseCommit = execSync('git rev-parse HEAD', { cwd: tempDir, encoding: 'utf8' }).trim();
+    const currentBranch = execSync('git branch --show-current', { cwd: tempDir, encoding: 'utf8' }).trim();
+
+    const featDir = path.join(tempDir, 'docs', 'sdd', 'vsdd', '001-test');
+    fs.mkdirSync(featDir, { recursive: true });
+    saveFeatureContext(featDir, {
+      baseCommit,
+      branch: currentBranch,
+      trackedFiles: [{ path: 'README.md', action: 'modify' }],
+    }, tempDir);
+
+    const drift = calculateFeatureDrift(featDir, {}, tempDir);
+    assert.equal(drift.status, 'GREEN');
+    assert.equal(drift.reason, 'SYNCED');
+    assert.equal(drift.details.branchMismatch, false);
+  } finally {
+    fs.rmSync(tempDir, { recursive: true, force: true });
+  }
+});
+
+test('calculateFeatureDrift keeps DIRTY_LOCAL as the primary reason on a different branch', () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'vsdd-drift-dirty-branch-'));
+  try {
+    execSync('git init', { cwd: tempDir, stdio: 'ignore' });
+    execSync('git config user.name "Test"', { cwd: tempDir, stdio: 'ignore' });
+    execSync('git config user.email "test@example.com"', { cwd: tempDir, stdio: 'ignore' });
+
+    const file = path.join(tempDir, 'src', 'app.js');
+    fs.mkdirSync(path.dirname(file), { recursive: true });
+    fs.writeFileSync(file, 'const value = 1;\n');
+    execSync('git add . && git commit -m "initial"', { cwd: tempDir, stdio: 'ignore' });
+    const baseCommit = execSync('git rev-parse HEAD', { cwd: tempDir, encoding: 'utf8' }).trim();
+    const currentBranch = execSync('git branch --show-current', { cwd: tempDir, encoding: 'utf8' }).trim();
+    const originalBranch = currentBranch === 'baseline-branch' ? 'other-branch' : 'baseline-branch';
+
+    const featDir = path.join(tempDir, 'docs', 'sdd', 'vsdd', '001-test');
+    fs.mkdirSync(featDir, { recursive: true });
+    saveFeatureContext(featDir, {
+      baseCommit,
+      branch: originalBranch,
+      trackedFiles: [{ path: 'src/app.js', action: 'modify' }],
+    }, tempDir);
+    fs.writeFileSync(file, 'const value = 2;\n');
+
+    const drift = calculateFeatureDrift(featDir, {}, tempDir);
+    assert.equal(drift.status, 'YELLOW');
+    assert.equal(drift.reason, 'DIRTY_LOCAL');
+    assert.ok(drift.details.dirtyLocalFiles.includes('src/app.js'));
+    assert.equal(drift.details.branchMismatch, true);
+    assert.equal(drift.details.originalBranch, originalBranch);
+    assert.equal(drift.details.currentBranch, currentBranch);
+  } finally {
+    fs.rmSync(tempDir, { recursive: true, force: true });
+  }
+});
+
+test('calculateFeatureDrift does not return GREEN for a branch mismatch without a valid baseline', () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'vsdd-drift-branch-no-base-'));
+  try {
+    execSync('git init', { cwd: tempDir, stdio: 'ignore' });
+    execSync('git config user.name "Test"', { cwd: tempDir, stdio: 'ignore' });
+    execSync('git config user.email "test@example.com"', { cwd: tempDir, stdio: 'ignore' });
+
+    fs.writeFileSync(path.join(tempDir, 'README.md'), 'baseline\n');
+    execSync('git add . && git commit -m "initial"', { cwd: tempDir, stdio: 'ignore' });
+    const currentBranch = execSync('git branch --show-current', { cwd: tempDir, encoding: 'utf8' }).trim();
+    const originalBranch = currentBranch === 'baseline-branch' ? 'other-branch' : 'baseline-branch';
+
+    const featDir = path.join(tempDir, 'docs', 'sdd', 'vsdd', '001-test');
+    fs.mkdirSync(featDir, { recursive: true });
+    saveFeatureContext(featDir, {
+      baseCommit: 'not-a-commit',
+      branch: originalBranch,
+      trackedFiles: [{ path: 'README.md', action: 'modify' }],
+    }, tempDir);
+
+    const drift = calculateFeatureDrift(featDir, {}, tempDir);
+    assert.equal(drift.status, 'YELLOW');
+    assert.equal(drift.reason, 'BRANCH_MISMATCH');
+    assert.equal(drift.details.branchMismatch, true);
+    assert.equal(drift.details.originalBranch, originalBranch);
+    assert.equal(drift.details.currentBranch, currentBranch);
+    assert.equal(Object.prototype.hasOwnProperty.call(drift.details, 'commitsSinceBase'), false);
   } finally {
     fs.rmSync(tempDir, { recursive: true, force: true });
   }
@@ -350,12 +481,11 @@ test('formatHubMenu renders drift status badge cleanly', () => {
       isCompleted: false,
       drift: {
         status: 'YELLOW',
-        label: '🟡 1 archivo(s) con cambios en upstream (+3 commits)',
+        label: '🟡 1 archivo(s) con cambios desde el baseline (+3 commits desde el baseline)',
       },
     },
   ];
 
   const menu = formatHubMenu(features);
-  assert.ok(menu.includes('Salud del Repo: 🟡 1 archivo(s) con cambios en upstream (+3 commits)'));
+  assert.ok(menu.includes('Salud del Repo: 🟡 1 archivo(s) con cambios desde el baseline (+3 commits desde el baseline)'));
 });
-

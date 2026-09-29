@@ -316,6 +316,10 @@ function calculateFeatureDrift(featureDir, feature, cwd = process.cwd()) {
     };
   }
 
+  // El baseline registra una rama de referencia; no representa la rama remota.
+  const currentBranch = getCurrentBranch(gitRoot);
+  const branchMismatch = Boolean(originalBranch && currentBranch && originalBranch !== currentBranch);
+
   // 1. CHEQUEO FÍSICO DE EXISTENCIA EN DISCO (Crítico Post-Judgment Day)
   // Solo se valida la existencia física de archivos a MODIFICAR (~).
   // Los archivos a CREAR (+) no existen todavía y NO deben generar falsa alarma roja.
@@ -336,27 +340,28 @@ function calculateFeatureDrift(featureDir, feature, cwd = process.cwd()) {
       reason: 'MISSING_MODIFIED_FILE',
       details: {
         missingFiles: missingModifiedFiles,
+        branchMismatch,
+        originalBranch,
+        currentBranch,
         source,
       },
     };
   }
 
-  // 2. CHEQUEO DE HISTORIAL GIT (DIFF UPSTREAM)
-  const currentBranch = getCurrentBranch(gitRoot);
-  const branchMismatch = Boolean(originalBranch && currentBranch && originalBranch !== currentBranch);
+  // 2. CHEQUEO DE HISTORIAL GIT (CAMBIOS DESDE EL BASELINE)
 
   const filePathsForGit = trackedFiles.map((f) => f.path);
 
-  let commitsBehind = 0;
-  const modifiedUpstream = [];
+  let commitsSinceBase = 0;
+  const modifiedSinceBase = [];
 
   const hasValidBase = baseCommit && isCommitInTree(gitRoot, baseCommit);
 
   if (hasValidBase) {
     const countOutput = execGit(['rev-list', '--count', `${baseCommit}..HEAD`], gitRoot, 2000);
-    commitsBehind = countOutput ? parseInt(countOutput.trim(), 10) || 0 : 0;
+    commitsSinceBase = countOutput ? parseInt(countOutput.trim(), 10) || 0 : 0;
 
-    if (commitsBehind > 0 && filePathsForGit.length > 0) {
+    if (commitsSinceBase > 0 && filePathsForGit.length > 0) {
       const diffOutput = execGit(
         ['diff', '--name-status', `${baseCommit}..HEAD`, '--', ...filePathsForGit],
         gitRoot,
@@ -370,7 +375,7 @@ function calculateFeatureDrift(featureDir, feature, cwd = process.cwd()) {
           if (parts.length >= 2) {
             const statusCode = parts[0].trim();
             const changedPath = parts[1].trim();
-            modifiedUpstream.push({
+            modifiedSinceBase.push({
               status: statusCode,
               path: changedPath,
             });
@@ -402,14 +407,17 @@ function calculateFeatureDrift(featureDir, feature, cwd = process.cwd()) {
   }
 
   // Clasificación final del semáforo
-  if (modifiedUpstream.length > 0) {
+  if (modifiedSinceBase.length > 0) {
     return {
       status: 'YELLOW',
-      label: `🟡 ${modifiedUpstream.length} archivo(s) con cambios en upstream (+${commitsBehind} commits)`,
+      label: `🟡 ${modifiedSinceBase.length} archivo(s) con cambios desde el baseline (+${commitsSinceBase} commits desde el baseline)`,
+      // Se conserva el reason histórico para no romper consumidores del JSON.
       reason: 'MODIFIED_UPSTREAM',
       details: {
-        commitsBehind,
-        modifiedFiles: modifiedUpstream.map((m) => m.path),
+        commitsSinceBase,
+        /** @deprecated Use commitsSinceBase; this count is not commits behind a remote. */
+        commitsBehind: commitsSinceBase,
+        modifiedFiles: modifiedSinceBase.map((m) => m.path),
         dirtyLocalFiles,
         branchMismatch,
         originalBranch,
@@ -425,8 +433,29 @@ function calculateFeatureDrift(featureDir, feature, cwd = process.cwd()) {
       label: `🟡 ${dirtyLocalFiles.length} archivo(s) con cambios locales no commiteados`,
       reason: 'DIRTY_LOCAL',
       details: {
-        commitsBehind,
+        commitsSinceBase,
+        /** @deprecated Use commitsSinceBase; this count is not commits behind a remote. */
+        commitsBehind: commitsSinceBase,
         dirtyLocalFiles,
+        branchMismatch,
+        originalBranch,
+        currentBranch,
+        source,
+      },
+    };
+  }
+
+  if (branchMismatch) {
+    return {
+      status: 'YELLOW',
+      label: `🟡 Rama distinta al baseline (${originalBranch} → ${currentBranch})`,
+      reason: 'BRANCH_MISMATCH',
+      details: {
+        ...(hasValidBase ? {
+          commitsSinceBase,
+          /** @deprecated Use commitsSinceBase; this count is not commits behind a remote. */
+          commitsBehind: commitsSinceBase,
+        } : {}),
         branchMismatch,
         originalBranch,
         currentBranch,
@@ -438,10 +467,12 @@ function calculateFeatureDrift(featureDir, feature, cwd = process.cwd()) {
   if (hasValidBase) {
     return {
       status: 'GREEN',
-      label: '🟢 Al día (en sincronía con repo)',
+      label: '🟢 Sin cambios en los archivos del plan desde el baseline',
       reason: 'SYNCED',
       details: {
-        commitsBehind,
+        commitsSinceBase,
+        /** @deprecated Use commitsSinceBase; this count is not commits behind a remote. */
+        commitsBehind: commitsSinceBase,
         branchMismatch,
         originalBranch,
         currentBranch,
