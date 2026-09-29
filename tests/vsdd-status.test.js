@@ -20,6 +20,9 @@ const {
   getInterviewProgress,
   clearInterviewProgress,
   saveIntakeInterviewAnswer,
+  isGenericUtility,
+  extractArchivosClaveSafe,
+  generateFeatureCatalog,
 } = require('../scripts/vsdd-status');
 
 test('scanFeatures returns empty array if docs/sdd/vsdd does not exist', () => {
@@ -934,6 +937,160 @@ Migración de datos histórica completada sin pérdidas.
 
     const menu = formatHubMenu(features);
     assert.match(menu, /No se encontraron funcionalidades pendientes/i);
+  } finally {
+    fs.rmSync(tempDir, { recursive: true, force: true });
+  }
+});
+
+test('isGenericUtility identifies generic and utility paths correctly', () => {
+  assert.equal(isGenericUtility('node_modules/express/index.js'), true);
+  assert.equal(isGenericUtility('vendor/bundle.js'), true);
+  assert.equal(isGenericUtility('src/utils/math.js'), true);
+  assert.equal(isGenericUtility('lib/helpers/format.ts'), true);
+  assert.equal(isGenericUtility('src/types/user.d.ts'), true);
+  assert.equal(isGenericUtility('src/index.js'), true);
+  assert.equal(isGenericUtility('package.json'), true);
+  assert.equal(isGenericUtility('README.md'), true);
+  assert.equal(isGenericUtility(null), true);
+  assert.equal(isGenericUtility(undefined), true);
+
+  // Archivos de dominio reales no deben considerarse genéricos
+  assert.equal(isGenericUtility('src/auth/service.js'), false);
+  assert.equal(isGenericUtility('src/checkout/coupons.ts'), false);
+  assert.equal(isGenericUtility('scripts/vsdd-status.js'), false);
+});
+
+test('extractArchivosClaveSafe extracts specific non-generic files safely from resumen.md and plan.md', () => {
+  // 1. Extracción desde resumen.md
+  const resumen = `# Resumen
+## 1. Qué se hizo
+Implementación de cupones.
+
+## 2. Componentes y Pruebas
+- Archivos clave: \`src/checkout/coupons.ts\`, \`src/utils/format.js\`, \`src/checkout/validator.ts\`, \`src/checkout/api.ts\`, \`src/checkout/extra.ts\`
+- Pruebas añadidas: npm test
+`;
+  const files1 = extractArchivosClaveSafe(resumen, null);
+  // Debe filtrar utils/format.js y limitar a máximo 3
+  assert.deepEqual(files1, [
+    'src/checkout/coupons.ts',
+    'src/checkout/validator.ts',
+    'src/checkout/api.ts',
+  ]);
+
+  // 2. Fallback a plan.md cuando resumen.md no tiene componentes o es nulo
+  const plan = `# Plan
+## 1. Estrategia
+Cosas
+
+## 2. Árbol de cambios
+- \`+ src/billing/invoice.js\`
+- \`* src/utils/helpers.js\`
+- \`+ src/billing/tax.js\`
+`;
+  const files2 = extractArchivosClaveSafe(null, plan);
+  assert.deepEqual(files2, ['src/billing/invoice.js', 'src/billing/tax.js']);
+
+  // 3. Resiliencia ante entradas corruptas
+  assert.deepEqual(extractArchivosClaveSafe(undefined, undefined), []);
+  assert.deepEqual(extractArchivosClaveSafe('texto sin formato', 'otro texto'), []);
+});
+
+test('generateFeatureCatalog returns ultracompact manifest capped and sorted', () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'vsdd-catalog-test-'));
+  try {
+    const vsddRoot = path.join(tempDir, 'docs', 'sdd', 'vsdd');
+    fs.mkdirSync(vsddRoot, { recursive: true });
+
+    // Crear 20 features completadas y 1 pendiente
+    for (let i = 1; i <= 20; i++) {
+      const featId = `${String(i).padStart(3, '0')}-feature-${i}`;
+      const featDir = path.join(vsddRoot, featId);
+      fs.mkdirSync(featDir, { recursive: true });
+
+      const longObjective = `Este es un objetivo sumamente largo y detallado que definitivamente supera los ochenta caracteres permitidos en el manifiesto condensado para la feature ${i}.`;
+      fs.writeFileSync(
+        path.join(featDir, 'resumen.md'),
+        `# Resumen Feature ${i}
+Estado: completado
+
+## 1. Qué se hizo
+${longObjective}
+
+## 2. Componentes y Pruebas
+- Archivos clave: \`src/module${i}/core.js\`, \`src/utils/common.js\`
+`
+      );
+    }
+
+    // Feature pendiente (no debe entrar al catálogo)
+    const pendingDir = path.join(vsddRoot, '021-feature-pendiente');
+    fs.mkdirSync(pendingDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(pendingDir, 'idea.md'),
+      '# Idea Pendiente\nEstado: listo-para-spec\n'
+    );
+
+    // Ejecutar catálogo con límite por defecto (15)
+    const catalog = generateFeatureCatalog(tempDir);
+    assert.equal(catalog.length, 15);
+
+    // Debe ordenar de forma descendente (020, 019, ..., 006)
+    assert.equal(catalog[0].id, '020-feature-20');
+    assert.equal(catalog[14].id, '006-feature-6');
+
+    // Verificar truncamiento a <= 80 caracteres (con ellipsis si fue recortado)
+    for (const item of catalog) {
+      assert.ok(item.objetivo.length <= 80, `Objetivo ${item.objetivo} excede 80 chars`);
+      assert.ok(item.objetivo.endsWith('...'));
+      assert.equal(item.archivosClave.length, 1); // Excluyó utils/common.js
+      assert.match(item.archivosClave[0], /src\/module\d+\/core\.js/);
+    }
+
+    // Probar con límite personalizado (ej: 5)
+    const catalog5 = generateFeatureCatalog(tempDir, 5);
+    assert.equal(catalog5.length, 5);
+    assert.equal(catalog5[0].id, '020-feature-20');
+    assert.equal(catalog5[4].id, '016-feature-16');
+  } finally {
+    fs.rmSync(tempDir, { recursive: true, force: true });
+  }
+});
+
+test('CLI --catalog output is valid JSON and matches manifest schema', () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'vsdd-catalog-cli-'));
+  try {
+    const vsddRoot = path.join(tempDir, 'docs', 'sdd', 'vsdd');
+    const featDir = path.join(vsddRoot, '001-feature-test');
+    fs.mkdirSync(featDir, { recursive: true });
+
+    fs.writeFileSync(
+      path.join(featDir, 'resumen.md'),
+      `# Resumen Feature Test
+Estado: completado
+
+## 1. Qué se hizo
+Objetivo conciso.
+
+## 2. Componentes y Pruebas
+- Archivos clave: \`src/test.js\`
+`
+    );
+
+    const cliPath = path.resolve(__dirname, '..', 'scripts', 'vsdd-status.js');
+    const rawOutput = execSync(`node "${cliPath}" --catalog`, {
+      cwd: tempDir,
+      encoding: 'utf8',
+    });
+
+    const parsed = JSON.parse(rawOutput.trim());
+    assert.ok(Array.isArray(parsed));
+    assert.equal(parsed.length, 1);
+    assert.deepEqual(parsed[0], {
+      id: '001-feature-test',
+      objetivo: 'Objetivo conciso.',
+      archivosClave: ['src/test.js'],
+    });
   } finally {
     fs.rmSync(tempDir, { recursive: true, force: true });
   }

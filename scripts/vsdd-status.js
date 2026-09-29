@@ -255,11 +255,11 @@ function parseTrackedFilesFromPlanContent(content) {
   const trackedFiles = [];
   if (!content) return trackedFiles;
 
-  const treeSectionMatch = content.match(/## Árbol de cambios\s+([\s\S]*?)(?=\n##|$)/i);
+  const treeSectionMatch = content.match(/##\s+(?:[0-9]+\.\s*)?Árbol de cambios\s+([\s\S]*?)(?=\n##|$)/i);
   if (treeSectionMatch) {
     const lines = treeSectionMatch[1].split('\n');
     for (const line of lines) {
-      const match = line.match(/^\s*[-*]?\s*[`'"]?([+~-])[\s`'"]+`?([^`'"\r\n]+)`?/);
+      const match = line.match(/^\s*[-*]?\s*[`'"]?([+~*–-])[\s`'"]+`?([^`'"\r\n]+)`?/);
       if (match) {
         const symbol = match[1];
         const rawPath = match[2].trim();
@@ -1021,6 +1021,96 @@ Se encontraron las siguientes funcionalidades en curso:
   return output;
 }
 
+/**
+ * Detecta si una ruta corresponde a un utilitario genérico o infraestructura común.
+ * @param {string} filePath Ruta del archivo
+ * @returns {boolean} True si es utilitario o archivo comodín genérico
+ */
+function isGenericUtility(filePath) {
+  if (!filePath || typeof filePath !== 'string') return true;
+  const clean = filePath.replace(/\\/g, '/').toLowerCase();
+  return (
+    clean.includes('node_modules/') ||
+    clean.includes('vendor/') ||
+    clean.includes('.git/') ||
+    clean.includes('utils/') ||
+    clean.includes('util/') ||
+    clean.includes('helpers/') ||
+    clean.includes('types/') ||
+    clean.endsWith('/index.js') ||
+    clean.endsWith('/index.ts') ||
+    clean.endsWith('readme.md') ||
+    clean.endsWith('package.json')
+  );
+}
+
+/**
+ * Extrae de forma segura y defensiva hasta 3 rutas de archivos clave específicas.
+ * @param {string} resumenContent Contenido de resumen.md
+ * @param {string} planContent Contenido de plan.md
+ * @returns {Array<string>} Lista de máximo 3 rutas clave
+ */
+function extractArchivosClaveSafe(resumenContent, planContent) {
+  const files = [];
+  try {
+    if (resumenContent && typeof resumenContent === 'string') {
+      const compMatch = resumenContent.match(/## 2\.\s*Componentes[\s\S]*?(?=\n##|$)/i);
+      if (compMatch) {
+        const lines = compMatch[0].split('\n');
+        for (const line of lines) {
+          const fileMatch = line.match(/[-*]\s*Archivos clave:\s*([^\r\n]+)/i);
+          if (fileMatch?.[1]) {
+            const rawPaths = fileMatch[1].match(/[`'"]?([a-zA-Z0-9_.\-\/]+)[`'"]?/g) || [];
+            for (const rp of rawPaths) {
+              const cleanPath = rp.replace(/[`'"]/g, '').trim();
+              if (cleanPath && !isGenericUtility(cleanPath) && !files.includes(cleanPath)) {
+                files.push(cleanPath);
+              }
+            }
+          }
+        }
+      }
+    }
+    if (files.length === 0 && planContent && typeof planContent === 'string') {
+      const tracked = parseTrackedFilesFromPlanContent(planContent);
+      for (const item of tracked) {
+        if (item?.path && !isGenericUtility(item.path) && !files.includes(item.path)) {
+          files.push(item.path);
+        }
+      }
+    }
+  } catch (e) {
+    // Falla defensiva y segura
+  }
+  return files.slice(0, 3);
+}
+
+/**
+ * Genera el catálogo ultracompacto (Header Manifest) de features completadas.
+ * @param {string} cwd Directorio raíz del proyecto
+ * @param {number} limit Límite de features más recientes a exportar (por defecto 15)
+ * @returns {Array<Object>} Catálogo condensado
+ */
+function generateFeatureCatalog(cwd = process.cwd(), limit = 15) {
+  const features = scanFeatures(cwd);
+  const completed = features.filter((f) => f && f.isCompleted);
+
+  // Ordenar de más reciente a más antigua (por ID numérico descendente)
+  completed.sort((a, b) => b.id.localeCompare(a.id, undefined, { numeric: true }));
+
+  const slice = completed.slice(0, limit);
+
+  return slice.map((f) => {
+    const objetivo = f.objective ? truncateText(f.objective, 80) : '';
+    const archivosClave = extractArchivosClaveSafe(f.resumenContent, f.planContent);
+    return {
+      id: f.id,
+      objetivo,
+      archivosClave,
+    };
+  });
+}
+
 // Punto de entrada CLI
 if (require.main === module) {
   const args = process.argv.slice(2);
@@ -1046,7 +1136,10 @@ if (require.main === module) {
     return '';
   }
 
-  if (args.includes('--json')) {
+  if (args.includes('--catalog')) {
+    const catalog = generateFeatureCatalog(cwd);
+    console.log(JSON.stringify(catalog, null, 2));
+  } else if (args.includes('--json')) {
     const features = scanFeatures(cwd);
     console.log(JSON.stringify(features, null, 2));
   } else if (args.includes('--intake-draft')) {
@@ -1171,6 +1264,9 @@ module.exports = {
   getInterviewProgress,
   clearInterviewProgress,
   saveIntakeInterviewAnswer,
+  isGenericUtility,
+  extractArchivosClaveSafe,
+  generateFeatureCatalog,
   getGitRoot,
   hasGitCommits,
   isCommitInTree,

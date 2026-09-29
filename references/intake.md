@@ -43,16 +43,34 @@ La exploración tiene como único fin descubrir preguntas relevantes de producto
 **Prohibido en el conductor:**
 Búsquedas masivas de código en el repositorio (`Grep`/`Glob` recursivos) o lecturas completas de código fuente durante Intake.
 
-**Ola 1 (Contexto del producto):**
-Subagente de exploración rápido (modelo liviano/económico: `flash`, `haiku`, etc.), **sin acceso web**.
-Si está disponible, despachar anunciando modelo y rol. Prompt breve (≤12 líneas):
-```text
-Ya existe: (1 línea sobre si hay algo similar en el proyecto)
-Q1: (pregunta clave de producto con 2-3 opciones)
-Temas: (3-4 decisiones visibles de producto)
-Riesgo: (1 línea o "ninguno")
-```
-Al recibir el memo, persistir inmediatamente con `saveIntakeDraft` antes de formular Q1. Si el reporte viene vacío o falla, continuar directamente a partir del texto de la idea del usuario. Nunca pegar el reporte interno en el chat.
+**Ola 1 (Contexto del producto y Catálogo Histórico):**
+1. **Consulta del catálogo:** Antes de invocar al subagente, obtener el catálogo histórico ultracompacto ejecutando `node scripts/vsdd-status.js --catalog` (o `generateFeatureCatalog()`, ≤15 features completadas recientes, ~200 tokens).
+2. **Subagente de exploración rápido** (modelo liviano/económico: `flash`, `haiku`, etc.), **sin acceso web**.
+   Anuncio visible obligatorio en chat:
+   `● [Subagente: Contexto de Producto] Analizando catálogo histórico y alcance con modelo: flash...`
+   Prompt breve (≤14 líneas):
+   ```text
+   Rol: Explorador de contexto de producto (Ola 1).
+   Idea del usuario: <texto de la idea>
+   Catálogo de features completadas: <JSON de scripts/vsdd-status.js --catalog>
+
+   Evalúa afinidad funcional y de rutas.
+   Reglas:
+   1) Si ninguna feature se relaciona directamente: MATCHED_IDS: NONE
+   2) Si hay relación comprobada: selecciona como máximo 2 IDs (prioriza las más recientes).
+   3) Si hay más de 2 relacionadas: selecciona las 2 principales y menciona las otras en 'Ya existe'.
+
+   Devolver estrictamente este formato (≤12 líneas):
+   MATCHED_IDS: [<id1>, <id2>] | NONE
+   Ya existe: <1 línea sobre qué hay similar y si se detectaron módulos a reutilizar>
+   Q1: <pregunta clave de producto con 2-3 opciones>
+   Temas: <3-4 decisiones visibles de producto>
+   Riesgo: <1 línea o "ninguno">
+   ```
+3. **Inyección Quirúrgica Just-in-Time (JIT):**
+   - Si `MATCHED_IDS` es `NONE`: continuar sin leer ningún archivo adicional (cero sobrecosto de tokens).
+   - Si `MATCHED_IDS` contiene IDs válidos: leer únicamente el archivo `docs/sdd/vsdd/<id>/resumen.md` de las features seleccionadas (máximo 2 resúmenes, ≤35 líneas c/u) para que el conductor conozca los contratos y puntos de integración consolidados.
+4. **Persistencia del memo:** Al recibir la respuesta, persistir inmediatamente con `saveIntakeDraft` antes de formular Q1 en el chat. Si el reporte viene vacío o falla, continuar directamente a partir del texto de la idea del usuario. Nunca pegar el reporte interno en el chat.
 
 **Ola 2 (Benchmarking Quirúrgico y Puntos Ciegos):**
 - **Momento de activación:** Tras responder `Q1` (cuando el problema central y la intención inicial están claros).
