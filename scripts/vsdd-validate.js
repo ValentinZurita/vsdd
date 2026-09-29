@@ -84,6 +84,7 @@ function normalizeText(text) {
     .toLowerCase()
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[:.;,\-_]+$/, '')
     .trim();
 }
 
@@ -96,6 +97,7 @@ function parseMarkdownLines(content) {
   const headings = [];
   let inCodeBlock = false;
   let codeFenceMarker = '';
+  let codeFenceLength = 0;
   let codeBlockStartLine = 0;
 
   for (let i = 0; i < rawLines.length; i++) {
@@ -107,13 +109,16 @@ function parseMarkdownLines(content) {
     const codeFenceMatch = trimmed.match(/^(`{3,}|~{3,})/);
     if (codeFenceMatch) {
       const marker = codeFenceMatch[1].charAt(0);
+      const length = codeFenceMatch[1].length;
       if (!inCodeBlock) {
         inCodeBlock = true;
         codeFenceMarker = marker;
+        codeFenceLength = length;
         codeBlockStartLine = lineNumber;
-      } else if (codeFenceMarker === marker) {
+      } else if (codeFenceMarker === marker && length >= codeFenceLength) {
         inCodeBlock = false;
         codeFenceMarker = '';
+        codeFenceLength = 0;
       }
     }
 
@@ -467,6 +472,42 @@ function validateSpec(parsed, errors, warnings) {
           });
         }
       }
+
+      // Validar presencia de sintaxis EARS en los criterios del RF
+      const rfStartIndex = parsed.lines.findIndex((l) => l.lineNumber === rfh.lineNumber);
+      const nextHIndex = parsed.lines.findIndex(
+        (l, idx) =>
+          idx > rfStartIndex &&
+          !l.inCodeBlock &&
+          /^#{1,3}\s+/.test(l.trimmed)
+      );
+      const rfLines = parsed.lines.slice(
+        rfStartIndex + 1,
+        nextHIndex !== -1 ? nextHIndex : parsed.lines.length
+      );
+      const rfBullets = rfLines.filter((l) => /^\s*[-*]\s+/.test(l.trimmed));
+      if (rfBullets.length === 0) {
+        errors.push({
+          line: rfh.lineNumber,
+          rule: 'rf-sin-criterios',
+          message: `'${rfh.text}' no contiene criterios observables redactados con viñetas.`,
+          expected: '- Cuando <evento>, el sistema debe <resultado>',
+          found: 'Sin viñetas de criterios',
+        });
+      } else {
+        const hasEars = rfBullets.some((b) =>
+          /\b(siempre|cuando|si|debe)\b/i.test(b.trimmed)
+        );
+        if (!hasEars) {
+          errors.push({
+            line: rfh.lineNumber,
+            rule: 'rf-sintaxis-ears-faltante',
+            message: `'${rfh.text}' no contiene criterios redactados bajo sintaxis EARS ('Siempre', 'Cuando', 'Si', 'debe').`,
+            expected: 'Viñeta con sintaxis EARS (Siempre / Cuando / Si / debe)',
+            found: rfBullets.map((b) => b.trimmed).join('; '),
+          });
+        }
+      }
     }
   }
 
@@ -476,9 +517,10 @@ function validateSpec(parsed, errors, warnings) {
   );
   if (criteriosSection) {
     const contentLines = criteriosSection.lines.filter((l) => l.trimmed.length > 0);
-    const bullets = contentLines.filter((l) => /^[-*]\s+/.test(l.trimmed));
+    // Solo viñetas de primer nivel en CommonMark (0 o 1 espacio inicial)
+    const topLevelBullets = contentLines.filter((l) => /^ {0,1}[-*]\s+/.test(l.text));
 
-    if (bullets.length === 0) {
+    if (topLevelBullets.length === 0) {
       errors.push({
         line: criteriosSection.lineNumber,
         rule: 'criterios-sin-vinetas',
@@ -487,12 +529,12 @@ function validateSpec(parsed, errors, warnings) {
         found: 'Sin viñetas',
       });
     } else {
-      for (const bullet of bullets) {
-        if (!/^[-*]\s+Se puede comprobar que:?\s*\S+/i.test(bullet.trimmed)) {
+      for (const bullet of topLevelBullets) {
+        if (!/^ {0,1}[-*]\s+Se puede comprobar que:?\s*\S+/i.test(bullet.text.replace(/\\/g, ''))) {
           errors.push({
             line: bullet.lineNumber,
             rule: 'criterio-finalizacion-prefijo-estricto',
-            message: `En '## Criterios de finalización', cada viñeta debe comenzar estrictamente con '- Se puede comprobar que:'.`,
+            message: `En '## Criterios de finalización', cada viñeta principal debe comenzar estrictamente con '- Se puede comprobar que:'.`,
             expected: `- Se puede comprobar que: ...`,
             found: bullet.trimmed,
           });
@@ -586,9 +628,10 @@ function validatePlan(parsed, errors, warnings) {
   );
   if (arbolSection) {
     const contentLines = arbolSection.lines.filter((l) => l.trimmed.length > 0);
-    const bullets = contentLines.filter((l) => /^[-*]\s+/.test(l.trimmed));
+    // Solo viñetas de primer nivel en CommonMark (0 o 1 espacio inicial)
+    const topLevelBullets = contentLines.filter((l) => /^ {0,1}[-*]\s+/.test(l.text));
 
-    if (bullets.length === 0) {
+    if (topLevelBullets.length === 0) {
       errors.push({
         line: arbolSection.lineNumber,
         rule: 'arbol-sin-archivos',
@@ -597,9 +640,10 @@ function validatePlan(parsed, errors, warnings) {
         found: 'Sin archivos declarados',
       });
     } else {
-      for (const bullet of bullets) {
+      for (const bullet of topLevelBullets) {
         // Tolerancia: viñeta con backticks o comillas (- `+ ruta`, - `~ ruta`, - + ruta)
-        const hasValidPrefix = /^[-*]\s+[`'"]?[+~-][\s`'"]\s*\S+/.test(bullet.trimmed);
+        const cleanedBulletText = bullet.text.replace(/\\/g, '');
+        const hasValidPrefix = /^ {0,1}[-*]\s+[`'"]?[+~-][\s`'"]\s*\S+/.test(cleanedBulletText);
         if (!hasValidPrefix) {
           errors.push({
             line: bullet.lineNumber,
@@ -653,16 +697,16 @@ function validatePlan(parsed, errors, warnings) {
     );
 
     const hasDecision = dtLines.some((l) =>
-      /\*\*Decisión:\*\*/i.test(l.trimmed)
+      normalizeText(l.trimmed).includes('decision')
     );
     const hasBestOption = dtLines.some((l) =>
-      /\*\*Por qué es la mejor opción actual:\*\*/i.test(l.trimmed)
+      normalizeText(l.trimmed).includes('por que es la mejor opcion actual')
     );
     const hasAlternative = dtLines.some((l) =>
-      /\*\*Alternativa descartada:\*\*/i.test(l.trimmed)
+      normalizeText(l.trimmed).includes('alternativa descartada')
     );
     const hasWhyDiscarded = dtLines.some((l) =>
-      /\*\*Por qué se descarta:\*\*/i.test(l.trimmed)
+      normalizeText(l.trimmed).includes('por que se descarta')
     );
 
     if (!hasDecision) {
@@ -785,6 +829,33 @@ function validateTasks(parsed, errors, warnings) {
         message: `La tarea en línea ${tl.lineNumber} no especifica la duración recomendada (ej: '(20-30 min)').`,
         expected: '- [ ] **TASK-xx: Título (20-30 min)**',
         found: tl.trimmed,
+      });
+    }
+
+    // Validar campo obligatorio Test primero (TDD)
+    const taskStartIndex = parsed.lines.findIndex((l) => l.lineNumber === tl.lineNumber);
+    const nextTaskIndex = parsed.lines.findIndex(
+      (l, idx) =>
+        idx > taskStartIndex &&
+        !l.inCodeBlock &&
+        (/^\s*[-*]\s*\[\s*[xX ]\s*\]\s*\*\*TASK-/i.test(l.trimmed) ||
+         /^#{1,3}\s+/.test(l.trimmed))
+    );
+    const taskBlockLines = parsed.lines.slice(
+      taskStartIndex + 1,
+      nextTaskIndex !== -1 ? nextTaskIndex : parsed.lines.length
+    );
+
+    const hasTddField = taskBlockLines.some((l) =>
+      normalizeText(l.trimmed).includes('test primero')
+    );
+    if (!hasTddField) {
+      errors.push({
+        line: tl.lineNumber,
+        rule: 'task-tdd-faltante',
+        message: `La tarea en línea ${tl.lineNumber} no contiene el campo obligatorio '- **Test primero (TDD):**'.`,
+        expected: '- **Test primero (TDD):** <especificación de la prueba>',
+        found: 'Campo TDD ausente',
       });
     }
   }

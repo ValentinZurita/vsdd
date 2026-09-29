@@ -262,7 +262,7 @@ function extractTrackedFiles(featureDir, planContent = '') {
     if (treeSectionMatch) {
       const lines = treeSectionMatch[1].split('\n');
       for (const line of lines) {
-        const match = line.match(/^\s*[-*]?\s*([+~-])\s+`?([^`\r\n]+)`?/);
+        const match = line.match(/^\s*[-*]?\s*[`'"]?([+~-])[\s`'"]+`?([^`'"\r\n]+)`?/);
         if (match) {
           const symbol = match[1];
           const rawPath = match[2].trim();

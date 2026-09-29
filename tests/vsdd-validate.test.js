@@ -300,3 +300,75 @@ test('CLI: ejecución de scripts/vsdd-validate.js con archivo temporal e invocac
     fs.rmSync(tempDir, { recursive: true, force: true });
   }
 });
+
+test('State Machine: maneja bloques anidados con 4 backticks sin cerrarse antes de tiempo', () => {
+  const contentWith4Fences = VALID_SPEC.replace(
+    'Ninguna.',
+    '````markdown\n```javascript\n// Comentario\nconst x = 1;\n```\n# Encabezado que no debe detectarse\n````\n'
+  );
+  const result = validateContent(contentWith4Fences, 'spec.md');
+  assert.equal(result.valid, true);
+  assert.equal(result.errors.length, 0);
+});
+
+test('Tolerancia a puntuación: encabezados con punto o dos puntos al final son válidos', () => {
+  const punctuatedSpec = VALID_SPEC
+    .replace('## Contexto y objetivos', '## Contexto y objetivos.')
+    .replace('## Requisitos no funcionales', '## Requisitos no funcionales:');
+  const result = validateContent(punctuatedSpec, 'spec.md');
+  assert.equal(result.valid, true);
+  assert.equal(result.errors.length, 0);
+});
+
+test('Criterios de finalización: tolera sub-viñetas indentadas sin exigir prefijo estricto', () => {
+  const withSubBullets = VALID_SPEC.replace(
+    '- Se puede comprobar que el usuario autenticado visualiza su nombre en la barra superior.',
+    '- Se puede comprobar que el usuario autenticado visualiza su nombre en la barra superior.\n  - Nota complementaria: debe reflejarse en tiempo real sin recargar.'
+  );
+  const result = validateContent(withSubBullets, 'spec.md');
+  assert.equal(result.valid, true);
+  assert.equal(result.errors.length, 0);
+});
+
+test('Árbol de cambios: tolera sub-viñetas descriptivas indentadas', () => {
+  const withSubBulletsTree = VALID_PLAN.replace(
+    '- `+ src/auth/oauth-client.js`',
+    '- `+ src/auth/oauth-client.js`\n  - Implementa cliente HTTP nativo con fetch'
+  );
+  const result = validateContent(withSubBulletsTree, 'plan.md');
+  assert.equal(result.valid, true);
+  assert.equal(result.errors.length, 0);
+});
+
+test('Decisiones técnicas: tolera dos puntos afuera de las negritas (ej: **Decisión**: )', () => {
+  const dtWithColonOutside = VALID_PLAN.replace(
+    '- **Decisión:** Usar el cliente ligero nativo de fetch en lugar de una librería pesada.',
+    '- **Decisión**: Usar el cliente ligero nativo de fetch en lugar de una librería pesada.'
+  );
+  const result = validateContent(dtWithColonOutside, 'plan.md');
+  assert.equal(result.valid, true);
+  assert.equal(result.errors.length, 0);
+});
+
+test('spec.md: detecta RF sin sintaxis EARS en sus viñetas', () => {
+  const badEars = VALID_SPEC.replace(
+    '- Cuando el usuario hace clic en el botón de Google, el sistema debe redirigir a la pantalla de consentimiento.\n- Si la autenticación es exitosa, la interfaz debe mostrar la sesión activa.\n- Si el usuario rechaza los permisos, el sistema no debe iniciar sesión; debe mostrar un mensaje amigable.',
+    '- El usuario hace clic y va a Google.\n- Mostrar pantalla activa.'
+  );
+  const result = validateContent(badEars, 'spec.md');
+  assert.equal(result.valid, false);
+  const earsError = result.errors.find((e) => e.rule === 'rf-sintaxis-ears-faltante');
+  assert.ok(earsError, 'Debe detectar ausencia de sintaxis EARS');
+});
+
+test('tasks.md: detecta tarea que no contiene el campo obligatorio Test primero (TDD)', () => {
+  const badTdd = VALID_TASKS.replace(
+    '  - **Test primero (TDD):** `tests/oauth-client.test.js`\n',
+    ''
+  );
+  const result = validateContent(badTdd, 'tasks.md');
+  assert.equal(result.valid, false);
+  const tddError = result.errors.find((e) => e.rule === 'task-tdd-faltante');
+  assert.ok(tddError, 'Debe exigir campo Test primero (TDD)');
+});
+
