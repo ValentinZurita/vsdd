@@ -10,6 +10,12 @@ const {
   calculateFeatureDrift,
   extractTrackedFiles,
   saveFeatureContext,
+  saveFeatureExploration,
+  getFeatureExploration,
+  saveIntakeDraft,
+  getIntakeDraft,
+  clearIntakeDraft,
+  promoteIntakeDraft,
 } = require('../scripts/vsdd-status');
 
 test('scanFeatures returns empty array if docs/sdd/vsdd does not exist', () => {
@@ -488,4 +494,224 @@ test('formatHubMenu renders drift status badge cleanly', () => {
 
   const menu = formatHubMenu(features);
   assert.ok(menu.includes('Salud del Repo: 🟡 1 archivo(s) con cambios desde el baseline (+3 commits desde el baseline)'));
+});
+
+test('saveFeatureExploration guarda y acumula Ola 1 y Ola 2 de forma no destructiva', () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'vsdd-explore-test-'));
+  try {
+    execSync('git init', { cwd: tempDir, stdio: 'ignore' });
+    execSync('git config user.name "Test"', { cwd: tempDir, stdio: 'ignore' });
+    execSync('git config user.email "test@example.com"', { cwd: tempDir, stdio: 'ignore' });
+    fs.writeFileSync(path.join(tempDir, 'file.txt'), 'hello\n');
+    execSync('git add . && git commit -m "init"', { cwd: tempDir, stdio: 'ignore' });
+
+    const featDir = path.join(tempDir, 'docs', 'sdd', 'vsdd', '001-auth');
+    fs.mkdirSync(featDir, { recursive: true });
+
+    // Guardar Ola 1
+    const res1 = saveFeatureExploration(
+      featDir,
+      'spec',
+      {
+        model: 'flash',
+        ola1: {
+          type: 'spec-gaps',
+          complexity: 10,
+          q1: '¿Soportar OAuth2?',
+        },
+      },
+      tempDir
+    );
+
+    assert.equal(res1.phases.spec.status, 'en-progreso');
+    assert.equal(res1.phases.spec.exploration.ola1.complexity, 10);
+    assert.ok(res1.phases.spec.exploration.baseCommit);
+
+    // Guardar Ola 2 posteriormente (debe mergear, no sobrescribir Ola 1)
+    const res2 = saveFeatureExploration(
+      featDir,
+      'spec',
+      {
+        ola2: {
+          type: 'benchmarking-web',
+          leader: 'Auth0',
+        },
+      },
+      tempDir
+    );
+
+    assert.equal(res2.phases.spec.exploration.ola1.complexity, 10);
+    assert.equal(res2.phases.spec.exploration.ola2.leader, 'Auth0');
+
+    // Recuperar con getFeatureExploration
+    const retrieved = getFeatureExploration(featDir, 'spec');
+    assert.ok(retrieved);
+    assert.equal(retrieved.ola1.complexity, 10);
+    assert.equal(retrieved.ola2.leader, 'Auth0');
+  } finally {
+    fs.rmSync(tempDir, { recursive: true, force: true });
+  }
+});
+
+test('ciclo de vida de intake draft: saveIntakeDraft, getIntakeDraft, clearIntakeDraft, promoteIntakeDraft', () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'vsdd-intake-draft-test-'));
+  try {
+    execSync('git init', { cwd: tempDir, stdio: 'ignore' });
+    execSync('git config user.name "Test"', { cwd: tempDir, stdio: 'ignore' });
+    execSync('git config user.email "test@example.com"', { cwd: tempDir, stdio: 'ignore' });
+    fs.writeFileSync(path.join(tempDir, 'init.txt'), 'ok\n');
+    execSync('git add . && git commit -m "init"', { cwd: tempDir, stdio: 'ignore' });
+
+    assert.equal(getIntakeDraft(tempDir), null);
+
+    // Guardar borrador inicial
+    const saved = saveIntakeDraft(
+      {
+        ideaSummary: 'Integrar notificaciones push',
+        exploration: {
+          ola1: { found: true },
+        },
+      },
+      tempDir
+    );
+
+    assert.equal(saved.isDraft, true);
+    assert.equal(saved.ideaSummary, 'Integrar notificaciones push');
+
+    // Comprobar que getIntakeDraft lo lee
+    const draft = getIntakeDraft(tempDir);
+    assert.ok(draft);
+    assert.equal(draft.ideaSummary, 'Integrar notificaciones push');
+
+    // Promover a carpeta definitiva
+    const finalDir = path.join(tempDir, 'docs', 'sdd', 'vsdd', '002-push-notifications');
+    fs.mkdirSync(finalDir, { recursive: true });
+
+    const promoted = promoteIntakeDraft(finalDir, tempDir);
+    assert.ok(promoted);
+    assert.equal(promoted.phases.intake.status, 'completado');
+    assert.equal(promoted.phases.intake.exploration.ola1.found, true);
+
+    // Borrador debe haberse eliminado
+    assert.equal(getIntakeDraft(tempDir), null);
+  } finally {
+    fs.rmSync(tempDir, { recursive: true, force: true });
+  }
+});
+
+test('scanFeatures detecta .draft-intake.json e inyecta la entrada en pendientes', () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'vsdd-scan-draft-test-'));
+  try {
+    const vsddRoot = path.join(tempDir, 'docs', 'sdd', 'vsdd');
+    fs.mkdirSync(vsddRoot, { recursive: true });
+
+    // Guardar un borrador de intake
+    saveIntakeDraft(
+      {
+        ideaSummary: 'Mejora de performance',
+      },
+      tempDir
+    );
+
+    const features = scanFeatures(tempDir);
+    assert.equal(features.length, 1);
+    assert.equal(features[0].isDraft, true);
+    assert.equal(features[0].id, '[Borrador] Intake en progreso');
+    assert.equal(features[0].objective, 'Mejora de performance');
+    assert.equal(features[0].phase, 'intake');
+
+    const menu = formatHubMenu(features);
+    assert.ok(menu.includes('[Borrador] Intake en progreso'));
+    assert.ok(menu.includes('• Objetivo: Mejora de performance'));
+
+    // Limpiar borrador y verificar que desaparece
+    clearIntakeDraft(tempDir);
+    const updatedFeatures = scanFeatures(tempDir);
+    assert.equal(updatedFeatures.length, 0);
+  } finally {
+    fs.rmSync(tempDir, { recursive: true, force: true });
+  }
+});
+
+test('mitigación QA mtime: saveFeatureExploration no corrompe trackedFiles ante plan.md editado', () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'vsdd-mtime-qa-'));
+  try {
+    execSync('git init', { cwd: tempDir, stdio: 'ignore' });
+    execSync('git config user.name "Test"', { cwd: tempDir, stdio: 'ignore' });
+    execSync('git config user.email "test@example.com"', { cwd: tempDir, stdio: 'ignore' });
+
+    fs.mkdirSync(path.join(tempDir, 'src'), { recursive: true });
+    fs.writeFileSync(path.join(tempDir, 'src', 'original.js'), 'export const a = 1;\n');
+    fs.writeFileSync(path.join(tempDir, 'src', 'manual.js'), 'export const b = 2;\n');
+    execSync('git add . && git commit -m "init"', { cwd: tempDir, stdio: 'ignore' });
+
+    const baseCommit = execSync('git rev-parse HEAD', { cwd: tempDir, encoding: 'utf8' }).trim();
+    const featDir = path.join(tempDir, 'docs', 'sdd', 'vsdd', '003-mtime-test');
+    fs.mkdirSync(featDir, { recursive: true });
+
+    // 1. Guardar context.json inicial con 1 solo archivo rastreado
+    saveFeatureContext(
+      featDir,
+      {
+        baseCommit,
+        trackedFiles: [{ path: 'src/original.js', action: 'modify' }],
+      },
+      tempDir
+    );
+
+    // 2. Usuario edita manualmente plan.md añadiendo src/manual.js
+    const planContent = `# Plan Técnico\n## Árbol de cambios\n- ~ src/original.js\n- + src/manual.js\n`;
+    fs.writeFileSync(path.join(featDir, 'plan.md'), planContent);
+
+    // 3. Se invoca saveFeatureExploration (sin pasar trackedFiles)
+    saveFeatureExploration(
+      featDir,
+      'plan',
+      {
+        ola1: { modules: ['src/original.js', 'src/manual.js'] },
+      },
+      tempDir
+    );
+
+    // 4. extractTrackedFiles debe contener src/manual.js (sincronizado con plan.md, no congelado en el viejo context.json)
+    const tracked = extractTrackedFiles(featDir);
+    assert.equal(tracked.trackedFiles.length, 2);
+    const paths = tracked.trackedFiles.map((t) => t.path);
+    assert.ok(paths.includes('src/original.js'));
+    assert.ok(paths.includes('src/manual.js'));
+  } finally {
+    fs.rmSync(tempDir, { recursive: true, force: true });
+  }
+});
+
+test('CLI soporta --save-exploration, --get-exploration e --intake-draft', () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'vsdd-cli-explore-'));
+  try {
+    const featDir = path.join(tempDir, 'docs', 'sdd', 'vsdd', '004-cli');
+    fs.mkdirSync(featDir, { recursive: true });
+
+    const cliPath = path.resolve(__dirname, '..', 'scripts', 'vsdd-status.js');
+
+    // 1. Guardar exploración vía CLI
+    const saveCmd = `node "${cliPath}" --save-exploration "${featDir}" --phase spec --data '{"model":"flash","ola1":{"tested":true}}'`;
+    execSync(saveCmd, { cwd: tempDir, stdio: 'pipe' });
+
+    // 2. Consultar exploración vía CLI
+    const getCmd = `node "${cliPath}" --get-exploration "${featDir}" --phase spec`;
+    const getOut = execSync(getCmd, { cwd: tempDir, encoding: 'utf8' });
+    const parsed = JSON.parse(getOut);
+    assert.equal(parsed.model, 'flash');
+    assert.equal(parsed.ola1.tested, true);
+
+    // 3. Guardar intake draft vía CLI
+    const draftCmd = `node "${cliPath}" --save-intake-draft --data '{"ideaSummary":"cli test draft"}'`;
+    execSync(draftCmd, { cwd: tempDir, stdio: 'pipe' });
+
+    const checkDraftCmd = `node "${cliPath}" --intake-draft`;
+    const draftOut = execSync(checkDraftCmd, { cwd: tempDir, encoding: 'utf8' });
+    const draftParsed = JSON.parse(draftOut);
+    assert.equal(draftParsed.ideaSummary, 'cli test draft');
+  } finally {
+    fs.rmSync(tempDir, { recursive: true, force: true });
+  }
 });

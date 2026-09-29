@@ -34,6 +34,12 @@ La exploración tiene como único fin descubrir preguntas relevantes de producto
 - Si el entorno no soporta subagentes independientes o la herramienta falla, **notificar inmediatamente en el chat**:
   `○ [Aviso] El entorno no cuenta con subagentes independientes. Analizando la idea directamente...` y continuar de inmediato formulando `Q1`.
 
+**Persistencia Inmediata de Exploración (Checkpoint de Staging):**
+- **Excepción de Metadatos Técnicos:** La regla de escritura diferida aplica exclusivamente a los artefactos Markdown de negocio (`idea.md`). El estado de exploración y telemetría de subagentes se persiste en tiempo real en `docs/sdd/vsdd/.draft-intake.json` (`saveIntakeDraft`) para no perder los hallazgos si la sesión se interrumpe antes del cierre formal.
+- Al completar la Ola 1: persistir de inmediato `ideaSummary`, modelo, timestamp y el memo de la Ola 1 (`saveIntakeDraft`).
+- Al completar la Ola 2: persistir de inmediato los hallazgos de benchmarking acumulándolos en el borrador (`saveIntakeDraft`).
+- Si Engram está disponible, respaldar adicionalmente con `mem_save topic_key: vsdd-intake-draft`.
+
 **Prohibido en el conductor:**
 Búsquedas masivas de código en el repositorio (`Grep`/`Glob` recursivos) o lecturas completas de código fuente durante Intake.
 
@@ -46,7 +52,7 @@ Q1: (pregunta clave de producto con 2-3 opciones)
 Temas: (3-4 decisiones visibles de producto)
 Riesgo: (1 línea o "ninguno")
 ```
-Si el reporte viene vacío o falla, continuar directamente a partir del texto de la idea del usuario. Nunca pegar el reporte interno en el chat.
+Al recibir el memo, persistir inmediatamente con `saveIntakeDraft` antes de formular Q1. Si el reporte viene vacío o falla, continuar directamente a partir del texto de la idea del usuario. Nunca pegar el reporte interno en el chat.
 
 **Ola 2 (Benchmarking Quirúrgico y Puntos Ciegos):**
 - **Momento de activación:** Tras responder `Q1` (cuando el problema central y la intención inicial están claros).
@@ -70,10 +76,17 @@ Si el reporte viene vacío o falla, continuar directamente a partir del texto de
 
 ## Ciclo de Conversación (Loop)
 
-0. `idea.md` se escribe **únicamente después** de que el usuario responda **Sí** a la pregunta de satisfacción del recapitulativo.
-1. **Capturar la idea:** Si el usuario no ha expuesto su idea, la primera pregunta es solicitarla en lenguaje cotidiano. Si ya la expuso, comenzar con la exploración transparente (Ola 1).
+0. **Verificación de borrador previo y regla de escritura:**
+   - Comprobar si existe `docs/sdd/vsdd/.draft-intake.json` (`getIntakeDraft`). Si existe:
+     `● [Borrador detectado] Se encontró una exploración previa: "<ideaSummary>".`
+     `¿Deseas retomar este borrador o empezar una nueva idea desde cero?`
+     `1. Retomar borrador en progreso [Recomendada]`
+     `2. Descartar borrador y comenzar nueva idea`
+     Si elige 1, cargar la idea y hallazgos guardados y formular la siguiente pregunta pendiente. Si elige 2, ejecutar `clearIntakeDraft` y comenzar desde cero.
+   - `idea.md` se escribe **únicamente después** de que el usuario responda **Sí** a la pregunta de satisfacción del recapitulativo.
+1. **Capturar la idea:** Si el usuario no ha expuesto su idea, la primera pregunta es solicitarla en lenguaje cotidiano. Si ya la expuso, comenzar con la exploración transparente (Ola 1) y persistir de inmediato en `.draft-intake.json`.
 2. **Formular Q1:** Basada en la decisión más importante de la idea, con formato estructurado de opciones (**Pro**, **Contra**, **Recomendada**). Esperar respuesta.
-3. **Explorar temas complementarios y Benchmarking:** Tras Q1, si aplica Ola 2, incorporar el hallazgo de benchmarking en Q2 como una decisión de alcance (En alcance / Fuera de alcance). Abordar de 2 a 4 decisiones clave en total. Mantener un máximo estricto de 5 a 6 intercambios breves para no fatigar al usuario.
+3. **Explorar temas complementarios y Benchmarking:** Tras Q1, si aplica Ola 2, incorporar el hallazgo de benchmarking en Q2 como una decisión de alcance (En alcance / Fuera de alcance) y persistir en `.draft-intake.json`. Abordar de 2 a 4 decisiones clave en total. Mantener un máximo estricto de 5 a 6 intercambios breves para no fatigar al usuario.
 4. **Respuestas abiertas o fuera de menú:** Si el usuario responde algo distinto a las opciones numeradas, tomar su respuesta como la decisión elegida y confirmar con una línea amable en el siguiente turno.
 5. **Generar la propuesta estructurada (Recapitulativo en Chat):**
    Presentar en el chat la síntesis de la idea organizada bajo los 4 encabezados formales:
@@ -102,10 +115,11 @@ Si el reporte viene vacío o falla, continuar directamente a partir del texto de
     - Crear el directorio `docs/sdd/vsdd/<nnn>-<slug>/` si no existe (`nnn` correlativo de 3 dígitos, ej: `001-mi-idea`).
     - Guardar `docs/sdd/vsdd/<nnn>-<slug>/idea.md` conteniendo los 4 encabezados más la línea final `Estado: listo-para-spec`.
     - Ejecutar la **Compuerta de Formato**: `node scripts/vsdd-validate.js docs/sdd/vsdd/<nnn>-<slug>/idea.md`. Si reporta errores, corregirlos en disco de inmediato.
+    - Promover la exploración del borrador a `context.json`: `promoteIntakeDraft("docs/sdd/vsdd/<nnn>-<slug>")`.
     - Si Engram está disponible, persistir un resumen con `mem_save topic_key: vsdd-intake-<slug>`.
     - Confirmar en el chat que la idea ha quedado congelada con éxito e indicar que el siguiente paso natural es iniciar la especificación con `vsdd spec`.
 
 ## Contrato de Salida
 
 * **En el chat:** Únicamente la pregunta activa con diseño aireado y opciones con viñetas. Avisos visibles de despacho de subagentes y modelo. Al final, recapitulativo y pregunta de confirmación.
-* **En el disco:** Ningún archivo escrito hasta el "Sí" final. Cuando se confirma, únicamente se genera `idea.md`. Prohibido crear código, tests o ramas en esta fase.
+* **En el disco:** Ningún archivo Markdown escrito hasta el "Sí" final. Cuando se confirma, se genera `idea.md` y se consolida la exploración en `context.json`. Prohibido crear código, tests o ramas en esta fase.

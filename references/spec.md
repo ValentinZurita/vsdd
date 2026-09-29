@@ -36,21 +36,33 @@ Paso 4c (pregunta de cierre) → escribir `spec.md` inicial (`Estado: en-revisio
 
 El conductor no realiza recorridos masivos del código del proyecto en esta fase.
 
+**Persistencia Inmediata de Exploración (Checkpoint en context.json):**
+- **Excepción de Metadatos Técnicos:** La regla de escritura diferida aplica exclusivamente a los artefactos Markdown de negocio (`spec.md`). Todo memo o hallazgo de subagentes se persiste inmediatamente en `context.json` mediante `saveFeatureExploration(featDir, 'spec', ...)` en el mismo turno en que se recibe, protegiendo el análisis si la sesión se interrumpe.
+- Si Engram está disponible, respaldar adicionalmente con `mem_save topic_key: vsdd-explore-<slug>-spec`.
+
 **Ola 1 (Análisis de huecos de especificación):**
 Con la idea cargada, se despacha un subagente de exploración (modelo rápido y económico, ej: `flash` o `haiku`) para analizar vacíos funcionales sobre el texto de la idea:
 Anunciar en chat: `● [Subagente: Exploración de Requisitos] Analizando completitud y casos límite con modelo: <modelo>...`
-El subagente evalúa complejidad ($5$, $10$ o $15$) e identifica $Q1$ y temas clave en un reporte conciso ($\le 12$ líneas). Si la herramienta falla, el agente principal analiza los huecos directamente en el mismo turno avisando en chat.
+El subagente evalúa complejidad ($5$, $10$ o $15$) e identifica $Q1$ y temas clave en un reporte conciso ($\le 12$ líneas). Inmediatamente al recibir el memo, persistir en `context.json` (`saveFeatureExploration`). Si la herramienta falla, el agente principal analiza los huecos directamente en el mismo turno avisando en chat y guardando el análisis local.
 
 **Ola 2 (Exploración de mejores prácticas / referencias externas):**
 Solo si tras agotar los temas de la Ola 1 se determina que una consulta externa aportaría claridad real sobre cómo maneja la industria este caso de uso.
 Anunciar en chat: `● [Subagente: Exploración Web] Consultando mejores prácticas con modelo: <modelo>...`
-A lo sumo 2 consultas genéricas breves. Si no es necesaria, omitir este paso y continuar sin demora.
+A lo sumo 2 consultas genéricas breves. Al recibir el reporte, persistir acumulativamente en `context.json` (`saveFeatureExploration`). Si no es necesaria, omitir este paso y continuar sin demora.
 
 ---
 
 ## Ciclo de Conversación (Entrevista Consultiva)
 
-0. **Cargar la idea:** Requiere un archivo `idea.md` con `Estado: listo-para-spec`. Si no existe, invitar primero a ejecutar `vsdd intake`. Si hay varias, listar opciones numeradas en el chat y esperar selección. Si ya existe un `spec.md` en esa carpeta, ofrecer: 1) Continuar revisión, 2) Rehacer, 3) Seleccionar otra idea.
+0. **Cargar la idea y comprobar exploraciones previas:**
+   - Requiere un archivo `idea.md` con `Estado: listo-para-spec`. Si no existe, invitar primero a ejecutar `vsdd intake`. Si hay varias, listar opciones numeradas en el chat y esperar selección.
+   - Si ya existe un `spec.md` en esa carpeta, ofrecer: 1) Continuar revisión, 2) Rehacer, 3) Seleccionar otra idea.
+   - **Detección de Exploración Previa:** Antes de despachar subagentes, comprobar si existe `phases.spec.exploration` en `context.json` (`getFeatureExploration`). Si existe:
+     `● [Exploración previa detectada] Se encontró un análisis de requisitos del [fecha].`
+     `¿Deseas retomar con estos hallazgos o realizar una nueva exploración?`
+     `1. Usar exploración guardada y continuar con la entrevista [Recomendada]`
+     `2. Descartar y re-explorar requisitos`
+     Si elige 1, avanzar directamente a `Q1` o a la pregunta pendiente sin relanzar el subagente.
 1. **Inicio de sesión:** Leer las directrices del proyecto (si existen) y el `idea.md` seleccionado. Indicar en una línea amable que iniciaremos la especificación para cerrar los detalles de comportamiento paso a paso.
 2. **Primera Pregunta (Q1):** Anunciar el tope estimado $N$ y formular la pregunta 1 abordando la decisión funcional más importante, con opciones formateadas con viñetas. **DETENERSE y esperar respuesta.**
 3. **Recorrido de Temas:** Avanzar por los temas clave (casos límite, errores, permisos, reglas de negocio), siempre una pregunta por turno encabezada con `Pregunta k de como máximo N.`.

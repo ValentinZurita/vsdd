@@ -14,19 +14,47 @@ function scanFeatures(cwd = process.cwd()) {
     return [];
   }
 
+  const features = [];
+
+  // Detectar si hay un borrador de intake en curso
+  const intakeDraft = getIntakeDraft(cwd);
+  if (intakeDraft) {
+    features.push({
+      id: '[Borrador] Intake en progreso',
+      rawId: '.draft-intake',
+      isDraft: true,
+      path: getIntakeDraftPath(cwd),
+      phase: 'intake',
+      phaseDescription: 'Intake (borrador en progreso)',
+      nextCommand: 'vsdd intake',
+      isCompleted: false,
+      objective: intakeDraft.ideaSummary || 'Idea en proceso de exploración',
+      totalTasks: 0,
+      completedTasks: 0,
+      pendingTasks: 0,
+      nextTaskTitle: '',
+      states: {
+        idea: 'borrador',
+        spec: '',
+        plan: '',
+        tasks: '',
+      },
+      drift: null,
+      draftData: intakeDraft,
+    });
+  }
+
   let entries = [];
   try {
     entries = fs.readdirSync(vsddRoot, { withFileTypes: true });
   } catch (error) {
-    return [];
+    return features;
   }
 
   const featureDirs = entries
     .filter((entry) => entry.isDirectory() && !entry.name.startsWith('.'))
     .map((entry) => entry.name)
     .sort();
-
-  const features = [];
 
   for (const dirName of featureDirs) {
     const dirPath = path.join(vsddRoot, dirName);
@@ -216,6 +244,32 @@ function getCurrentBranch(gitRoot) {
 // Extracción de archivos y Manifiesto de Contexto
 // -------------------------------------------------------------
 
+function parseTrackedFilesFromPlanContent(content) {
+  const trackedFiles = [];
+  if (!content) return trackedFiles;
+
+  const treeSectionMatch = content.match(/## Árbol de cambios\s+([\s\S]*?)(?=\n##|$)/i);
+  if (treeSectionMatch) {
+    const lines = treeSectionMatch[1].split('\n');
+    for (const line of lines) {
+      const match = line.match(/^\s*[-*]?\s*[`'"]?([+~-])[\s`'"]+`?([^`'"\r\n]+)`?/);
+      if (match) {
+        const symbol = match[1];
+        const rawPath = match[2].trim();
+        let action = 'modify';
+        if (symbol === '+') action = 'create';
+        else if (symbol === '-') action = 'delete';
+
+        trackedFiles.push({
+          path: rawPath,
+          action,
+        });
+      }
+    }
+  }
+  return trackedFiles;
+}
+
 function extractTrackedFiles(featureDir, planContent = '') {
   const contextPath = path.join(featureDir, 'context.json');
   const planPath = path.join(featureDir, 'plan.md');
@@ -254,30 +308,8 @@ function extractTrackedFiles(featureDir, planContent = '') {
   }
 
   // Extracción dinámica desde el Árbol de Cambios de plan.md
-  const trackedFiles = [];
   const content = planContent || (hasPlan ? readFileSafe(planPath) : '');
-
-  if (content) {
-    const treeSectionMatch = content.match(/## Árbol de cambios\s+([\s\S]*?)(?=\n##|$)/i);
-    if (treeSectionMatch) {
-      const lines = treeSectionMatch[1].split('\n');
-      for (const line of lines) {
-        const match = line.match(/^\s*[-*]?\s*[`'"]?([+~-])[\s`'"]+`?([^`'"\r\n]+)`?/);
-        if (match) {
-          const symbol = match[1];
-          const rawPath = match[2].trim();
-          let action = 'modify';
-          if (symbol === '+') action = 'create';
-          else if (symbol === '-') action = 'delete';
-
-          trackedFiles.push({
-            path: rawPath,
-            action,
-          });
-        }
-      }
-    }
-  }
+  const trackedFiles = parseTrackedFilesFromPlanContent(content);
 
   return {
     source: hasContext ? 'context.json (synced from plan)' : 'plan.md',
@@ -523,6 +555,22 @@ function saveFeatureContext(featureDir, data = {}, cwd = process.cwd()) {
     } catch (err) {}
   }
 
+  // Prevenir que context.json congele una lista obsoleta de trackedFiles si plan.md fue editado manualmente
+  let trackedFilesToSave = data.trackedFiles;
+  if (!trackedFilesToSave) {
+    const planPath = path.join(featureDir, 'plan.md');
+    if (fs.existsSync(planPath)) {
+      const planContent = readFileSafe(planPath);
+      const parsed = parseTrackedFilesFromPlanContent(planContent);
+      if (parsed && parsed.length > 0) {
+        trackedFilesToSave = parsed;
+      }
+    }
+  }
+  if (!trackedFilesToSave) {
+    trackedFilesToSave = existing.trackedFiles || [];
+  }
+
   const updated = {
     $schema: 'https://json-schema.org/draft/2020-12/schema',
     version: '1.0',
@@ -532,7 +580,7 @@ function saveFeatureContext(featureDir, data = {}, cwd = process.cwd()) {
       baseCommit: baseCommit || (existing.git && existing.git.baseCommit) || '',
       capturedAt: new Date().toISOString(),
     },
-    trackedFiles: data.trackedFiles || existing.trackedFiles || [],
+    trackedFiles: trackedFilesToSave,
     phases: {
       ...(existing.phases || {}),
       ...(data.phases || {}),
@@ -541,6 +589,179 @@ function saveFeatureContext(featureDir, data = {}, cwd = process.cwd()) {
 
   fs.writeFileSync(contextPath, JSON.stringify(updated, null, 2) + '\n', 'utf8');
   return updated;
+}
+
+/**
+ * Guarda o actualiza la exploración de una fase en context.json de forma acumulativa.
+ */
+function saveFeatureExploration(featureDir, phase, explorationData = {}, cwd = process.cwd()) {
+  const contextPath = path.join(featureDir, 'context.json');
+  let existing = {};
+  if (fs.existsSync(contextPath)) {
+    try {
+      existing = JSON.parse(fs.readFileSync(contextPath, 'utf8'));
+    } catch (err) {}
+  }
+
+  const existingPhase = (existing.phases && existing.phases[phase]) || {};
+  const existingExploration = existingPhase.exploration || {};
+
+  const mergedExploration = {
+    ...existingExploration,
+    ...explorationData,
+    completedAt: explorationData.completedAt || new Date().toISOString(),
+  };
+
+  const gitRoot = getGitRoot(cwd) || getGitRoot(featureDir);
+  if (gitRoot && hasGitCommits(gitRoot) && !mergedExploration.baseCommit) {
+    const stdout = execGit(['rev-parse', 'HEAD'], gitRoot, 1500);
+    if (stdout) {
+      mergedExploration.baseCommit = stdout.trim();
+    }
+  }
+
+  return saveFeatureContext(
+    featureDir,
+    {
+      phases: {
+        [phase]: {
+          ...existingPhase,
+          status: existingPhase.status || 'en-progreso',
+          exploration: mergedExploration,
+        },
+      },
+    },
+    cwd
+  );
+}
+
+/**
+ * Obtiene la exploración guardada para una fase en context.json.
+ */
+function getFeatureExploration(featureDir, phase) {
+  const contextPath = path.join(featureDir, 'context.json');
+  if (!fs.existsSync(contextPath)) {
+    return null;
+  }
+  try {
+    const data = JSON.parse(fs.readFileSync(contextPath, 'utf8'));
+    if (data.phases && data.phases[phase] && data.phases[phase].exploration) {
+      return data.phases[phase].exploration;
+    }
+  } catch (err) {
+    return null;
+  }
+  return null;
+}
+
+/**
+ * Ruta del archivo borrador de intake.
+ */
+function getIntakeDraftPath(cwd = process.cwd()) {
+  return path.join(cwd, 'docs', 'sdd', 'vsdd', '.draft-intake.json');
+}
+
+/**
+ * Guarda o actualiza el borrador de intake en docs/sdd/vsdd/.draft-intake.json.
+ */
+function saveIntakeDraft(draftData = {}, cwd = process.cwd()) {
+  const vsddRoot = path.join(cwd, 'docs', 'sdd', 'vsdd');
+  if (!fs.existsSync(vsddRoot)) {
+    fs.mkdirSync(vsddRoot, { recursive: true });
+  }
+  const draftPath = getIntakeDraftPath(cwd);
+  let existing = {};
+  if (fs.existsSync(draftPath)) {
+    try {
+      existing = JSON.parse(fs.readFileSync(draftPath, 'utf8'));
+    } catch (err) {}
+  }
+
+  const existingExploration = existing.exploration || {};
+  const newExploration = draftData.exploration || {};
+
+  const updated = {
+    $schema: 'https://json-schema.org/draft/2020-12/schema',
+    version: '1.0',
+    isDraft: true,
+    ideaSummary: draftData.ideaSummary || existing.ideaSummary || '',
+    updatedAt: new Date().toISOString(),
+    exploration: {
+      ...existingExploration,
+      ...newExploration,
+      completedAt: newExploration.completedAt || existingExploration.completedAt || new Date().toISOString(),
+    },
+    ...(draftData.extra || {}),
+  };
+
+  const gitRoot = getGitRoot(cwd);
+  if (gitRoot && hasGitCommits(gitRoot) && !updated.exploration.baseCommit) {
+    const stdout = execGit(['rev-parse', 'HEAD'], gitRoot, 1500);
+    if (stdout) {
+      updated.exploration.baseCommit = stdout.trim();
+    }
+  }
+
+  fs.writeFileSync(draftPath, JSON.stringify(updated, null, 2) + '\n', 'utf8');
+  return updated;
+}
+
+/**
+ * Obtiene el borrador de intake si existe.
+ */
+function getIntakeDraft(cwd = process.cwd()) {
+  const draftPath = getIntakeDraftPath(cwd);
+  if (!fs.existsSync(draftPath)) {
+    return null;
+  }
+  try {
+    return JSON.parse(fs.readFileSync(draftPath, 'utf8'));
+  } catch (err) {
+    return null;
+  }
+}
+
+/**
+ * Elimina el borrador de intake si el usuario lo descarta.
+ */
+function clearIntakeDraft(cwd = process.cwd()) {
+  const draftPath = getIntakeDraftPath(cwd);
+  if (fs.existsSync(draftPath)) {
+    try {
+      fs.unlinkSync(draftPath);
+      return true;
+    } catch (err) {
+      return false;
+    }
+  }
+  return false;
+}
+
+/**
+ * Promueve el borrador de intake a context.json en la carpeta definitiva de la funcionalidad.
+ */
+function promoteIntakeDraft(featureDir, cwd = process.cwd()) {
+  const draft = getIntakeDraft(cwd);
+  if (!draft) {
+    return null;
+  }
+
+  const updatedContext = saveFeatureContext(
+    featureDir,
+    {
+      phases: {
+        intake: {
+          status: 'completado',
+          completedAt: new Date().toISOString(),
+          exploration: draft.exploration || {},
+        },
+      },
+    },
+    cwd
+  );
+
+  clearIntakeDraft(cwd);
+  return updatedContext;
 }
 
 // -------------------------------------------------------------
@@ -636,11 +857,56 @@ Se encontraron las siguientes funcionalidades en curso:
 if (require.main === module) {
   const args = process.argv.slice(2);
   const cwd = process.cwd();
-  const features = scanFeatures(cwd);
 
   if (args.includes('--json')) {
+    const features = scanFeatures(cwd);
     console.log(JSON.stringify(features, null, 2));
+  } else if (args.includes('--intake-draft')) {
+    const draft = getIntakeDraft(cwd);
+    console.log(JSON.stringify(draft, null, 2));
+  } else if (args.includes('--clear-intake-draft')) {
+    const success = clearIntakeDraft(cwd);
+    console.log(JSON.stringify({ cleared: success }, null, 2));
+  } else if (args.includes('--save-intake-draft')) {
+    const dataIdx = args.indexOf('--data');
+    const dataRaw = dataIdx !== -1 ? args[dataIdx + 1] : '{}';
+    let data = {};
+    try {
+      data = JSON.parse(dataRaw);
+    } catch (e) {
+      data = { ideaSummary: dataRaw };
+    }
+    const result = saveIntakeDraft(data, cwd);
+    console.log(JSON.stringify(result, null, 2));
+  } else if (args.includes('--promote-intake-draft')) {
+    const dirIdx = args.indexOf('--promote-intake-draft');
+    const featureDir = args[dirIdx + 1] ? path.resolve(cwd, args[dirIdx + 1]) : '';
+    const result = promoteIntakeDraft(featureDir, cwd);
+    console.log(JSON.stringify(result, null, 2));
+  } else if (args.includes('--save-exploration')) {
+    const dirIdx = args.indexOf('--save-exploration');
+    const featureDir = args[dirIdx + 1] ? path.resolve(cwd, args[dirIdx + 1]) : '';
+    const phaseIdx = args.indexOf('--phase');
+    const phase = phaseIdx !== -1 ? args[phaseIdx + 1] : '';
+    const dataIdx = args.indexOf('--data');
+    const dataRaw = dataIdx !== -1 ? args[dataIdx + 1] : '{}';
+    let data = {};
+    try {
+      data = JSON.parse(dataRaw);
+    } catch (e) {
+      data = { raw: dataRaw };
+    }
+    const result = saveFeatureExploration(featureDir, phase, data, cwd);
+    console.log(JSON.stringify(result, null, 2));
+  } else if (args.includes('--get-exploration')) {
+    const dirIdx = args.indexOf('--get-exploration');
+    const featureDir = args[dirIdx + 1] ? path.resolve(cwd, args[dirIdx + 1]) : '';
+    const phaseIdx = args.indexOf('--phase');
+    const phase = phaseIdx !== -1 ? args[phaseIdx + 1] : '';
+    const result = getFeatureExploration(featureDir, phase);
+    console.log(JSON.stringify(result, null, 2));
   } else {
+    const features = scanFeatures(cwd);
     process.stdout.write(formatHubMenu(features));
   }
 }
@@ -651,7 +917,15 @@ module.exports = {
   formatHubMenu,
   calculateFeatureDrift,
   extractTrackedFiles,
+  parseTrackedFilesFromPlanContent,
   saveFeatureContext,
+  saveFeatureExploration,
+  getFeatureExploration,
+  getIntakeDraftPath,
+  saveIntakeDraft,
+  getIntakeDraft,
+  clearIntakeDraft,
+  promoteIntakeDraft,
   getGitRoot,
   hasGitCommits,
   isCommitInTree,

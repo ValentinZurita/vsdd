@@ -13,14 +13,14 @@ Load when the user starts or continues vsdd. Run **one phase** at a time.
 
 ## Hard Rules
 
-- The user owns content. Every saved line must trace to their words, an answered option, or a skip they accepted.
+- The user owns content. Every saved line must trace to their words, an answered option, or a skip they accepted. **Excepción de metadatos técnicos:** Esta restricción aplica estrictamente a los artefactos Markdown de negocio (`idea.md`, `spec.md`, `plan.md`, `tasks.md`). Los archivos JSON de estado técnico y telemetría (`context.json`, `.draft-intake.json`) constituyen metadatos operativos y deben persistirse inmediatamente en tiempo real para no perder el progreso del usuario.
 - North Star: `idea.md` captures the original human pain and intent. Spec, Plan, and Tasks must read it, preserve its essence without over-engineering, and pass it to their independent auditor.
 - Language and Persona: neutral/professional Spanish throughout (no voseo). Tone: empathetic Product Lead / Senior Developer conversing with a client (non-technical, clear, brief, open-minded). Do not assume the user has all technical answers.
 - One question per turn. STOP and wait. Numbered options **in the chat** (`1 / 2 / 3`). Product forks: **Pro**, **Contra**, **Recomendada** visible. Sí/No and navigation menus have no pro/contra. Do **not** use host AskQuestion/select. Intake: no `n/m`. Spec, Plan: `Pregunta k de como máximo N` (honest ceiling). Tasks: **zero interview questions** (direct autonomous slicing from `plan.md`). Do not send 2+ questions in one message.
 - Option menus allowed even if other skills forbid them.
 - Recap in chat, then happy-check. Intake: then STOP; write `idea.md` only on a **later** turn after Sí (no green-light menu). Spec, Plan: do not STOP at the recap. Close = write → independent auditor subagent → wait → **artifact exception:** conductor patches settled `spec.md`/`plan.md`; ask the user **only** for their choices → recap → contento → on Sí, the three-option menu. Tasks: **no interview**; direct autonomous slicing from `plan.md` → write → independent auditor subagent immediately → wait → conductor patches `tasks.md` only (artifact exception) → recap in chat → ask directly if user wants to implement now or not yet.
 - Absolute Subagent & Model Transparency: **NO subagent or background task may run silently.** The conductor MUST announce every subagent launch with its role and requested model in chat (e.g. `● [Subagente: Explore] Modelo: flash...`). If the host tool or CLI fails to use the requested model, or does not support delegation, NEVER fall back silently: the agent MUST notify the user in chat (e.g. `○ [Aviso] El entorno no soporta subagentes independientes. Continuando directamente con el agente principal...`) before proceeding.
-- Explore: fast/cheap host subagent (via host mechanism: `invoke_subagent` in Antigravity, `Task` in Cursor; fast/cheap model, e.g. `flash`, `composer-2.5-fast`, `haiku`). Intake benchmarking web (Ola 2): subagente rápido (`flash`) limitado a 2 queries quirúrgicas para referentes y puntos ciegos. Intake/Spec/Tasks conductor: no broad repository greps or web searches.
+- Explore: fast/cheap host subagent (via host mechanism: `invoke_subagent` in Antigravity, `Task` in Cursor; fast/cheap model, e.g. `flash`, `composer-2.5-fast`, `haiku`). Intake benchmarking web (Ola 2): subagente rápido (`flash`) limitado a 2 queries quirúrgicas para referentes y puntos ciegos. Intake/Spec/Tasks conductor: no broad repository greps or web searches. **Persistencia Inmediata de Exploración:** Todo subagente de exploración debe persistir sus hallazgos inmediatamente en `context.json` (o `.draft-intake.json` en Intake) en el mismo turno de su recepción, antes de formular la siguiente pregunta al usuario.
 - Project-agnostic discovery: discover architecture and conventions from the current project's documentation (`README.md`, contribution guides, test suites, architecture notes). Do not assume hardcoded paths (such as `apps/` or `supabase/`).
 - After each answer, privately scan for real harm/security/privacy. Flag only if needed (`Oye, fíjate que…`).
 - Load the reference for the current phase. Spec/Plan/Tasks also read their template, that folder's `idea.md`, and the chosen prior artifact **after it is chosen and before the first gap question**.
@@ -43,10 +43,10 @@ Load when the user starts or continues vsdd. Run **one phase** at a time.
 
 ## Protocolo del Hub de Pendientes (`vsdd` sin argumentos)
 
-1. **Escaneo de Funcionalidades y Desfase:** Escanear `docs/sdd/vsdd/` ejecutando `scripts/vsdd-status.js --json` (inspección de estado, tareas y detección de drift).
-2. **Filtrar Incompletas:** Identificar todas las funcionalidades cuyo estado **no** sea `completado`.
+1. **Escaneo de Funcionalidades y Desfase:** Escanear `docs/sdd/vsdd/` ejecutando `scripts/vsdd-status.js --json` (inspección de estado, tareas, borradores de intake y detección de drift).
+2. **Filtrar Incompletas:** Identificar todas las funcionalidades cuyo estado **no** sea `completado` o que sean borradores en curso.
 3. **Si no hay pendientes:** Informar amablemente: *«No tienes funcionalidades pendientes. ¿Deseas iniciar una nueva idea con vsdd intake?»* y esperar respuesta.
-4. **Si hay pendientes:** Mostrar el panel estructurado con opciones numeradas (`[1]`, `[2]`, ... `[N]`), detallando fase actual, tareas completadas vs pendientes, salud del repositorio con semáforo (🟢/🟡/🔴) y próximo comando. **DETENERSE y esperar selección.**
+4. **Si hay pendientes o borradores:** Mostrar el panel estructurado con opciones numeradas (`[1]`, `[2]`, ... `[N]`), detallando fase actual, tareas completadas vs pendientes, salud del repositorio con semáforo (🟢/🟡/🔴) y próximo comando. Los borradores de intake se muestran como `[Borrador] Intake en progreso` para retomar directamente. **DETENERSE y esperar selección.**
 5. **Cápsula de Contexto Previo al Arranque (Context Onboarding):**
    Al elegir una opción, presentar un resumen ejecutivo de 5 puntos:
    - **Objetivo:** Valor o dolor de negocio de la funcionalidad.

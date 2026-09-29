@@ -40,21 +40,36 @@ Paso 4c (pregunta de cierre técnico) → escribir `plan.md` inicial (`Estado: e
 
 El conductor no realiza lecturas masivas ni tours completos del código en esta fase.
 
+**Persistencia Inmediata de Exploración (Checkpoint en context.json):**
+- **Excepción de Metadatos Técnicos:** La regla de escritura diferida aplica exclusivamente a los artefactos Markdown de negocio (`plan.md`). Todo mapeo de módulos y hallazgos de subagentes se persiste de inmediato en `context.json` mediante `saveFeatureExploration(featDir, 'plan', ...)` en el mismo turno en que se recibe, capturando el `baseCommit` y los módulos propuestos.
+- Si Engram está disponible, respaldar adicionalmente con `mem_save topic_key: vsdd-explore-<slug>-plan`.
+
 **Ola 1 (Exploración de Módulos y Arquitectura Existente):**
 Con la especificación cargada, se despacha un subagente de exploración (modelo rápido y económico, ej: `flash` o `haiku`):
 Anunciar en chat: `● [Subagente: Exploración Arquitectónica] Analizando estructura del repositorio y módulos existentes con modelo: <modelo>...`
-El subagente evalúa complejidad ($5$, $10$ o $15$), identifica disyuntivas técnicas ($Q1$) y propone los módulos a tocar en un reporte conciso ($\le 12$ líneas). Si la herramienta falla, el agente principal analiza los módulos localmente avisando en chat.
+El subagente evalúa complejidad ($5$, $10$ o $15$), identifica disyuntivas técnicas ($Q1$) y propone los módulos a tocar en un reporte conciso ($\le 12$ líneas). Inmediatamente al recibir el memo, persistir en `context.json` (`saveFeatureExploration`). Si la herramienta falla, el agente principal analiza los módulos localmente avisando en chat y guardando el análisis local.
 
 **Ola 2 (Exploración de Estándares Externos / Mejores Prácticas):**
 Solo si una decisión técnica requiere contrastar opciones contra el estado del arte de la industria.
 Anunciar en chat: `● [Subagente: Exploración Técnica Web] Consultando mejores prácticas de arquitectura con modelo: <modelo>...`
-Máximo 2 búsquedas web breves. Si no es necesaria, omitir este paso y continuar.
+Máximo 2 búsquedas web breves. Al recibir el reporte, persistir acumulativamente en `context.json` (`saveFeatureExploration`). Si no es necesaria, omitir este paso y continuar.
 
 ---
 
 ## Ciclo de Conversación (Entrevista Técnica)
 
-0. **Cargar la especificación:** Requiere un archivo `spec.md` con `Estado: listo-para-plan`. Si no existe, invitar a ejecutar `vsdd spec`. Si hay varias, listar opciones numeradas en el chat. Si ya existe un `plan.md` en esa carpeta, ofrecer: 1) Continuar revisión, 2) Rehacer, 3) Seleccionar otra especificación.
+0. **Cargar la especificación y comprobar exploraciones previas:**
+   - Requiere un archivo `spec.md` con `Estado: listo-para-plan`. Si no existe, invitar a ejecutar `vsdd spec`. Si hay varias, listar opciones numeradas en el chat.
+   - Si ya existe un `plan.md` en esa carpeta, ofrecer: 1) Continuar revisión, 2) Rehacer, 3) Seleccionar otra especificación.
+   - **Detección de Exploración Previa y Salud de Git:** Antes de despachar subagentes, comprobar si existe `phases.plan.exploration` en `context.json` (`getFeatureExploration`). Si existe:
+     * Si no hay commits nuevos posteriores al commit de la exploración:
+       `● [Exploración previa detectada] Se encontró un análisis de módulos del [fecha].`
+       `¿Deseas retomar con estos hallazgos o realizar una nueva exploración?`
+       `1. Usar exploración guardada y continuar con la entrevista [Recomendada]`
+       `2. Descartar y re-explorar arquitectura`
+     * Si el repositorio avanzó (drift detectado): advertir:
+       `▲ Se detectaron commits nuevos en el repositorio desde la última exploración. ¿Deseas re-explorar la arquitectura o mantener los hallazgos previos?`
+     Si elige usar la previa, avanzar directamente a `Q1` o a la pregunta técnica pendiente.
 1. **Inicio de sesión:** Leer las directrices del proyecto (si existen), `idea.md` y `spec.md`. Indicar en una línea amable que definiremos la arquitectura y las decisiones técnicas paso a paso.
 2. **Primera Pregunta (Q1):** Anunciar el tope estimado $N$ y formular la pregunta 1 abordando la disyuntiva técnica más importante, con opciones estructuradas con pros, contras y recomendación basada en evidencia. **DETENERSE y esperar respuesta.**
 3. **Recorrido de Temas Técnicos:** Avanzar por las decisiones clave (módulos, datos, contratos, pruebas), siempre una pregunta por turno encabezada con `Pregunta k de como máximo N.`.
