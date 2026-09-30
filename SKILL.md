@@ -40,7 +40,21 @@ Load when the user starts or continues vsdd. Run **one phase** at a time.
 | Tasks / tareas                  | `references/tasks.md`  | vsdd-validate verde; luz verde auditoría; tasks.md listo-para-aplicar |
 | Implement, apply, implementar   | `references/apply.md`  | Tareas TDD y controles completados; tasks.md listo-para-verify     |
 | Verify, verificar, verificación | `references/verify.md` | Validación verde, Golden Path y DoD integrado; tasks.md y resumen.md completados |
-| Abort, cancelar, descartar      | `scripts/vsdd-status.js --abort` | Funcionalidad marcada como cancelada, excluida de pendientes y retorno a main |
+| Abort, cancelar, descartar      | `scripts/vsdd-status.js --abort` | Funcionalidad cancelada y excluida. **Confirmación obligatoria:** advertir explícitamente antes de usar `--delete-branch` |
+
+## Protocolo de Cancelación y Descarte (`vsdd abort`)
+
+1. **Descarte de Borrador (`vsdd abort draft`):** Elimina `.draft-intake.json` limpiamente sin tocar Git ni carpetas.
+2. **Cancelación de Funcionalidad Formal (`vsdd abort <id>`):**
+   - **Guardia de Cambios Sucios:** Si existen cambios locales sin commitear (`git status --porcelain`), la operación se frena y exige commit o stash previo.
+   - **Estampado y Auto-commit:** Marca `Estado: cancelado` en los artefactos y sella un commit convencional de documentación (`docs(sdd): cancelar funcionalidad ...`).
+   - **Advertencia Destructiva y Confirmación de Rama:**
+     * **NUNCA** pasar `--delete-branch` de forma automática o desatendida sin confirmación explícita del usuario.
+     * El agente DEBE advertir explícitamente en el chat:
+       > ⚠️ **ATENCIÓN:** Eliminar la rama `<rama>` descartará permanentemente todos los commits y cambios exclusivos de esta funcionalidad que no hayan sido mergeados a `<baseBranch>`.
+       > ¿Deseas eliminar la rama y descartar su código, o solo marcar la funcionalidad como cancelada preservando la rama en Git?
+     * Solo si el usuario confirma expresamente se añade la bandera `--delete-branch`.
+     * Las ramas troncales (`main`, `master`, `develop`, `dev`, `trunk` o la rama única del repositorio) están estrictamente protegidas contra borrado incluso si se pasa `--delete-branch`.
 
 ## Protocolo del Hub de Pendientes (`vsdd` sin argumentos)
 

@@ -1361,6 +1361,8 @@ function abortFeature(featureId, options = {}, cwd = process.cwd()) {
     featureId: path.basename(featDir),
     switchedBranch,
     branchDeleted,
+    targetBranch,
+    baseBranch,
     message: `Funcionalidad '${path.basename(featDir)}' cancelada y excluida de pendientes con éxito.`,
   };
 }
@@ -1407,10 +1409,15 @@ if (require.main === module) {
       if (result.success) {
         console.log(`✔ ${result.message}`);
         if (result.switchedBranch) {
-          console.log(`  • Retornado a la rama base con éxito.`);
+          console.log(`  • Retornado a la rama base '${result.baseBranch || 'main'}' con éxito.`);
         }
         if (result.branchDeleted) {
-          console.log(`  • Rama de trabajo eliminada.`);
+          console.log(`  ⚠️ ADVERTENCIA DESTRUCTIVA: Rama de trabajo '${result.targetBranch}' eliminada permanentemente.`);
+          console.log(`    Todos los cambios y commits exclusivos de esta funcionalidad fueron descartados de Git.`);
+          console.log(`    (Si fue una equivocación involuntaria, puedes recuperar los commits temporalmente con: git reflog)`);
+        } else if (result.targetBranch) {
+          console.log(`  ℹ Rama de trabajo '${result.targetBranch}' y código preservados en Git.`);
+          console.log(`    (Para descartar la rama y todo su código en el futuro, ejecuta: vsdd --abort ${result.featureId} --delete-branch)`);
         }
       } else {
         console.error(`▲ ${result.message}`);
