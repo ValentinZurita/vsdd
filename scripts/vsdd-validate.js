@@ -271,6 +271,9 @@ function validateIdea(parsed, errors, warnings) {
   } else {
     const estadoMatch = estadoLine.trimmed.match(/^\s*Estado:\s*([a-zA-Z0-9_-]+)/i);
     const estadoVal = estadoMatch[1].toLowerCase();
+    if (estadoVal === 'cancelado') {
+      return { errors: [], warnings: [] };
+    }
     if (estadoVal !== 'listo-para-spec' && estadoVal !== 'en-revision') {
       errors.push({
         line: estadoLine.lineNumber,
@@ -392,6 +395,9 @@ function validateSpec(parsed, errors, warnings) {
   } else {
     const match = estadoLine.trimmed.match(/^\s*Estado:\s*([a-zA-Z0-9_-]+)/i);
     const estadoVal = match[1].toLowerCase();
+    if (estadoVal === 'cancelado') {
+      return { errors: [], warnings: [] };
+    }
     if (estadoVal !== 'en-revision' && estadoVal !== 'listo-para-plan') {
       errors.push({
         line: estadoLine.lineNumber,
@@ -577,6 +583,9 @@ function validatePlan(parsed, errors, warnings) {
   } else {
     const match = estadoLine.trimmed.match(/^\s*Estado:\s*([a-zA-Z0-9_-]+)/i);
     const estadoVal = match[1].toLowerCase();
+    if (estadoVal === 'cancelado') {
+      return { errors: [], warnings: [] };
+    }
     if (estadoVal !== 'en-revision' && estadoVal !== 'listo-para-tareas') {
       errors.push({
         line: estadoLine.lineNumber,
@@ -786,6 +795,9 @@ function validateTasks(parsed, errors, warnings) {
   } else {
     const match = estadoLine.trimmed.match(/^\s*Estado:\s*([a-zA-Z0-9_-]+)/i);
     const estadoVal = match[1].toLowerCase();
+    if (estadoVal === 'cancelado') {
+      return { errors: [], warnings: [] };
+    }
     const validStates = ['en-revision', 'listo-para-aplicar', 'listo-para-verify', 'completado'];
     if (!validStates.includes(estadoVal)) {
       errors.push({

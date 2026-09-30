@@ -23,6 +23,7 @@ const {
   isGenericUtility,
   extractArchivosClaveSafe,
   generateFeatureCatalog,
+  abortFeature,
 } = require('../scripts/vsdd-status');
 
 test('scanFeatures returns empty array if docs/sdd/vsdd does not exist', () => {
@@ -1186,5 +1187,215 @@ test('formatHubMenu renders catalog notice when there are both pending and compl
   assert.match(menu, /002-pending-feature/i);
   assert.match(menu, /Hay 1 funcionalidad\(es\) completada\(s\) registradas \(consulta el catálogo con: vsdd --catalog\)/i);
 });
+
+// ---------------------------------------------------------------------------
+// Tests para vsdd abort (cancelación limpia de features y borradores)
+// ---------------------------------------------------------------------------
+
+test('abortFeature returns error if feature directory does not exist', () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'vsdd-abort-notfound-'));
+  try {
+    const res = abortFeature('non-existent-feature', {}, tempDir);
+    assert.equal(res.success, false);
+    assert.match(res.message, /No se encontró la funcionalidad/i);
+  } finally {
+    fs.rmSync(tempDir, { recursive: true, force: true });
+  }
+});
+
+test('abortFeature discards intake draft when target is draft', () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'vsdd-abort-draft-'));
+  try {
+    const vsddRoot = path.join(tempDir, 'docs', 'sdd', 'vsdd');
+    fs.mkdirSync(vsddRoot, { recursive: true });
+    const draftPath = path.join(vsddRoot, '.draft-intake.json');
+    fs.writeFileSync(draftPath, JSON.stringify({ isDraft: true, ideaSummary: 'Draft test' }));
+
+    const res = abortFeature('draft', {}, tempDir);
+    assert.equal(res.success, true);
+    assert.equal(res.isDraft, true);
+    assert.equal(fs.existsSync(draftPath), false);
+  } finally {
+    fs.rmSync(tempDir, { recursive: true, force: true });
+  }
+});
+
+test('abortFeature halts safely when git working tree has dirty uncommitted changes', () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'vsdd-abort-dirty-'));
+  try {
+    execSync('git init', { cwd: tempDir, stdio: 'ignore' });
+    execSync('git config user.name "Test"', { cwd: tempDir, stdio: 'ignore' });
+    execSync('git config user.email "test@example.com"', { cwd: tempDir, stdio: 'ignore' });
+
+    fs.writeFileSync(path.join(tempDir, 'file.txt'), 'clean\n');
+    execSync('git add . && git commit -m "initial"', { cwd: tempDir, stdio: 'ignore' });
+
+    const featDir = path.join(tempDir, 'docs', 'sdd', 'vsdd', '001-dirty-feat');
+    fs.mkdirSync(featDir, { recursive: true });
+    fs.writeFileSync(path.join(featDir, 'idea.md'), '# Idea\nEstado: borrador\n');
+
+    // Make working tree dirty
+    fs.writeFileSync(path.join(tempDir, 'file.txt'), 'dirty changes\n');
+
+    const res = abortFeature('001-dirty-feat', {}, tempDir);
+    assert.equal(res.success, false);
+    assert.equal(res.dirty, true);
+    assert.match(res.message, /cambios locales sin guardar/i);
+
+    // Verify idea.md was not mutated
+    const content = fs.readFileSync(path.join(featDir, 'idea.md'), 'utf8');
+    assert.match(content, /Estado: borrador/);
+  } finally {
+    fs.rmSync(tempDir, { recursive: true, force: true });
+  }
+});
+
+test('abortFeature stamps Estado: cancelado on markdown files and context.json', () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'vsdd-abort-stamp-'));
+  try {
+    const featDir = path.join(tempDir, 'docs', 'sdd', 'vsdd', '001-cancel-me');
+    fs.mkdirSync(featDir, { recursive: true });
+
+    fs.writeFileSync(path.join(featDir, 'idea.md'), '# Idea\nEstado: borrador\n## Problema\nAlgo');
+    fs.writeFileSync(path.join(featDir, 'spec.md'), '# Spec\nEstado: especificado\n## Contexto');
+    fs.writeFileSync(path.join(featDir, 'plan.md'), '# Plan\nEstado: planificado\n## Enfoque');
+    fs.writeFileSync(path.join(featDir, 'tasks.md'), '# Tasks\nEstado: en-progreso\n- [ ] Tarea 1');
+    fs.writeFileSync(path.join(featDir, 'context.json'), JSON.stringify({ version: '1.0', git: { branch: 'feat/test' } }));
+
+    const res = abortFeature('001-cancel-me', { reason: 'Pivote de negocio' }, tempDir);
+    assert.equal(res.success, true);
+
+    const idea = fs.readFileSync(path.join(featDir, 'idea.md'), 'utf8');
+    assert.match(idea, /Estado: cancelado/);
+    assert.match(idea, /Motivo de cancelación: Pivote de negocio/);
+
+    const spec = fs.readFileSync(path.join(featDir, 'spec.md'), 'utf8');
+    assert.match(spec, /Estado: cancelado/);
+
+    const plan = fs.readFileSync(path.join(featDir, 'plan.md'), 'utf8');
+    assert.match(plan, /Estado: cancelado/);
+
+    const tasks = fs.readFileSync(path.join(featDir, 'tasks.md'), 'utf8');
+    assert.match(tasks, /Estado: cancelado/);
+
+    const ctx = JSON.parse(fs.readFileSync(path.join(featDir, 'context.json'), 'utf8'));
+    assert.equal(ctx.status, 'cancelado');
+    assert.equal(ctx.cancelReason, 'Pivote de negocio');
+    assert.ok(ctx.cancelledAt);
+  } finally {
+    fs.rmSync(tempDir, { recursive: true, force: true });
+  }
+});
+
+test('abortFeature switches to baseBranch and deletes feature branch with protection for main', () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'vsdd-abort-git-'));
+  try {
+    execSync('git init', { cwd: tempDir, stdio: 'ignore' });
+    execSync('git config user.name "Test"', { cwd: tempDir, stdio: 'ignore' });
+    execSync('git config user.email "test@example.com"', { cwd: tempDir, stdio: 'ignore' });
+
+    fs.writeFileSync(path.join(tempDir, 'README.md'), 'baseline\n');
+    execSync('git add . && git commit -m "initial"', { cwd: tempDir, stdio: 'ignore' });
+
+    // Determine default branch name (master or main)
+    const baseBranch = execSync('git branch --show-current', { cwd: tempDir, encoding: 'utf8' }).trim();
+
+    // Create and checkout feature branch
+    const featureBranch = 'feat/001-feature';
+    execSync(`git checkout -b ${featureBranch}`, { cwd: tempDir, stdio: 'ignore' });
+
+    const featDir = path.join(tempDir, 'docs', 'sdd', 'vsdd', '001-feature');
+    fs.mkdirSync(featDir, { recursive: true });
+    fs.writeFileSync(path.join(featDir, 'idea.md'), '# Idea\nEstado: borrador\n');
+    fs.writeFileSync(
+      path.join(featDir, 'context.json'),
+      JSON.stringify({ git: { branch: featureBranch, baseBranch } })
+    );
+
+    // Commit feature directory so working tree is clean
+    execSync('git add . && git commit -m "add feature docs"', { cwd: tempDir, stdio: 'ignore' });
+
+    const res = abortFeature('001-feature', { deleteBranch: true, reason: 'Ya no se necesita' }, tempDir);
+    assert.equal(res.success, true);
+    assert.equal(res.switchedBranch, true);
+    assert.equal(res.branchDeleted, true);
+
+    const currentBranchAfter = execSync('git branch --show-current', { cwd: tempDir, encoding: 'utf8' }).trim();
+    assert.equal(currentBranchAfter, baseBranch);
+
+    // Verify feature branch was deleted
+    const branches = execSync('git branch', { cwd: tempDir, encoding: 'utf8' });
+    assert.equal(branches.includes(featureBranch), false);
+  } finally {
+    fs.rmSync(tempDir, { recursive: true, force: true });
+  }
+});
+
+test('scanFeatures and formatHubMenu exclude cancelled features from pending and completed lists', () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'vsdd-abort-hub-'));
+  try {
+    const featDir = path.join(tempDir, 'docs', 'sdd', 'vsdd', '001-cancelled-feat');
+    fs.mkdirSync(featDir, { recursive: true });
+    fs.writeFileSync(path.join(featDir, 'idea.md'), '# Idea\nEstado: cancelado\nMotivo de cancelación: Descartada\n');
+    fs.writeFileSync(path.join(featDir, 'context.json'), JSON.stringify({ status: 'cancelado' }));
+
+    const features = scanFeatures(tempDir);
+    assert.equal(features.length, 1);
+    assert.equal(features[0].isCancelled, true);
+    assert.equal(features[0].isCompleted, false);
+    assert.equal(features[0].phase, 'cancelado');
+
+    // Hub con solo una funcionalidad cancelada debe reportar 0 pendientes y 0 completadas
+    const hub = formatHubMenu(features);
+    assert.match(hub, /No se encontraron funcionalidades en este proyecto/i);
+    assert.equal(hub.includes('001-cancelled-feat'), false);
+    assert.equal(hub.includes('[C] Cancelar'), false);
+
+    // Hub con una funcionalidad activa y una cancelada
+    const activeFeat = {
+      id: '002-active-feat',
+      isCompleted: false,
+      isCancelled: false,
+      objective: 'Feature activa.',
+      phaseDescription: 'En progreso',
+      totalTasks: 2,
+      completedTasks: 0,
+      pendingTasks: 2,
+      nextCommand: 'vsdd apply',
+    };
+    const hubWithActive = formatHubMenu([activeFeat, features[0]]);
+    assert.match(hubWithActive, /002-active-feat/i);
+    assert.equal(hubWithActive.includes('001-cancelled-feat'), false);
+    assert.match(hubWithActive, /\[C\] Cancelar o descartar una funcionalidad en curso \(vsdd abort\)/i);
+  } finally {
+    fs.rmSync(tempDir, { recursive: true, force: true });
+  }
+});
+
+test('CLI --abort executes abortFeature and outputs JSON with --json flag', () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'vsdd-abort-cli-'));
+  try {
+    const featDir = path.join(tempDir, 'docs', 'sdd', 'vsdd', '001-cli-test');
+    fs.mkdirSync(featDir, { recursive: true });
+    fs.writeFileSync(path.join(featDir, 'idea.md'), '# Idea\nEstado: borrador\n');
+
+    const scriptPath = path.resolve(__dirname, '../scripts/vsdd-status.js');
+    const stdout = execSync(`node "${scriptPath}" --abort 001-cli-test --reason "Prueba CLI" --json`, {
+      cwd: tempDir,
+      encoding: 'utf8',
+    });
+
+    const parsed = JSON.parse(stdout);
+    assert.equal(parsed.success, true);
+    assert.equal(parsed.featureId, '001-cli-test');
+
+    const idea = fs.readFileSync(path.join(featDir, 'idea.md'), 'utf8');
+    assert.match(idea, /Estado: cancelado/);
+    assert.match(idea, /Motivo de cancelación: Prueba CLI/);
+  } finally {
+    fs.rmSync(tempDir, { recursive: true, force: true });
+  }
+});
+
 
 

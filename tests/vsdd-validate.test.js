@@ -391,3 +391,35 @@ test('plan.md: aprueba estructura con subsección de Golden Path Walkthrough con
   assert.equal(result.errors.length, 0);
 });
 
+test('validateContent aprueba artefactos cancelados con 0 errores mediante early-exit', () => {
+  const cancelledIdea = `# Idea Cancelada
+Estado: cancelado
+Motivo de cancelación: El cliente cambió de requerimiento.
+`;
+  const resIdea = validateContent(cancelledIdea, 'idea.md');
+  assert.equal(resIdea.valid, true);
+  assert.equal(resIdea.errors.length, 0);
+
+  const cancelledSpec = `# Spec Cancelada
+Estado: cancelado
+Motivo de cancelación: Duplicada.
+`;
+  const resSpec = validateContent(cancelledSpec, 'spec.md');
+  assert.equal(resSpec.valid, true);
+  assert.equal(resSpec.errors.length, 0);
+
+  const cancelledPlan = `# Plan Cancelado
+Estado: cancelado
+`;
+  const resPlan = validateContent(cancelledPlan, 'plan.md');
+  assert.equal(resPlan.valid, true);
+  assert.equal(resPlan.errors.length, 0);
+
+  const cancelledTasks = `# Tasks Canceladas
+Estado: cancelado
+`;
+  const resTasks = validateContent(cancelledTasks, 'tasks.md');
+  assert.equal(resTasks.valid, true);
+  assert.equal(resTasks.errors.length, 0);
+});
+

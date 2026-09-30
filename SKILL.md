@@ -40,6 +40,7 @@ Load when the user starts or continues vsdd. Run **one phase** at a time.
 | Tasks / tareas                  | `references/tasks.md`  | vsdd-validate verde; luz verde auditoría; tasks.md listo-para-aplicar |
 | Implement, apply, implementar   | `references/apply.md`  | Tareas TDD y controles completados; tasks.md listo-para-verify     |
 | Verify, verificar, verificación | `references/verify.md` | Validación verde, Golden Path y DoD integrado; tasks.md y resumen.md completados |
+| Abort, cancelar, descartar      | `scripts/vsdd-status.js --abort` | Funcionalidad marcada como cancelada, excluida de pendientes y retorno a main |
 
 ## Protocolo del Hub de Pendientes (`vsdd` sin argumentos)
 

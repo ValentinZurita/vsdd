@@ -128,13 +128,34 @@ function parseFeatureDirectory(dirName, dirPath, cwd = process.cwd()) {
     }
   }
 
+  const contextPath = path.join(dirPath, 'context.json');
+  let contextData = null;
+  if (fs.existsSync(contextPath)) {
+    try {
+      contextData = JSON.parse(fs.readFileSync(contextPath, 'utf8'));
+    } catch (e) {}
+  }
+
+  const isCancelled =
+    ideaState === 'cancelado' ||
+    specState === 'cancelado' ||
+    planState === 'cancelado' ||
+    tasksState === 'cancelado' ||
+    resumenState === 'cancelado' ||
+    Boolean(contextData && contextData.status === 'cancelado');
+
   // Determinar fase actual y estado
   let phase = 'intake';
   let phaseDescription = 'Idea inicial';
   let nextCommand = 'vsdd intake';
   let isCompleted = false;
 
-  if (tasksState === 'completado' || resumenState === 'completado') {
+  if (isCancelled) {
+    phase = 'cancelado';
+    phaseDescription = 'Funcionalidad cancelada';
+    nextCommand = '';
+    isCompleted = false;
+  } else if (tasksState === 'completado' || resumenState === 'completado') {
     phase = 'completado';
     phaseDescription = hasResumen ? 'Completada y cerrada con resumen' : 'Completada y cerrada';
     nextCommand = '';
@@ -184,6 +205,7 @@ function parseFeatureDirectory(dirName, dirPath, cwd = process.cwd()) {
     phaseDescription,
     nextCommand,
     isCompleted,
+    isCancelled,
     objective,
     totalTasks,
     completedTasks,
@@ -980,8 +1002,8 @@ function readFileSafe(filePath) {
  * Formatea el menú visual para terminal.
  */
 function formatHubMenu(features) {
-  const pending = features.filter((f) => !f.isCompleted);
-  const completed = features.filter((f) => f && f.isCompleted);
+  const pending = features.filter((f) => !f.isCompleted && !f.isCancelled);
+  const completed = features.filter((f) => f && f.isCompleted && !f.isCancelled);
 
   if (pending.length === 0) {
     if (completed.length === 0) {
@@ -1044,8 +1066,9 @@ Se encontraron las siguientes funcionalidades en curso:
     output += `ℹ Hay ${completed.length} funcionalidad(es) completada(s) registradas (consulta el catálogo con: vsdd --catalog).\n\n`;
   }
 
-  output += `[N] Iniciar una nueva funcionalidad desde cero (vsdd intake)\n\n`;
-  output += `👉 Selecciona una opción para retomar [1-${pending.length}/N]: `;
+  output += `[N] Iniciar una nueva funcionalidad desde cero (vsdd intake)\n`;
+  output += `[C] Cancelar o descartar una funcionalidad en curso (vsdd abort)\n\n`;
+  output += `👉 Selecciona una opción para retomar [1-${pending.length}/N/C]: `;
 
   return output;
 }
@@ -1141,6 +1164,170 @@ function generateFeatureCatalog(cwd = process.cwd(), limit = 15, preloadedFeatur
   });
 }
 
+/**
+ * Cancela y aborta una funcionalidad o borrador de forma limpia y segura.
+ * @param {string} featureId Slug o ID de la funcionalidad, o 'draft'
+ * @param {Object} options Opciones { reason, deleteBranch }
+ * @param {string} cwd Directorio raíz del proyecto
+ * @returns {Object} Resultado de la operación
+ */
+function abortFeature(featureId, options = {}, cwd = process.cwd()) {
+  const reason = options.reason || 'Cancelado por el usuario';
+  const deleteBranch = Boolean(options.deleteBranch);
+
+  // 1. Manejo de borrador de Intake (.draft-intake.json)
+  const isDraftTarget =
+    featureId === 'draft' ||
+    featureId === '.draft-intake' ||
+    featureId === 'draft-intake' ||
+    featureId === '[Borrador] Intake en progreso';
+
+  const intakeDraft = getIntakeDraft(cwd);
+  if (isDraftTarget || (intakeDraft && intakeDraft.featureId === featureId)) {
+    clearIntakeDraft(cwd);
+    return {
+      success: true,
+      featureId: 'draft',
+      isDraft: true,
+      message: 'Borrador de Intake descartado con éxito.',
+    };
+  }
+
+  // 2. Localizar carpeta de la funcionalidad en docs/sdd/vsdd/<featureId>
+  const vsddRoot = path.join(cwd, 'docs', 'sdd', 'vsdd');
+  const featDir = path.isAbsolute(featureId)
+    ? featureId
+    : path.join(vsddRoot, featureId);
+
+  if (!fs.existsSync(featDir)) {
+    return {
+      success: false,
+      featureId,
+      message: `No se encontró la funcionalidad '${featureId}' en ${vsddRoot}.`,
+    };
+  }
+
+  const gitRoot = getGitRoot(cwd) || cwd;
+
+  // 3. Verificación de Seguridad Git: Árbol limpio
+  if (hasGitCommits(gitRoot)) {
+    const statusOutput = execGit(['status', '--porcelain'], gitRoot, 3000);
+    if (statusOutput && statusOutput.trim().length > 0) {
+      return {
+        success: false,
+        dirty: true,
+        featureId: path.basename(featDir),
+        message:
+          'Se detectaron cambios locales sin guardar en el repositorio Git. Guarda o descarta tus cambios (con git stash o commit) antes de cancelar la funcionalidad.',
+      };
+    }
+  }
+
+  // 4. Leer context.json para conocer la rama asociada
+  const contextPath = path.join(featDir, 'context.json');
+  let contextData = {};
+  if (fs.existsSync(contextPath)) {
+    try {
+      contextData = JSON.parse(fs.readFileSync(contextPath, 'utf8'));
+    } catch (e) {
+      contextData = {};
+    }
+  }
+
+  const featureBranch = (contextData.git && contextData.git.branch) || '';
+  const baseBranch = (contextData.git && contextData.git.baseBranch) || 'main';
+  const currentBranch = getCurrentBranch(gitRoot);
+
+  // Helper interno para estampar cancelación en los markdown de un directorio
+  function stampCancellationInDir(targetDir) {
+    if (!fs.existsSync(targetDir)) return;
+    const mdFiles = ['idea.md', 'spec.md', 'plan.md', 'tasks.md'];
+    for (const file of mdFiles) {
+      const filePath = path.join(targetDir, file);
+      if (fs.existsSync(filePath)) {
+        try {
+          let content = fs.readFileSync(filePath, 'utf8');
+          if (/^\s*Estado:\s*[^\r\n]+/mi.test(content)) {
+            content = content.replace(
+              /^\s*Estado:\s*[^\r\n]+/mi,
+              `Estado: cancelado\nMotivo de cancelación: ${reason}`
+            );
+          } else {
+            content = `Estado: cancelado\nMotivo de cancelación: ${reason}\n\n` + content;
+          }
+          fs.writeFileSync(filePath, content, 'utf8');
+        } catch (e) {}
+      }
+    }
+
+    // Actualizar context.json en targetDir
+    const ctxPath = path.join(targetDir, 'context.json');
+    let ctx = {};
+    if (fs.existsSync(ctxPath)) {
+      try {
+        ctx = JSON.parse(fs.readFileSync(ctxPath, 'utf8'));
+      } catch (e) {}
+    }
+    ctx.status = 'cancelado';
+    ctx.cancelledAt = new Date().toISOString();
+    ctx.cancelReason = reason;
+    try {
+      fs.writeFileSync(ctxPath, JSON.stringify(ctx, null, 2), 'utf8');
+    } catch (e) {}
+  }
+
+  // 5. Estampar cancelación en la rama actual primero
+  stampCancellationInDir(featDir);
+
+  let switchedBranch = false;
+  let branchDeleted = false;
+
+  // 6. Si estamos parados en la rama de la feature, cambiar a baseBranch
+  const isCurrentlyOnFeatureBranch =
+    currentBranch &&
+    (currentBranch === featureBranch || currentBranch.includes(path.basename(featDir)));
+
+  if (isCurrentlyOnFeatureBranch && currentBranch !== baseBranch) {
+    if (!deleteBranch && hasGitCommits(gitRoot)) {
+      execGit(['add', featDir], gitRoot);
+      execGit(['commit', '-m', `docs(sdd): cancelar funcionalidad ${path.basename(featDir)}`], gitRoot);
+    }
+
+    const checkoutRes = execGit(
+      deleteBranch ? ['checkout', '-f', baseBranch] : ['checkout', baseBranch],
+      gitRoot
+    ) || execGit(['checkout', '-f', baseBranch], gitRoot);
+
+    if (checkoutRes !== null) {
+      switchedBranch = true;
+    }
+
+    // Si se solicitó borrar rama, aplicar guardia estricta contra main/master/baseBranch
+    if (deleteBranch) {
+      const protectedBranches = ['main', 'master', baseBranch];
+      if (!protectedBranches.includes(currentBranch)) {
+        const delRes = execGit(['branch', '-D', currentBranch], gitRoot);
+        if (delRes !== null) {
+          branchDeleted = true;
+        }
+      }
+    }
+
+    // 7. Sincronizar cancelación en baseBranch si la carpeta existe allí
+    if (fs.existsSync(featDir)) {
+      stampCancellationInDir(featDir);
+    }
+  }
+
+  return {
+    success: true,
+    featureId: path.basename(featDir),
+    switchedBranch,
+    branchDeleted,
+    message: `Funcionalidad '${path.basename(featDir)}' cancelada y excluida de pendientes con éxito.`,
+  };
+}
+
 // Punto de entrada CLI
 if (require.main === module) {
   const args = process.argv.slice(2);
@@ -1166,7 +1353,34 @@ if (require.main === module) {
     return '';
   }
 
-  if (args.includes('--catalog')) {
+  if (args.includes('--abort')) {
+    const abortIdx = args.indexOf('--abort');
+    const featureId = args[abortIdx + 1];
+    if (!featureId || featureId.startsWith('--')) {
+      console.error(JSON.stringify({ error: 'Debe especificar el ID de la funcionalidad a cancelar tras --abort.' }));
+      process.exit(1);
+    }
+    const reasonIdx = args.indexOf('--reason');
+    const reason = reasonIdx !== -1 && args[reasonIdx + 1] ? args[reasonIdx + 1] : '';
+    const deleteBranch = args.includes('--delete-branch');
+    const result = abortFeature(featureId, { reason, deleteBranch }, cwd);
+    if (args.includes('--json')) {
+      console.log(JSON.stringify(result, null, 2));
+    } else {
+      if (result.success) {
+        console.log(`✔ ${result.message}`);
+        if (result.switchedBranch) {
+          console.log(`  • Retornado a la rama base con éxito.`);
+        }
+        if (result.branchDeleted) {
+          console.log(`  • Rama de trabajo eliminada.`);
+        }
+      } else {
+        console.error(`▲ ${result.message}`);
+        process.exit(1);
+      }
+    }
+  } else if (args.includes('--catalog')) {
     const catalog = generateFeatureCatalog(cwd);
     console.log(JSON.stringify(catalog, null, 2));
   } else if (args.includes('--json')) {
@@ -1297,6 +1511,7 @@ module.exports = {
   isGenericUtility,
   extractArchivosClaveSafe,
   generateFeatureCatalog,
+  abortFeature,
   getGitRoot,
   hasGitCommits,
   isCommitInTree,
