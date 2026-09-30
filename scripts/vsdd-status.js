@@ -1122,7 +1122,7 @@ function extractArchivosClaveSafe(resumenContent, planContent) {
  * @returns {Array<Object>} Catálogo condensado
  */
 function generateFeatureCatalog(cwd = process.cwd(), limit = 15, preloadedFeatures = null) {
-  const features = preloadedFeatures || scanFeatures(cwd);
+  const features = Array.isArray(preloadedFeatures) ? preloadedFeatures : scanFeatures(cwd);
   const completed = features.filter((f) => f && f.isCompleted);
 
   // Ordenar de más reciente a más antigua (por ID numérico descendente)
