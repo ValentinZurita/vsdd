@@ -1096,4 +1096,95 @@ Objetivo conciso.
   }
 });
 
+test('generateFeatureCatalog processes preloadedFeatures in-memory without scanning disk', () => {
+  const mockFeatures = [
+    {
+      id: '002-feature-two',
+      isCompleted: true,
+      objective: 'Segunda funcionalidad terminada.',
+      resumenContent: '## 2. Componentes\n- Archivos clave: `src/two.ts`',
+      planContent: '',
+    },
+    {
+      id: '001-feature-one',
+      isCompleted: true,
+      objective: 'Primera funcionalidad terminada.',
+      resumenContent: '## 2. Componentes\n- Archivos clave: `src/one.ts`',
+      planContent: '',
+    },
+    {
+      id: '003-feature-pending',
+      isCompleted: false,
+      objective: 'En progreso',
+    },
+  ];
+
+  // Pasar preloadedFeatures; cwd se ignora por completo
+  const catalog = generateFeatureCatalog(null, 5, mockFeatures);
+  assert.equal(catalog.length, 2);
+  assert.equal(catalog[0].id, '002-feature-two');
+  assert.equal(catalog[1].id, '001-feature-one');
+  assert.deepEqual(catalog[0].archivosClave, ['src/two.ts']);
+  assert.deepEqual(catalog[1].archivosClave, ['src/one.ts']);
+});
+
+test('formatHubMenu renders clean initial state when repository has 0 pending and 0 completed', () => {
+  const menu = formatHubMenu([]);
+  assert.match(menu, /No se encontraron funcionalidades en este proyecto/i);
+  assert.match(menu, /vsdd intake/i);
+  assert.ok(!menu.includes('Últimas funcionalidades completadas'));
+});
+
+test('formatHubMenu displays completed features section when 0 pending but >= 1 completed exist', () => {
+  const mockFeatures = [
+    {
+      id: '002-checkout-flow',
+      isCompleted: true,
+      objective: 'Flujo de checkout seguro.',
+      resumenContent: '## 2. Componentes\n- Archivos clave: `src/checkout/service.ts`',
+      planContent: '',
+    },
+    {
+      id: '001-auth-oauth',
+      isCompleted: true,
+      objective: 'Autenticación OAuth.',
+      resumenContent: '## 2. Componentes\n- Archivos clave: `src/auth/provider.ts`',
+      planContent: '',
+    },
+  ];
+
+  const menu = formatHubMenu(mockFeatures);
+  assert.match(menu, /No se encontraron funcionalidades pendientes en este proyecto/i);
+  assert.match(menu, /Últimas funcionalidades completadas:/i);
+  assert.match(menu, /002-checkout-flow - Flujo de checkout seguro\. \(Archivos clave: src\/checkout\/service\.ts\)/i);
+  assert.match(menu, /001-auth-oauth - Autenticación OAuth\. \(Archivos clave: src\/auth\/provider\.ts\)/i);
+  assert.match(menu, /Para iniciar una nueva funcionalidad: vsdd intake/i);
+});
+
+test('formatHubMenu renders catalog notice when there are both pending and completed features', () => {
+  const mockFeatures = [
+    {
+      id: '002-pending-feature',
+      isCompleted: false,
+      objective: 'Trabajo pendiente.',
+      phaseDescription: 'Tareas en curso',
+      totalTasks: 3,
+      completedTasks: 1,
+      pendingTasks: 2,
+      nextCommand: 'vsdd apply',
+    },
+    {
+      id: '001-completed-feature',
+      isCompleted: true,
+      objective: 'Trabajo listo.',
+      resumenContent: '## 2. Componentes\n- Archivos clave: `src/ready.ts`',
+      planContent: '',
+    },
+  ];
+
+  const menu = formatHubMenu(mockFeatures);
+  assert.match(menu, /002-pending-feature/i);
+  assert.match(menu, /Hay 1 funcionalidad\(es\) completada\(s\) registradas \(consulta el catálogo con: vsdd --catalog\)/i);
+});
+
 

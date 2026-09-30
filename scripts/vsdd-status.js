@@ -981,15 +981,40 @@ function readFileSafe(filePath) {
  */
 function formatHubMenu(features) {
   const pending = features.filter((f) => !f.isCompleted);
+  const completed = features.filter((f) => f && f.isCompleted);
 
   if (pending.length === 0) {
-    return `╭────────────────────────────────────────────────────────╮
+    if (completed.length === 0) {
+      return `╭────────────────────────────────────────────────────────╮
+│  VSDD  ·  Panel de Funcionalidades                      │
+╰────────────────────────────────────────────────────────╯
+
+ℹ No se encontraron funcionalidades en este proyecto.
+Puedes iniciar tu primera funcionalidad escribiendo: vsdd intake
+`;
+    }
+
+    const topCompleted = generateFeatureCatalog(null, 3, features);
+    let output = `╭────────────────────────────────────────────────────────╮
 │  VSDD  ·  Panel de Funcionalidades                      │
 ╰────────────────────────────────────────────────────────╯
 
 ℹ No se encontraron funcionalidades pendientes en este proyecto.
-Puedes iniciar una nueva funcionalidad escribiendo: vsdd intake
+
+Últimas funcionalidades completadas:
 `;
+
+    topCompleted.forEach((f) => {
+      const filesStr =
+        f.archivosClave && f.archivosClave.length > 0
+          ? ` (Archivos clave: ${f.archivosClave.join(', ')})`
+          : '';
+      const objStr = f.objetivo ? ` - ${f.objetivo}` : '';
+      output += `  ✔ ${f.id}${objStr}${filesStr}\n`;
+    });
+
+    output += `\nPara iniciar una nueva funcionalidad: vsdd intake\n`;
+    return output;
   }
 
   let output = `╭────────────────────────────────────────────────────────╮
@@ -1014,6 +1039,10 @@ Se encontraron las siguientes funcionalidades en curso:
     }
     output += `    • Siguiente paso: ${f.nextCommand}\n\n`;
   });
+
+  if (completed.length > 0) {
+    output += `ℹ Hay ${completed.length} funcionalidad(es) completada(s) registradas (consulta el catálogo con: vsdd --catalog).\n\n`;
+  }
 
   output += `[N] Iniciar una nueva funcionalidad desde cero (vsdd intake)\n\n`;
   output += `👉 Selecciona una opción para retomar [1-${pending.length}/N]: `;
@@ -1089,10 +1118,11 @@ function extractArchivosClaveSafe(resumenContent, planContent) {
  * Genera el catálogo ultracompacto (Header Manifest) de features completadas.
  * @param {string} cwd Directorio raíz del proyecto
  * @param {number} limit Límite de features más recientes a exportar (por defecto 15)
+ * @param {Array<Object>|null} preloadedFeatures Features previamente escaneadas para evitar I/O
  * @returns {Array<Object>} Catálogo condensado
  */
-function generateFeatureCatalog(cwd = process.cwd(), limit = 15) {
-  const features = scanFeatures(cwd);
+function generateFeatureCatalog(cwd = process.cwd(), limit = 15, preloadedFeatures = null) {
+  const features = preloadedFeatures || scanFeatures(cwd);
   const completed = features.filter((f) => f && f.isCompleted);
 
   // Ordenar de más reciente a más antigua (por ID numérico descendente)

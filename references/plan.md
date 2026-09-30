@@ -44,10 +44,31 @@ El conductor no realiza lecturas masivas ni tours completos del código en esta 
 - **Excepción de Metadatos Técnicos:** La regla de escritura diferida aplica exclusivamente a los artefactos Markdown de negocio (`plan.md`). Todo mapeo de módulos y hallazgos de subagentes se persiste de inmediato en `context.json` mediante `saveFeatureExploration(featDir, 'plan', ...)` en el mismo turno en que se recibe, capturando el `baseCommit` y los módulos propuestos.
 - Si Engram está disponible, respaldar adicionalmente con `mem_save topic_key: vsdd-explore-<slug>-plan`.
 
-**Ola 1 (Exploración de Módulos y Arquitectura Existente):**
-Con la especificación cargada, se despacha un subagente de exploración (modelo rápido y económico, ej: `flash` o `haiku`):
-Anunciar en chat: `● [Subagente: Exploración Arquitectónica] Analizando estructura del repositorio y módulos existentes con modelo: <modelo>...`
-El subagente evalúa complejidad ($5$, $10$ o $15$), identifica disyuntivas técnicas ($Q1$) y propone los módulos a tocar en un reporte conciso ($\le 12$ líneas). Inmediatamente al recibir el memo, persistir en `context.json` (`saveFeatureExploration`). Si la herramienta falla, el agente principal analiza los módulos localmente avisando en chat y guardando el análisis local.
+**Ola 1 (Exploración de Módulos, Contratos Previos y Arquitectura Existente):**
+1. **Comprobación de Herencia de Intake y Catálogo:**
+   - Si `context.json` ya cuenta con `matchedIds` determinados en Intake (`phases.intake`), heredarlos directamente (cero tokens de re-evaluación y cero riesgo de contradicciones arquitectónicas).
+   - Si no provienen de Intake (ej: especificación creada manualmente), consultar el catálogo (`node scripts/vsdd-status.js --catalog`). Si el catálogo está vacío (0 completadas), aplicar *short-circuit* asumiendo `MATCHED_IDS: NONE`.
+2. **Subagente de exploración arquitectónica** (modelo rápido y económico: `flash`, `haiku`, etc.):
+   Anunciar en chat: `● [Subagente: Exploración Arquitectónica] Analizando estructura del repositorio, antecedentes y módulos con modelo: <modelo>...`
+   Prompt breve (≤14 líneas):
+   ```text
+   Rol: Explorador de Arquitectura y Módulos (Ola 1).
+   Especificación: <resumen de spec.md>
+   Antecedentes heredados o Catálogo: <MATCHED_IDS heredados o JSON de scripts/vsdd-status.js --catalog>
+
+   Evalúa módulos existentes y coherencia con antecedentes.
+   Devolver estrictamente este formato (≤12 líneas):
+   MATCHED_IDS: [<id1>, <id2>] | NONE
+   Módulos a tocar: <lista concisa de rutas a crear o modificar>
+   Reutilización: <1 línea sobre qué interfaces o contratos previos se respetan o extienden>
+   Complejidad: <5 | 10 | 15>
+   Q1: <disyuntiva técnica principal con 2-3 opciones>
+   Riesgo: <1 línea o "ninguno">
+   ```
+3. **Inyección Quirúrgica de Contratos Reales:**
+   - Si `MATCHED_IDS` es `NONE`: continuar con arquitectura limpia sobre el código base sin lecturas adicionales.
+   - Si `MATCHED_IDS` contiene IDs válidos: en lugar de limitarse al resumen de 35 líneas, leer quirúrgicamente los **archivos clave de código o tipos** listados en `archivosClave` de esas features (máximo 2 a 3 archivos reales, ej: `src/checkout/types.ts`). Esto garantiza que las Decisiones Técnicas (DT) y el árbol de cambios se acoplen a las firmas exactas sin alucinar interfaces.
+4. **Persistencia Inmediata:** Guardar el memo y los módulos detectados en `context.json` (`saveFeatureExploration(featDir, 'plan', ...)`) antes de formular Q1. Si la herramienta falla, el agente principal analiza los módulos localmente avisando en chat.
 
 **Ola 2 (Exploración de Estándares Externos / Mejores Prácticas):**
 Solo si una decisión técnica requiere contrastar opciones contra el estado del arte de la industria.

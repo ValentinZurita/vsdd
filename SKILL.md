@@ -45,8 +45,8 @@ Load when the user starts or continues vsdd. Run **one phase** at a time.
 
 1. **Escaneo de Funcionalidades y Desfase:** Escanear `docs/sdd/vsdd/` ejecutando `scripts/vsdd-status.js --json` (inspección de estado, tareas, borradores de intake y detección de drift).
 2. **Filtrar Incompletas:** Identificar todas las funcionalidades cuyo estado **no** sea `completado` o que sean borradores en curso.
-3. **Si no hay pendientes:** Informar amablemente: *«No tienes funcionalidades pendientes. ¿Deseas iniciar una nueva idea con vsdd intake?»* y esperar respuesta.
-4. **Si hay pendientes o borradores:** Mostrar el panel estructurado con opciones numeradas (`[1]`, `[2]`, ... `[N]`), detallando fase actual, tareas completadas vs pendientes, salud del repositorio con semáforo (🟢/🟡/🔴) y próximo comando. Los borradores de intake se muestran como `[Borrador] Intake en progreso` para retomar directamente. **DETENERSE y esperar selección.**
+3. **Si no hay pendientes:** Si existen funcionalidades completadas en el proyecto, mostrar las últimas 3 con sus archivos clave como referencia (`scripts/vsdd-status.js`). Si el proyecto no tiene ninguna funcionalidad, informar amablemente cómo iniciar la primera (`vsdd intake`).
+4. **Si hay pendientes o borradores:** Mostrar el panel estructurado con opciones numeradas (`[1]`, `[2]`, ... `[N]`), detallando fase actual, tareas completadas vs pendientes, salud del repositorio con semáforo (🟢/🟡/🔴) y próximo comando. Si existen funcionalidades completadas, añadir nota informativa con acceso al catálogo histórico (`vsdd --catalog`). Los borradores de intake se muestran como `[Borrador] Intake en progreso` para retomar directamente. **DETENERSE y esperar selección.**
 5. **Cápsula de Contexto Previo al Arranque (Context Onboarding):**
    Al elegir una opción, presentar un resumen ejecutivo de 5 puntos:
    - **Objetivo:** Valor o dolor de negocio de la funcionalidad.
