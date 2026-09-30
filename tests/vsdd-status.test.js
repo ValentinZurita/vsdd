@@ -1452,3 +1452,46 @@ test('abortFeature on baseBranch deletes featureBranch and ensures working tree 
     fs.rmSync(tempDir, { recursive: true, force: true });
   }
 });
+
+test('abortFeature refuses to delete protected branches like develop or main even with deleteBranch=true', () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'vsdd-abort-protect-'));
+  try {
+    execSync('git init', { cwd: tempDir, stdio: 'ignore' });
+    execSync('git config user.name "Test"', { cwd: tempDir, stdio: 'ignore' });
+    execSync('git config user.email "test@example.com"', { cwd: tempDir, stdio: 'ignore' });
+
+    fs.writeFileSync(path.join(tempDir, 'README.md'), 'baseline\n');
+    execSync('git add . && git commit -m "initial"', { cwd: tempDir, stdio: 'ignore' });
+
+    // Create develop branch and switch to it
+    execSync('git checkout -b develop', { cwd: tempDir, stdio: 'ignore' });
+
+    const featDir = path.join(tempDir, 'docs', 'sdd', 'vsdd', '003-feat-on-develop');
+    fs.mkdirSync(featDir, { recursive: true });
+    fs.writeFileSync(path.join(featDir, 'idea.md'), '# Idea\nEstado: borrador\n');
+    fs.writeFileSync(
+      path.join(featDir, 'context.json'),
+      JSON.stringify({ git: { branch: 'develop', baseBranch: 'main' } })
+    );
+
+    execSync('git add . && git commit -m "commit on develop"', { cwd: tempDir, stdio: 'ignore' });
+
+    // Abort feature specifying deleteBranch: true while on develop
+    const res = abortFeature('003-feat-on-develop', { deleteBranch: true, reason: 'Cancel on develop' }, tempDir);
+    assert.equal(res.success, true);
+    assert.equal(res.branchDeleted, false); // Must NOT delete develop!
+
+    // Verify develop branch still exists
+    const branches = execSync('git branch', { cwd: tempDir, encoding: 'utf8' });
+    assert.ok(branches.includes('develop'));
+
+    // Verify cancellation was stamped and committed
+    const idea = fs.readFileSync(path.join(featDir, 'idea.md'), 'utf8');
+    assert.match(idea, /Estado: cancelado/);
+    const statusOut = execSync('git status --porcelain', { cwd: tempDir, encoding: 'utf8' }).trim();
+    assert.equal(statusOut, '');
+  } finally {
+    fs.rmSync(tempDir, { recursive: true, force: true });
+  }
+});
+

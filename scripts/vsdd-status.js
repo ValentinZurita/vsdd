@@ -1292,7 +1292,7 @@ function abortFeature(featureId, options = {}, cwd = process.cwd()) {
   }
 
   const isCurrentlyOnFeatureBranch = currentBranch && targetBranch && currentBranch === targetBranch;
-  const protectedBranches = ['main', 'master', baseBranch];
+  const protectedBranches = ['main', 'master', 'develop', 'dev', 'trunk', baseBranch];
 
   // 6. Si estamos parados en la rama de la feature, cambiar a baseBranch
   if (isCurrentlyOnFeatureBranch && currentBranch !== baseBranch) {
