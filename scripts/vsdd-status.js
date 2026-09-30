@@ -1278,21 +1278,24 @@ function abortFeature(featureId, options = {}, cwd = process.cwd()) {
 
   // 5. Estampar cancelación en la rama actual primero
   stampCancellationInDir(featDir);
+  if (hasGitCommits(gitRoot) && fs.existsSync(featDir)) {
+    execGit(['add', featDir], gitRoot);
+    execGit(['commit', '-m', `docs(sdd): cancelar funcionalidad ${path.basename(featDir)}`], gitRoot);
+  }
 
   let switchedBranch = false;
   let branchDeleted = false;
 
+  let targetBranch = featureBranch;
+  if (!targetBranch && currentBranch && currentBranch.includes(path.basename(featDir))) {
+    targetBranch = currentBranch;
+  }
+
+  const isCurrentlyOnFeatureBranch = currentBranch && targetBranch && currentBranch === targetBranch;
+  const protectedBranches = ['main', 'master', baseBranch];
+
   // 6. Si estamos parados en la rama de la feature, cambiar a baseBranch
-  const isCurrentlyOnFeatureBranch =
-    currentBranch &&
-    (currentBranch === featureBranch || currentBranch.includes(path.basename(featDir)));
-
   if (isCurrentlyOnFeatureBranch && currentBranch !== baseBranch) {
-    if (!deleteBranch && hasGitCommits(gitRoot)) {
-      execGit(['add', featDir], gitRoot);
-      execGit(['commit', '-m', `docs(sdd): cancelar funcionalidad ${path.basename(featDir)}`], gitRoot);
-    }
-
     const checkoutRes = execGit(
       deleteBranch ? ['checkout', '-f', baseBranch] : ['checkout', baseBranch],
       gitRoot
@@ -1302,20 +1305,20 @@ function abortFeature(featureId, options = {}, cwd = process.cwd()) {
       switchedBranch = true;
     }
 
-    // Si se solicitó borrar rama, aplicar guardia estricta contra main/master/baseBranch
-    if (deleteBranch) {
-      const protectedBranches = ['main', 'master', baseBranch];
-      if (!protectedBranches.includes(currentBranch)) {
-        const delRes = execGit(['branch', '-D', currentBranch], gitRoot);
-        if (delRes !== null) {
-          branchDeleted = true;
-        }
-      }
-    }
-
     // 7. Sincronizar cancelación en baseBranch si la carpeta existe allí
     if (fs.existsSync(featDir)) {
       stampCancellationInDir(featDir);
+      if (hasGitCommits(gitRoot)) {
+        execGit(['add', featDir], gitRoot);
+        execGit(['commit', '-m', `docs(sdd): cancelar funcionalidad ${path.basename(featDir)}`], gitRoot);
+      }
+    }
+  }
+
+  if (deleteBranch && targetBranch && !protectedBranches.includes(targetBranch)) {
+    const delRes = execGit(['branch', '-D', targetBranch], gitRoot);
+    if (delRes !== null) {
+      branchDeleted = true;
     }
   }
 

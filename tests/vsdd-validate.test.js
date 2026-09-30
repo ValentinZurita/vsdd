@@ -391,10 +391,12 @@ test('plan.md: aprueba estructura con subsección de Golden Path Walkthrough con
   assert.equal(result.errors.length, 0);
 });
 
-test('validateContent aprueba artefactos cancelados con 0 errores mediante early-exit', () => {
+test('validateContent aprueba artefactos cancelados con 0 errores mediante early-exit y limpia errores de higiene', () => {
   const cancelledIdea = `# Idea Cancelada
 Estado: cancelado
 Motivo de cancelación: El cliente cambió de requerimiento.
+**Llenar:** esto deberia ser un error pero se ignora
+<placeholder>
 `;
   const resIdea = validateContent(cancelledIdea, 'idea.md');
   assert.equal(resIdea.valid, true);
@@ -403,6 +405,8 @@ Motivo de cancelación: El cliente cambió de requerimiento.
   const cancelledSpec = `# Spec Cancelada
 Estado: cancelado
 Motivo de cancelación: Duplicada.
+**Llenar:** esto deberia ser un error pero se ignora
+<placeholder>
 `;
   const resSpec = validateContent(cancelledSpec, 'spec.md');
   assert.equal(resSpec.valid, true);
@@ -410,6 +414,8 @@ Motivo de cancelación: Duplicada.
 
   const cancelledPlan = `# Plan Cancelado
 Estado: cancelado
+**Llenar:** esto deberia ser un error pero se ignora
+<placeholder>
 `;
   const resPlan = validateContent(cancelledPlan, 'plan.md');
   assert.equal(resPlan.valid, true);
@@ -417,6 +423,8 @@ Estado: cancelado
 
   const cancelledTasks = `# Tasks Canceladas
 Estado: cancelado
+**Llenar:** esto deberia ser un error pero se ignora
+<placeholder>
 `;
   const resTasks = validateContent(cancelledTasks, 'tasks.md');
   assert.equal(resTasks.valid, true);

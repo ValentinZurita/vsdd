@@ -1399,3 +1399,56 @@ test('CLI --abort executes abortFeature and outputs JSON with --json flag', () =
 
 
 
+
+test('abortFeature on baseBranch deletes featureBranch and ensures working tree is clean', () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'vsdd-abort-base-git-'));
+  try {
+    execSync('git init', { cwd: tempDir, stdio: 'ignore' });
+    execSync('git config user.name "Test"', { cwd: tempDir, stdio: 'ignore' });
+    execSync('git config user.email "test@example.com"', { cwd: tempDir, stdio: 'ignore' });
+
+    fs.writeFileSync(path.join(tempDir, 'README.md'), 'baseline\n');
+    execSync('git add . && git commit -m "initial"', { cwd: tempDir, stdio: 'ignore' });
+
+    const baseBranch = execSync('git branch --show-current', { cwd: tempDir, encoding: 'utf8' }).trim();
+    const featureBranch = 'feat/002-feature';
+    
+    // Create feature dir ON BASE BRANCH so it exists when we return
+    const featDir = path.join(tempDir, 'docs', 'sdd', 'vsdd', '002-feature');
+    fs.mkdirSync(featDir, { recursive: true });
+    fs.writeFileSync(path.join(featDir, 'idea.md'), '# Idea\nEstado: borrador\n');
+    fs.writeFileSync(
+      path.join(featDir, 'context.json'),
+      JSON.stringify({ git: { branch: featureBranch, baseBranch } })
+    );
+
+    execSync('git add . && git commit -m "add feature docs on base branch"', { cwd: tempDir, stdio: 'ignore' });
+
+    // Now branch off
+    execSync(`git checkout -b ${featureBranch}`, { cwd: tempDir, stdio: 'ignore' });
+    fs.writeFileSync(path.join(featDir, 'spec.md'), '# Spec\n');
+    execSync('git add . && git commit -m "add spec on feature branch"', { cwd: tempDir, stdio: 'ignore' });
+
+    // Checkout baseBranch before calling abortFeature
+    execSync(`git checkout ${baseBranch}`, { cwd: tempDir, stdio: 'ignore' });
+
+    // Call abortFeature from baseBranch
+    const res = abortFeature('002-feature', { deleteBranch: true, reason: 'Test cancel from baseBranch' }, tempDir);
+    assert.equal(res.success, true);
+    assert.equal(res.branchDeleted, true);
+
+    const currentBranchAfter = execSync('git branch --show-current', { cwd: tempDir, encoding: 'utf8' }).trim();
+    assert.equal(currentBranchAfter, baseBranch);
+
+    // Verify feature branch was deleted
+    const branches = execSync('git branch', { cwd: tempDir, encoding: 'utf8' });
+    assert.equal(branches.includes(featureBranch), false);
+
+    // Verify git working tree is clean
+    const statusOut = execSync('git status --porcelain', { cwd: tempDir, encoding: 'utf8' }).trim();
+    assert.equal(statusOut, '');
+
+  } finally {
+    fs.rmSync(tempDir, { recursive: true, force: true });
+  }
+});
