@@ -269,6 +269,29 @@ function getCurrentBranch(gitRoot) {
   return stdout ? stdout.trim() : '';
 }
 
+function getRepositoryBranches(gitRoot) {
+  if (!gitRoot) return [];
+  const out = execGit(['branch', '--format=%(refname:short)'], gitRoot, 1000);
+  if (!out) return [];
+  return out.split('\n').map((b) => b.trim()).filter(Boolean);
+}
+
+function getDefaultBranch(gitRoot) {
+  if (!gitRoot) return 'main';
+  const originHead = execGit(['symbolic-ref', '--short', 'refs/remotes/origin/HEAD'], gitRoot, 1000);
+  if (originHead) {
+    return originHead.replace(/^origin\//, '').trim();
+  }
+  const branches = getRepositoryBranches(gitRoot);
+  for (const trunk of ['main', 'master', 'develop', 'dev', 'trunk']) {
+    if (branches.includes(trunk)) return trunk;
+  }
+  if (branches.length === 1) {
+    return branches[0];
+  }
+  return 'main';
+}
+
 // -------------------------------------------------------------
 // Extracción de archivos y Manifiesto de Contexto
 // -------------------------------------------------------------
@@ -1234,8 +1257,10 @@ function abortFeature(featureId, options = {}, cwd = process.cwd()) {
     }
   }
 
+  const repoBranches = getRepositoryBranches(gitRoot);
+  const detectedDefaultBranch = getDefaultBranch(gitRoot);
   const featureBranch = (contextData.git && contextData.git.branch) || '';
-  const baseBranch = (contextData.git && contextData.git.baseBranch) || 'main';
+  const baseBranch = (contextData.git && contextData.git.baseBranch) || detectedDefaultBranch;
   const currentBranch = getCurrentBranch(gitRoot);
 
   // Helper interno para estampar cancelación en los markdown de un directorio
@@ -1293,6 +1318,9 @@ function abortFeature(featureId, options = {}, cwd = process.cwd()) {
 
   const isCurrentlyOnFeatureBranch = currentBranch && targetBranch && currentBranch === targetBranch;
   const protectedBranches = ['main', 'master', 'develop', 'dev', 'trunk', baseBranch];
+  if (repoBranches.length === 1 && !protectedBranches.includes(repoBranches[0])) {
+    protectedBranches.push(repoBranches[0]);
+  }
 
   // 6. Si estamos parados en la rama de la feature, cambiar a baseBranch
   if (isCurrentlyOnFeatureBranch && currentBranch !== baseBranch) {
@@ -1315,7 +1343,13 @@ function abortFeature(featureId, options = {}, cwd = process.cwd()) {
     }
   }
 
-  if (deleteBranch && targetBranch && !protectedBranches.includes(targetBranch)) {
+  const postCheckoutCurrentBranch = getCurrentBranch(gitRoot);
+  if (
+    deleteBranch &&
+    targetBranch &&
+    targetBranch !== postCheckoutCurrentBranch &&
+    !protectedBranches.includes(targetBranch)
+  ) {
     const delRes = execGit(['branch', '-D', targetBranch], gitRoot);
     if (delRes !== null) {
       branchDeleted = true;

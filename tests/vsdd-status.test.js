@@ -1495,3 +1495,43 @@ test('abortFeature refuses to delete protected branches like develop or main eve
   }
 });
 
+test('abortFeature refuses to delete branch when it is the only branch in repo (e.g. named perro)', () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'vsdd-abort-perro-'));
+  try {
+    execSync('git init -b perro', { cwd: tempDir, stdio: 'ignore' });
+    execSync('git config user.name "Test"', { cwd: tempDir, stdio: 'ignore' });
+    execSync('git config user.email "test@example.com"', { cwd: tempDir, stdio: 'ignore' });
+
+    fs.writeFileSync(path.join(tempDir, 'README.md'), 'baseline\n');
+    execSync('git add . && git commit -m "initial"', { cwd: tempDir, stdio: 'ignore' });
+
+    const featDir = path.join(tempDir, 'docs', 'sdd', 'vsdd', '004-feat-on-perro');
+    fs.mkdirSync(featDir, { recursive: true });
+    fs.writeFileSync(path.join(featDir, 'idea.md'), '# Idea\nEstado: borrador\n');
+    fs.writeFileSync(
+      path.join(featDir, 'context.json'),
+      JSON.stringify({ git: { branch: 'perro' } })
+    );
+
+    execSync('git add . && git commit -m "commit on perro"', { cwd: tempDir, stdio: 'ignore' });
+
+    // Abort with deleteBranch: true
+    const res = abortFeature('004-feat-on-perro', { deleteBranch: true, reason: 'Abort on perro' }, tempDir);
+    assert.equal(res.success, true);
+    assert.equal(res.branchDeleted, false); // Must NOT delete the only branch perro!
+
+    // Verify perro branch still exists and is checked out
+    const current = execSync('git branch --show-current', { cwd: tempDir, encoding: 'utf8' }).trim();
+    assert.equal(current, 'perro');
+
+    // Verify cancellation was stamped and committed
+    const idea = fs.readFileSync(path.join(featDir, 'idea.md'), 'utf8');
+    assert.match(idea, /Estado: cancelado/);
+    const statusOut = execSync('git status --porcelain', { cwd: tempDir, encoding: 'utf8' }).trim();
+    assert.equal(statusOut, '');
+  } finally {
+    fs.rmSync(tempDir, { recursive: true, force: true });
+  }
+});
+
+
