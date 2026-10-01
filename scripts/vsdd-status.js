@@ -1322,8 +1322,8 @@ function abortFeature(featureId, options = {}, cwd = process.cwd()) {
     protectedBranches.push(repoBranches[0]);
   }
 
-  // 6. Si estamos parados en la rama de la feature, cambiar a baseBranch
-  if (isCurrentlyOnFeatureBranch && currentBranch !== baseBranch) {
+  // 6. Si estamos parados en la rama de la feature y no es una rama protegida, cambiar a baseBranch
+  if (isCurrentlyOnFeatureBranch && currentBranch !== baseBranch && !protectedBranches.includes(targetBranch)) {
     const checkoutRes = execGit(
       deleteBranch ? ['checkout', '-f', baseBranch] : ['checkout', baseBranch],
       gitRoot
