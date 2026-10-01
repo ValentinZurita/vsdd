@@ -81,6 +81,17 @@ const SECTION_ALIASES = {
     'spikes y prerrequisitos',
     'spikes',
   ],
+  'fuera de alcance': [
+    'fuera de alcance',
+    'límites y exclusiones',
+    'limites y exclusiones',
+    'non-goals',
+    'non goals',
+    'exclusiones',
+    'alcance negativo',
+    'límites',
+    'limites',
+  ],
 };
 
 /**
@@ -199,7 +210,7 @@ function validateUniversalHygiene(parsed, errors) {
   const templateInstructionRegex = /\*\*(Llenar|Forma|Vacío|Vacio):\*\*/i;
   // 3. Placeholders angulares específicos sin resolver
   const unreplacedPlaceholderRegex =
-    /<(?:en-revision\s*\|\s*listo-para-[a-z]+|listo-para-[a-z]+|nnn|slug|Nombre de la funcionalidad|tipo\(alcance\)|cualidad de experiencia|condición observable|condicion observable|rol o tipo de usuario)>/i;
+    /<(?:en-revision\s*\|\s*listo-para-[a-z]+|listo-para-[a-z]+|nnn|slug|Nombre de la funcionalidad|tipo\(alcance\)|cualidad de experiencia|condición observable|condicion observable|rol o tipo de usuario|acción permitida|accion permitida|acción restringida|accion restringida|acción o capacidad|accion o capacidad|beneficio o valor esperado|Verbo en infinitivo[^>]*|evento|estado|situación errónea|situacion erronea|daño o acción indebida|daño o accion indebida|mensaje o protección visible|mensaje o proteccion visible|valor o acción de prueba|valor o accion de prueba|valor de prueba|salida visible o confirmación|salida visible o confirmacion|salida observable|salida visible|salida esperada|qué ve exactamente el usuario|que ve exactamente el usuario|resultado observable|situación excepcional|situacion excepcional|Qué enfoque[^>]*|Motivo justificado[^>]*|Funcionalidades[^>]*|Comportamientos[^>]*)>/i;
 
   for (const lineObj of parsed.lines) {
     if (templateInstructionRegex.test(lineObj.text)) {
@@ -422,17 +433,17 @@ function validateSpec(parsed, errors, warnings) {
 
   // 3. Secciones Obligatorias del Contrato Mínimo Viable
   const requiredH2 = [
-    { key: 'contexto y objetivos', title: 'Contexto y objetivos' },
-    { key: 'requisitos funcionales', title: 'Requisitos funcionales' },
-    { key: 'casos límite', title: 'Casos límite' },
-    { key: 'requisitos no funcionales', title: 'Requisitos no funcionales' },
-    { key: 'fuera de alcance', title: 'Fuera de alcance' },
-    { key: 'criterios de finalización', title: 'Criterios de finalización' },
+    { key: 'contexto y objetivos', title: 'Contexto y objetivos', accepted: ['contexto y objetivos'] },
+    { key: 'requisitos funcionales', title: 'Requisitos funcionales', accepted: ['requisitos funcionales'] },
+    { key: 'casos límite', title: 'Casos límite', accepted: ['casos limite'] },
+    { key: 'requisitos no funcionales', title: 'Requisitos no funcionales', accepted: ['requisitos no funcionales'] },
+    { key: 'fuera de alcance', title: 'Fuera de alcance', accepted: ['fuera de alcance', 'limites y exclusiones'] },
+    { key: 'criterios de finalización', title: 'Criterios de finalización', accepted: ['criterios de finalizacion'] },
   ];
 
   for (const req of requiredH2) {
     const found = parsed.headings.find(
-      (h) => h.level === 2 && normalizeText(h.text) === normalizeText(req.title)
+      (h) => h.level === 2 && req.accepted.includes(normalizeText(h.text))
     );
     if (!found) {
       const aliasFound = findHeadingByAlias(parsed.headings, 2, req.key);
@@ -558,6 +569,32 @@ function validateSpec(parsed, errors, warnings) {
             found: bullet.trimmed,
           });
         }
+      }
+    }
+  }
+
+  // 6. Validación de Decisiones y alternativas descartadas (si existe en spec.md)
+  const adrSection = parsed.headings.find(
+    (h) => h.level === 2 && normalizeText(h.text).includes('decisiones y alternativas descartadas')
+  );
+  if (adrSection) {
+    const contentLines = adrSection.lines.filter((l) => l.trimmed.length > 0);
+    const isVacio = contentLines.some((l) =>
+      /ningun[ao]/i.test(l.trimmed)
+    );
+    if (!isVacio && contentLines.length > 0) {
+      const bullets = contentLines.filter((l) => /^\s*[-*]\s+/.test(l.trimmed));
+      const hasAlternativa = bullets.some((b) =>
+        /alternativa\s+descartada/i.test(b.trimmed)
+      );
+      if (!hasAlternativa) {
+        errors.push({
+          line: adrSection.lineNumber,
+          rule: 'spec-decisiones-formato-invalido',
+          message: "En '## Decisiones y alternativas descartadas', cada decisión debe estructurarse con '- **Alternativa descartada:** <enfoque>' y '• Por qué se descarta: <justificación>'.",
+          expected: '- **Alternativa descartada:** ...',
+          found: contentLines[0].trimmed,
+        });
       }
     }
   }

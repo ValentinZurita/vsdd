@@ -532,5 +532,61 @@ test('tasks.md: detecta evasión de TDD sin formato de negritas (- Test primero:
   assert.ok(err2, 'Debe rechazar tareas de spike en tasks.md');
 });
 
+test('spec.md: aprueba estructura moderna con Límites y exclusiones (Non-Goals y Anti-Goals) y Example Mapping', () => {
+  const modernSpec = VALID_SPEC.replace(
+    `### RF-01 Iniciar sesión con Google\n- Cuando el usuario hace clic en el botón de Google, el sistema debe redirigir a la pantalla de consentimiento.\n- Si la autenticación es exitosa, la interfaz debe mostrar la sesión activa.\n- Si el usuario rechaza los permisos, el sistema no debe iniciar sesión; debe mostrar un mensaje amigable.`,
+    `### RF-01 Iniciar sesión con Google\n- Cuando el usuario hace clic en el botón de Google, el sistema debe redirigir a la pantalla de consentimiento.\n- Si la autenticación es exitosa, la interfaz debe mostrar la sesión activa.\n- Si el usuario rechaza los permisos, el sistema no debe iniciar sesión; debe mostrar un mensaje amigable.\n- **Ejemplo concreto:**\n  * Entrada: clic en "Iniciar con Google" con permisos aceptados → Resultado observable: redirección al dashboard con sesión activa.`
+  ).replace(
+    `## Fuera de alcance\n- No se soportan otros proveedores en este corte.`,
+    `## Límites y exclusiones\n\n### Fuera de alcance (Non-Goals)\n- No se soportan otros proveedores (Apple, GitHub) en este corte.\n\n### Anti-objetivos e invariantes prohibidas (Anti-Goals)\n- Bajo ninguna circunstancia se debe almacenar contraseñas en texto plano ni tokens sin cifrar.`
+  );
+
+  const res = validateContent(modernSpec, 'spec.md');
+  assert.equal(res.valid, true);
+  assert.equal(res.errors.length, 0);
+});
+
+test('spec.md: aprueba sección extensible de Decisiones y alternativas descartadas', () => {
+  const specWithAdr = VALID_SPEC + `
+## Decisiones y alternativas descartadas
+- **Alternativa descartada:** Implementar OAuth 2.0 manual sin librería.
+  • Por qué se descarta: Mayor complejidad de mantenimiento y riesgo de vulnerabilidades de seguridad.
+`;
+  const res = validateContent(specWithAdr, 'spec.md');
+  assert.equal(res.valid, true);
+  assert.equal(res.errors.length, 0);
+});
+
+test('spec.md: detecta alias sugerido cuando se usa Non-goals como H2 directo', () => {
+  const specWithBadHeading = VALID_SPEC.replace('## Fuera de alcance', '## Non-goals');
+  const res = validateContent(specWithBadHeading, 'spec.md');
+  assert.equal(res.valid, false);
+  const err = res.errors.find((e) => e.rule === 'seccion-mal-nombrada');
+  assert.ok(err, 'Debe detectar sección mal nombrada');
+  assert.ok(err.message.includes('Fuera de alcance'));
+});
+
+test('spec.md: detecta placeholders angulares modernos en Example Mapping y EARS (<valor o acción de prueba>)', () => {
+  const specWithPlaceholder = VALID_SPEC.replace(
+    '### RF-01 Iniciar sesión con Google',
+    `### RF-01 Iniciar sesión con Google\n- **Ejemplo concreto:**\n  * Entrada: <valor o acción de prueba> → Resultado: <salida visible>`
+  );
+  const res = validateContent(specWithPlaceholder, 'spec.md');
+  assert.equal(res.valid, false);
+  const err = res.errors.find((e) => e.rule === 'placeholder-sin-resolver');
+  assert.ok(err, 'Debe detectar el placeholder residual <valor o acción de prueba>');
+});
+
+test('spec.md: detecta formato inválido en Decisiones y alternativas descartadas cuando falta Alternativa descartada', () => {
+  const specWithMalformedAdr = VALID_SPEC + `
+## Decisiones y alternativas descartadas
+- Se decidió usar OAuth nativo porque es más rápido y seguro.
+`;
+  const res = validateContent(specWithMalformedAdr, 'spec.md');
+  assert.equal(res.valid, false);
+  const err = res.errors.find((e) => e.rule === 'spec-decisiones-formato-invalido');
+  assert.ok(err, 'Debe detectar formato inválido en Decisiones descartadas');
+});
+
 
 

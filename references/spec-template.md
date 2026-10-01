@@ -57,7 +57,9 @@ Estado: <en-revision | listo-para-plan>
 
 ### RF-01 <Verbo en infinitivo + qué cambia para el usuario>
 - Cuando <evento>, debe <resultado observable>
-- Si <estado>, debe <resultado observable>
+- Si <situación errónea>, no debe <daño o acción indebida>; debe <mensaje o protección visible>
+- **Ejemplo concreto:**
+  * Entrada: `<valor o acción de prueba>` → Resultado observable: `<salida visible o confirmación>`
 
 ## Casos límite
 
@@ -75,11 +77,21 @@ Estado: <en-revision | listo-para-plan>
 
 **Forma:** viñetas. Cada una: <cualidad de experiencia> debe <criterio comprobable en lenguaje cotidiano>.
 
-## Fuera de alcance
+## Límites y exclusiones
 
-**Llenar:** qué NO hará esta entrega, heredando e integrando las exclusiones definidas en el **Fuera de alcance** de `idea.md` más cualquier descarte adicional acordado en la entrevista. Una línea por ítem, sin justificaciones largas.
+**Llenar:** delimitar tajantemente qué se pospone y qué queda terminantemente prohibido. *(Nota: por retrocompatibilidad también se admite el encabezado simple `## Fuera de alcance`).*
+
+### Fuera de alcance (Non-Goals)
+
+**Llenar:** funcionalidades o casos válidos que NO se construirán en esta entrega para proteger el tiempo y acotar el alcance, heredando el **Fuera de alcance** de `idea.md` y los descartes de la entrevista. Una línea por ítem.
 
 **Vacío:** `Nada más de lo ya dicho en la idea.`
+
+### Anti-objetivos e invariantes prohibidas (Anti-Goals)
+
+**Llenar:** comportamientos, efectos colaterales nocivos, degradaciones de experiencia de usuario o fallos que el sistema tiene ESTRICTAMENTE PROHIBIDO provocar bajo cualquier circunstancia (derivado del principio de Inversión).
+
+**Vacío:** `Ninguno identificado.`
 
 ## Criterios de finalización
 
@@ -88,6 +100,16 @@ Estado: <en-revision | listo-para-plan>
 **Forma:** viñetas iniciando estrictamente con:
 - Se puede comprobar que: <condición observable 1 heredada de Listo cuando>
 - Se puede comprobar que: <condición observable 2 heredada de Listo cuando>
+
+## Decisiones y alternativas descartadas
+
+**Llenar:** sección extensible recomendada si durante la entrevista se evaluaron caminos alternativos o trade-offs de producto. Registrar qué enfoque no se eligió y por qué motivo concreto, evitando que futuros colaboradores o agentes reabran debates ya resueltos.
+
+**Vacío:** `Ninguna alternativa descartada en debate.`
+
+**Forma:** viñetas estructuradas:
+- **Alternativa descartada:** <Qué enfoque o camino se evaluó>
+  • Por qué se descarta: <Motivo justificado: mayor complejidad, riesgo de seguridad, lentitud o desalineación>
 
 ## Diagramas
 
