@@ -33,6 +33,7 @@ Paso 4c (pregunta de cierre técnico) → escribir `plan.md` inicial (`Estado: e
   - **En el chat de la terminal:** Versión ejecutiva de alto impacto para evitar fatiga cognitiva y sobrecarga de tokens. Presenta los módulos tocados, Decisiones Técnicas sintetizadas (`<Título corto> -> <Decisión en 1 línea>`), el árbol de cambios estructurado y la estrategia de tests. Los diagramas Mermaid complejos se presentan como un flujo limpio de texto/ASCII, indicando que el diagrama completo vive en el archivo físico.
   - **En el archivo físico (`plan.md`):** Documento pormenorizado, pulcro y completo con todas las secciones de `plan-template.md`, diagramas Mermaid nativos, justificaciones profundas de cada DT y tabla exhaustiva de cobertura.
 - **Blueprint para Tareas (`tasks.md`):** El plan técnico debe dejar definidos de forma determinista los módulos, el árbol de cambios con prefijos (`+`, `~`, `-`) y la estrategia TDD, sirviendo como la guía exacta para la descomposición atómica de tareas.
+- **Frontera de Prerrequisitos y Spikes Previos:** Toda incertidumbre técnica, prueba de concepto descartable (spike ≤ 30 min), prueba manual exploratoria o configuración de entorno (.env, accesos) DEBE identificarse y quedar resuelta en esta fase de Plan. Queda prohibido postergar tareas manuales hacia `tasks.md`: la fase de tareas está reservada para código 100% puro y automatizable bajo TDD.
 
 ---
 
@@ -122,6 +123,7 @@ Máximo 2 búsquedas web breves. Al recibir el reporte, persistir acumulativamen
    2) Decisiones técnicas sin alternativas descartadas fundamentadas.
    3) Árbol de cambios inconsistente con los módulos o con archivos sobrantes/faltantes.
    4) Alineación con las directrices del proyecto y ausencia de sobre-ingeniería respecto a `idea.md`.
+   5) Prerrequisitos y Spikes: verificar que no queden dudas técnicas abiertas ni pruebas manuales sin resolver antes de permitir el paso a tareas.
 10. **Procesamiento de Hallazgos y Presentación Ejecutiva en Terminal:**
     - Ajustes técnicos menores de redacción o rutas: se aplican directamente en `plan.md` en disco.
     - Disyuntivas que requieren decisión del usuario: se formula una pregunta puntual antes de cerrar.

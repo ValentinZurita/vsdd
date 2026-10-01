@@ -13,6 +13,7 @@ Leer plan aprobado → estructurar tareas autónomamente en fases lógicas con T
 - **Estructura por Fases Lógicas:** Las tareas se agrupan en fases secuenciales (`## Fase 1: ...`, `## Fase 2: ...`) respetando el grafo de dependencias de `plan.md` (módulos base, contratos y datos antes de servicios, lógica de negocio e interfaces).
 - **Granularidad Estricta (20 a 30 minutos):** Cada tarea debe ser una micro-tarea acotada a **20 a 30 minutos máximo**. Si una tarea excede ese tiempo, debe subdividirse en unidades más pequeñas. Formato: `- [ ] **TASK-xx: <título> (20-30 min)**`.
 - **TDD Estricto (Test Primero):** Cada tarea debe incluir obligatoriamente su especificación de `Test primero (TDD)` indicando la prueba automatizada que debe fallar antes de tocar código de producción.
+- **Frontera de Código Puro (Sin tareas manuales ni spikes):** `tasks.md` está reservado exclusivamente para código de producción y pruebas automatizadas bajo TDD. Queda estrictamente prohibido incluir tareas de "probar manualmente", "configurar credenciales", "hacer spike" o "investigar alternativas". Si existían dudas previas o pruebas exploratorias, debieron quedar resueltas en `plan.md`; si existe verificación manual final, pertenece al Golden Path de `verify.md`.
 - **Commits Atómicos y Sin Trailers de IA:**
   - Casilla de marcado para commit atómico por tarea (`- [ ] **Commit de tarea:**`).
   - Bloque de cierre por fase (`### Control de Fase N`) con auditoría y commit de fase.
@@ -51,6 +52,7 @@ Leer plan aprobado → estructurar tareas autónomamente en fases lógicas con T
    3) Orden de tareas que vulnere el grafo de dependencias técnicas.
    4) Alineación con la entrega de valor de `idea.md`.
    5) Tareas cuyo alcance estimado supere los 30 minutos (exigir subdivisión), tareas sin especificación TDD o fases sin bloque de control.
+   6) Detección de tareas manuales: rechazar de inmediato cualquier tarea que exija pruebas manuales, spikes de investigación o configuraciones de entorno fuera del código automatizable.
 6. **Correcciones Autónomas en `tasks.md`:** El conductor lee el reporte del auditor (sin pegarlo crudo en el chat) y corrige directamente `tasks.md` en disco (subdivide tareas extensas, ajusta dependencias y completa mapeos). Prohibido editar código del producto.
    - Actualizar cabecera a `Estado: listo-para-aplicar`.
    - Actualizar `context.json` en la carpeta de la funcionalidad (`saveFeatureContext`) registrando el estado `listo-para-aplicar` y el timestamp actual.

@@ -67,6 +67,18 @@ Una decisión técnica sin alternativa descartada rigurosamente justificada se c
 - **Por qué se descarta:** <motivo técnico concreto por el cual la alternativa no es óptima para este caso>
 - **Cubre:** RF-xx, RNF-xx
 
+## Prerrequisitos y validaciones previas (Spikes)
+
+**Llenar:** únicamente si este corte tiene dependencias de entorno (.env, credenciales, accesos) o incertidumbre técnica que requiera un experimento o prueba manual rápida (spike ≤ 30 min) antes de comenzar a codificar.
+
+Si se requiere un spike, registrar la pregunta concreta a responder y la prueba ejecutada. **El spike y los prerrequisitos deben quedar 100% resueltos antes de aprobar el plan y pasar a tasks.md.**
+
+**Vacío:** `Ninguno: el entorno cuenta con todo lo necesario y no hay incertidumbre técnica previa.`
+
+**Forma:**
+- **Spike / Validación previa:** <pregunta a despejar o experimento ejecutado>. Resultado: <aprendizaje o confirmación>. Estado: <resuelto | no aplica>.
+- **Prerrequisitos de entorno:** <variables de entorno, credenciales o configuración necesaria>. Estado: <listo | no aplica>.
+
 ## Árbol de cambios
 
 **Llenar:** mapa exacto y determinista de los archivos que se crearán, modificarán o eliminarán. Rutas completas y reales del proyecto. Cada línea debe utilizar estrictamente uno de los tres prefijos:

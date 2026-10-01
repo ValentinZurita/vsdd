@@ -88,6 +88,9 @@ Este plan implementa la autenticación OAuth 2.0 respetando la arquitectura del 
 ## Módulos y arquitectura
 - **AuthModule:** Maneja la interacción con el proveedor OAuth. Cubre: RF-01.
 
+## Prerrequisitos y validaciones previas (Spikes)
+Ninguno: el entorno cuenta con todo lo necesario y no hay incertidumbre técnica previa.
+
 ## Árbol de cambios
 - \`+ src/auth/oauth-client.js\`
 - \`~ src/auth/session-manager.js\`
@@ -431,4 +434,103 @@ Estado: cancelado
   assert.equal(resTasks.valid, true);
   assert.equal(resTasks.errors.length, 0);
 });
+
+test('plan.md: detecta DT sin justificación de mejor opción actual (dt-campo-mejor-opcion-faltante)', () => {
+  const badDt = VALID_PLAN.replace(
+    '- **Por qué es la mejor opción actual:** Reduce el tamaño del bundle y simplifica el mantenimiento.\n',
+    ''
+  );
+  const result = validateContent(badDt, 'plan.md');
+  assert.equal(result.valid, false);
+  const dtError = result.errors.find((e) => e.rule === 'dt-campo-mejor-opcion-faltante');
+  assert.ok(dtError, 'Debe exigir justificación de mejor opción actual');
+});
+
+test('tasks.md: detecta tarea no automatizable o con verificación manual (task-no-automatizable)', () => {
+  const manualTask = VALID_TASKS.replace(
+    '- [ ] **TASK-01: Cliente OAuth básico (25 min)**',
+    '- [ ] **TASK-01: Probar manualmente la API externa (25 min)**'
+  );
+  const result = validateContent(manualTask, 'tasks.md');
+  assert.equal(result.valid, false);
+  const manualError = result.errors.find((e) => e.rule === 'task-no-automatizable');
+  assert.ok(manualError, 'Debe rechazar tareas con pruebas manuales');
+  assert.ok(manualError.message.includes('tasks.md está reservado para código puro'));
+});
+
+test('tasks.md: descripción en Qué con acción manual no genera falso positivo', () => {
+  const taskWithManualDesc = VALID_TASKS.replace(
+    '- **Qué:** Implementar función que genera la URL de autorización.',
+    '- **Qué:** Implementar botón para probar manualmente la conexión.'
+  );
+  const result = validateContent(taskWithManualDesc, 'tasks.md');
+  assert.equal(result.valid, true);
+  assert.equal(result.errors.length, 0);
+});
+
+test('tasks.md: detecta Test primero (TDD) no automatizable (Ninguno o n/a)', () => {
+  const taskTddNinguno = VALID_TASKS.replace(
+    '  - **Test primero (TDD):** `tests/oauth-client.test.js`',
+    '  - **Test primero (TDD):** Ninguno'
+  );
+  const res1 = validateContent(taskTddNinguno, 'tasks.md');
+  assert.equal(res1.valid, false);
+  const err1 = res1.errors.find((e) => e.rule === 'task-no-automatizable');
+  assert.ok(err1, 'Debe rechazar Test primero (TDD): Ninguno');
+  assert.equal(err1.found, '- **Test primero (TDD):** Ninguno');
+
+  const taskTddNa = VALID_TASKS.replace(
+    '  - **Test primero (TDD):** `tests/oauth-client.test.js`',
+    '  * **Test primero (TDD):** n/a'
+  );
+  const res2 = validateContent(taskTddNa, 'tasks.md');
+  assert.equal(res2.valid, false);
+  const err2 = res2.errors.find((e) => e.rule === 'task-no-automatizable');
+  assert.ok(err2, 'Debe rechazar * **Test primero (TDD):** n/a');
+  assert.equal(err2.found, '* **Test primero (TDD):** n/a');
+});
+
+test('plan.md: tolera DT con "Por qué es la mejor opción" sin la palabra "actual"', () => {
+  const planWithoutActual = VALID_PLAN.replace(
+    '- **Por qué es la mejor opción actual:** Reduce el tamaño del bundle y simplifica el mantenimiento.',
+    '- **Por qué es la mejor opción:** Reduce el tamaño del bundle y simplifica el mantenimiento.'
+  );
+  const result = validateContent(planWithoutActual, 'plan.md');
+  assert.equal(result.valid, true);
+  assert.equal(result.errors.length, 0);
+});
+
+test('plan.md: detecta ausencia de sección obligatoria de Prerrequisitos y Spikes', () => {
+  const planNoPrereqs = VALID_PLAN.replace(
+    '## Prerrequisitos y validaciones previas (Spikes)\nNinguno: el entorno cuenta con todo lo necesario y no hay incertidumbre técnica previa.\n\n',
+    ''
+  );
+  const result = validateContent(planNoPrereqs, 'plan.md');
+  assert.equal(result.valid, false);
+  const prereqErr = result.errors.find((e) => e.rule === 'seccion-obligatoria-faltante');
+  assert.ok(prereqErr, 'Debe exigir la sección de Prerrequisitos');
+  assert.ok(prereqErr.message.includes('Prerrequisitos y validaciones previas'));
+});
+
+test('tasks.md: detecta evasión de TDD sin formato de negritas (- Test primero: ninguna o na)', () => {
+  const taskNoBoldTdd = VALID_TASKS.replace(
+    '- **Test primero (TDD):** `tests/oauth-client.test.js`',
+    '- Test primero: ninguna'
+  );
+  const res = validateContent(taskNoBoldTdd, 'tasks.md');
+  assert.equal(res.valid, false);
+  const err = res.errors.find((e) => e.rule === 'task-no-automatizable');
+  assert.ok(err, 'Debe detectar evasión sin negritas');
+
+  const taskSpikeTitle = VALID_TASKS.replace(
+    '- [ ] **TASK-01: Cliente OAuth básico (25 min)**',
+    '- [ ] **TASK-01: Hacer spike de viabilidad técnica (25 min)**'
+  );
+  const res2 = validateContent(taskSpikeTitle, 'tasks.md');
+  assert.equal(res2.valid, false);
+  const err2 = res2.errors.find((e) => e.rule === 'task-no-automatizable');
+  assert.ok(err2, 'Debe rechazar tareas de spike en tasks.md');
+});
+
+
 

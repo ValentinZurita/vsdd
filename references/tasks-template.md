@@ -17,6 +17,7 @@ Plan: `<nnn>-<slug>/plan.md`
 
 - **Granularidad:** tareas pequeñas de 20 a 30 minutos máximo. Si una tarea excede este tiempo, se subdivide.
 - **TDD estricto:** cada tarea define y ejecuta primero la prueba automatizada que debe fallar antes de tocar código de producción.
+- **Código puro y automatizable:** cada tarea debe ser 100% ejecutable mediante código y pruebas automatizadas (TDD). Prohibido incluir tareas manuales, spikes de investigación exploratoria o configuraciones manuales de entorno. Todo prerrequisito debe haberse resuelto previamente en `plan.md`.
 - **Commits atómicos:** commit obligatorio al terminar cada tarea y cada fase, bajo el estándar Conventional Commits (`<tipo>(<alcance>): <descripción>`), sin trailers de IA ni Co-Authored-By.
 - **Control de calidad por fase:** al finalizar cada fase, un auditor independiente (solo lectura) revisa el código implementado contra spec y plan. Los ajustes los aplica un subagente reparador independiente (el agente conductor nunca edita código de producto). La fase se cierra validando con el comando de pruebas y calidad del proyecto.
 

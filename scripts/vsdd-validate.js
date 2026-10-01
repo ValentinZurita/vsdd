@@ -74,6 +74,13 @@ const SECTION_ALIASES = {
     'principios de ejecucion',
     'execution rules',
   ],
+  'prerrequisitos y validaciones previas': [
+    'prerrequisitos y validaciones previas (spikes)',
+    'prerrequisitos y validaciones previas',
+    'prerrequisitos',
+    'spikes y prerrequisitos',
+    'spikes',
+  ],
 };
 
 /**
@@ -619,6 +626,7 @@ function validatePlan(parsed, errors, warnings) {
   // 4. Secciones Obligatorias del Contrato Mínimo Viable
   const requiredH2 = [
     { key: 'módulos y arquitectura', title: 'Módulos y arquitectura' },
+    { key: 'prerrequisitos y validaciones previas', title: 'Prerrequisitos y validaciones previas (Spikes)' },
     { key: 'árbol de cambios', title: 'Árbol de cambios' },
     { key: 'estrategia de tests', title: 'Estrategia de tests' },
     { key: 'cobertura rf / rnf', title: 'Cobertura RF / RNF' },
@@ -731,7 +739,7 @@ function validatePlan(parsed, errors, warnings) {
       normalizeText(l.trimmed).includes('decision')
     );
     const hasBestOption = dtLines.some((l) =>
-      normalizeText(l.trimmed).includes('por que es la mejor opcion actual')
+      normalizeText(l.trimmed).includes('por que es la mejor opcion')
     );
     const hasAlternative = dtLines.some((l) =>
       normalizeText(l.trimmed).includes('alternativa descartada')
@@ -746,6 +754,15 @@ function validatePlan(parsed, errors, warnings) {
         rule: 'dt-campo-decision-faltante',
         message: `'${dth.text}' no contiene el campo obligatorio '- **Decisión:**'.`,
         expected: '- **Decisión:** <enfoque>',
+        found: 'Campo ausente',
+      });
+    }
+    if (!hasBestOption) {
+      errors.push({
+        line: dth.lineNumber,
+        rule: 'dt-campo-mejor-opcion-faltante',
+        message: `'${dth.text}' no contiene el campo obligatorio '- **Por qué es la mejor opción:**'.`,
+        expected: '- **Por qué es la mejor opción:** <justificación>',
         found: 'Campo ausente',
       });
     }
@@ -918,6 +935,40 @@ function validateTasks(parsed, errors, warnings) {
         message: `La tarea en línea ${tl.lineNumber} no contiene el campo obligatorio '- **Test primero (TDD):**'.`,
         expected: '- **Test primero (TDD):** <especificación de la prueba>',
         found: 'Campo TDD ausente',
+      });
+    }
+
+    // Validar frontera de código puro: rechazar tareas explícitamente manuales o spikes no automatizables
+    let violatingLine = null;
+    const isManualTitle =
+      /(?:probar|verificar|testear)\s+(?:manualmente|a\s+mano)|(?:hacer\s+)?spike|(?:investigar|probar)\s+(?:alternativas|librer[ií]a|api|viabilidad)/i.test(
+        tl.trimmed
+      );
+
+    if (isManualTitle) {
+      violatingLine = tl;
+    } else {
+      const tddLine = taskBlockLines.find((l) =>
+        normalizeText(l.trimmed).includes('test primero')
+      );
+      if (tddLine) {
+        const hasManualPhrase = /(?:probar|verificar|testear)\s+(?:manualmente|a\s+mano)/i.test(tddLine.trimmed);
+        const tddClean = tddLine.trimmed.replace(/[*_`]/g, '');
+        const tddValue = tddClean.replace(/^[^:]*:\s*/, '').trim();
+        const hasBypassWord = /^(?:no\s+aplica|manual|a\s+mano|ningun[oa]|no\s+requiere|n\s*\/?\s*a)\b/i.test(tddValue);
+        if (hasManualPhrase || hasBypassWord) {
+          violatingLine = tddLine;
+        }
+      }
+    }
+
+    if (violatingLine) {
+      errors.push({
+        line: violatingLine.lineNumber,
+        rule: 'task-no-automatizable',
+        message: `La tarea en línea ${violatingLine.lineNumber} indica pruebas o verificación manual. tasks.md está reservado para código puro y pruebas automatizadas con TDD. Los spikes o pruebas manuales exploratorias deben resolverse en plan.md; las pruebas de humo finales pertenecen al Golden Path de verify.md.`,
+        expected: '- **Test primero (TDD):** <prueba automatizada unitaria o de integración>',
+        found: violatingLine.trimmed,
       });
     }
   }
