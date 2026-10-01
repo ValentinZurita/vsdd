@@ -480,11 +480,14 @@ test('calculateFeatureDrift resolves paths correctly when invoked from a subfold
     const planContent = `# Plan\n## Árbol de cambios\n- ~ src/nested/index.js\n`;
     fs.writeFileSync(path.join(featDir, 'plan.md'), planContent);
 
+    // Modificación no commiteada para validar que subfolderCwd detecta cambios sucios
+    fs.appendFileSync(path.join(tempDir, 'src', 'nested', 'index.js'), '// dirty\n');
+
     // Ejecutar simulando cwd en una subcarpeta profunda
     const subfolderCwd = path.join(tempDir, 'src', 'nested');
     const drift = calculateFeatureDrift(featDir, { planContent }, subfolderCwd);
-    assert.equal(drift.status, 'GREEN');
-    assert.equal(drift.reason, 'NO_BASE_COMMIT_CLEAN');
+    assert.equal(drift.status, 'YELLOW');
+    assert.equal(drift.reason, 'DIRTY_LOCAL');
   } finally {
     fs.rmSync(tempDir, { recursive: true, force: true });
   }

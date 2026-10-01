@@ -276,8 +276,9 @@ test('CLI: ejecución de scripts/vsdd-validate.js con archivo temporal e invocac
     const validFile = path.join(tempDir, 'idea.md');
     fs.writeFileSync(validFile, VALID_IDEA);
 
+    const scriptPath = path.resolve(__dirname, '../scripts/vsdd-validate.js');
     // Archivo válido -> exit code 0
-    const stdout = execSync(`node scripts/vsdd-validate.js "${validFile}" --json`, {
+    const stdout = execSync(`node "${scriptPath}" "${validFile}" --json`, {
       encoding: 'utf8',
     });
     const parsed = JSON.parse(stdout);
@@ -289,7 +290,7 @@ test('CLI: ejecución de scripts/vsdd-validate.js con archivo temporal e invocac
     fs.writeFileSync(invalidFile, '# Spec 001\nEstado: en-revision\n\n## Contexto y objetivos\nTexto\n');
     assert.throws(
       () => {
-        execSync(`node scripts/vsdd-validate.js "${invalidFile}"`, {
+        execSync(`node "${scriptPath}" "${invalidFile}"`, {
           encoding: 'utf8',
           stdio: 'pipe',
         });
