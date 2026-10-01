@@ -585,7 +585,7 @@ function validateSpec(parsed, errors, warnings) {
     if (!isVacio && contentLines.length > 0) {
       const bullets = contentLines.filter((l) => /^\s*[-*]\s+/.test(l.trimmed));
       const hasAlternativa = bullets.some((b) =>
-        /alternativa\s+descartada/i.test(b.trimmed)
+        /^\s*[-*]\s+\*\*alternativa\s+descartada:?\*\*:?/i.test(b.trimmed)
       );
       if (!hasAlternativa) {
         errors.push({

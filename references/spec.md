@@ -16,11 +16,35 @@ Paso 4c (pregunta de cierre) → escribir `spec.md` inicial (`Estado: en-revisio
   - **Regla de Oro de Ejemplos Didácticos Obligatorios:** Jamás asumas que el usuario domina conceptos abstractos (como idempotencia, concurrencia, debounce, payload o rollbacks). Toda pregunta sobre un escenario abstracto o complejo **debe formularse en lenguaje cotidiano y acompañarse obligatoriamente de un micro-ejemplo concreto de la vida real** antes de solicitar respuesta (ej: *«Por ejemplo: si la persona pulsa dos veces seguidas el botón de guardar mientras la pantalla aún está procesando...»*).
   - **Preguntas Estructuradas con Opciones (`1 / 2 / 3`):** Usadas ante tenedores de decisión, disyuntivas con trade-offs, mitigación de trampas técnicas (*Rabbit Holes*) o cuando una respuesta abierta previa resultó ambigua. Formato estricto con `• Pro:`, `• Contra:`, `• Recomendada:`.
   - **Salida Ágil ante Fatiga:** Si el usuario responde *"lo que sea más simple"*, *"lo que recomiendes"* o *"no sé"*, adopta de inmediato la opción recomendada más segura por defecto, confírmala en una línea y avanza al siguiente punto sin insistir ni trabar el flujo.
-- **Elicitación Adaptativa por Tiers (Proporcional a la Idea):**
-  La profundidad de la indagación se calibra automáticamente según el tamaño y riesgo de la funcionalidad para no agotar al usuario con preguntas innecesarias:
-  - **Tier Rápido ($N \le 5$ preguntas) — Micro-ajustes, scripts o mejoras puntuales:** Enfócate exclusivamente en el camino feliz, qué pasa si algo falla de forma evidente y límites (qué NO hacer). Queda estrictamente prohibido formular preguntas sobre matrices CRUD completas, skeletons o auditoría en este tier.
-  - **Tier Estándar ($N \le 10$ preguntas) — Flujos o pantallas nuevas:** Incluye lo anterior + el **Estado Vacío** (*Empty State*: qué ve alguien la primera vez o si no hay resultados) y ciclo de vida básico (*«¿se puede editar o cancelar?»*).
-  - **Tier Profundo ($N \le 15$ preguntas) — Módulos críticos, pagos, auth, permisos:** Profundiza en invariantes de seguridad, concurrencia, pérdida de red y recuperación de datos.
+- **Elicitación Adaptativa por Tiers (Anclada en el Contexto del Proyecto):**
+  La profundidad de la indagación no depende de categorías genéricas inventadas ni asume un tipo de software particular (como web, SaaS o comercio). Se calibra evaluando la relación entre la idea y la realidad actual del repositorio:
+  1. *Alineación con rieles existentes:* ¿El proyecto ya tiene un patrón consolidado para esto o requiere introducir una arquitectura sin precedentes en el repo?
+  2. *Radio de impacto (Blast Radius):* ¿Es una lectura/formateo inocuo, una mutación local acotada, o una operación destructiva/irreversible que toca el núcleo compartido o estado persistente?
+  3. *Complejidad de estados:* ¿Es una operación atómica directa o maneja estados intermedios, fallos a mitad de proceso o concurrencia?
+
+  Según estas dimensiones contextuales, se asigna el tier:
+  - **Tier Rápido ($N \le 5$ preguntas) — Ajuste quirúrgico / Extensión sobre rieles existentes:**
+    - *Señales contextuales:* Se apoya totalmente en convenciones existentes. Modifica o extiende un comportamiento sin alterar el flujo general ni crear nuevos puntos de fallo en el sistema. Radio de impacto localizado e inocuo (solo lectura, formateo, nuevas opciones de configuración o scripts aislados).
+    - *Ejemplos según contexto:* En un CLI: añadir un flag o formato de salida. En una API: un campo opcional o filtro. En un backend/script: afinar un log o cálculo.
+    - *Foco de indagación:* Camino feliz, mensaje/salida en caso de error y límites (qué NO hacer). Prohibido inventar complejidad, CRUDs ni matrices donde el proyecto no los necesita.
+  - **Tier Estándar ($N \le 10$ preguntas) — Nueva capacidad dentro del paradigma del proyecto:**
+    - *Señales contextuales:* Añade una nueva unidad funcional completa (un nuevo comando, un nuevo endpoint, una nueva vista o una transformación de varios pasos) siguiendo los patrones que el proyecto ya utiliza. Maneja entradas nuevas y estados observables.
+    - *Ejemplos según contexto:* En un CLI: un subcomando nuevo con sus propios argumentos. En una API: un nuevo recurso o servicio. En una app: un nuevo flujo de usuario.
+    - *Foco de indagación:* Flujo completo, **Estado Vacío** (*Empty State*: qué ocurre cuando no hay datos o la entrada está vacía), validación de entradas erróneas y ciclo de vida de la operación (cancelar/reintentar).
+  - **Tier Profundo ($N \le 15$ preguntas) — Núcleo crítico, mutaciones destructivas o nueva arquitectura:**
+    - *Señales contextuales:* La funcionalidad toca el núcleo del sistema del que dependen otros módulos, introduce persistencia/concurrencia sin precedentes en el repo, rompe contratos existentes o ejecuta **operaciones destructivas/irreversibles** (borrado de datos/archivos, cambios de estado no reversibles, reescritura de configuraciones centrales).
+    - *Ejemplos según contexto:* En un CLI: operaciones destructivas sobre disco o Git (ej: `abort`, borrado de ramas). En un backend: motores de sincronización, transacciones con rollback o migración de datos. En una librería: cambios mayores de API pública.
+    - *Foco de indagación:* Invariantes del sistema (qué está terminantemente prohibido romper), mitigación de fallos a mitad de proceso (recuperación/rollback), consistencia y salvaguardas observables.
+- **Desambiguación Temprana del Tamaño (Q1 ante Ideas Abiertas):**
+  Si la idea del usuario es abierta o ambigua en el contexto del proyecto (ej: *«quiero un filtro»*, *«quiero un exportador»*), el agente no adivina el alcance ni inventa variables. Utiliza la **primera pregunta (Q1)** para situar la idea dentro del sistema real:
+  *«Para dimensionar el alcance en este proyecto: ¿te imaginas esto como una extensión directa sobre lo que ya existe (~3-5 preguntas), como una capacidad nueva independiente (~8-10 preguntas), o involucra cambios destructivos o en el núcleo del sistema (~12-15 preguntas)?»*
+  Con la respuesta del usuario, se anuncia el tope $N$ definitivo.
+- **Protocolo de Recalibración Dinámica de Tiers (Escalamiento y Desescalamiento):**
+  Si durante la entrevista el alcance cambia respecto a la arquitectura real del proyecto, el agente ajusta el tope $N$ con empatía y justificación técnica concreta:
+  - *Escalamiento (al descubrir impacto en el núcleo o riesgo destructivo):*
+    *«Al identificar que esta operación modifica archivos compartidos de forma irreversible, necesitamos blindar la recuperación ante fallos. Ajusto nuestra estimación a como máximo 10 preguntas para no dejar cabos sueltos en el sistema.»*
+  - *Desescalamiento (al acotar límites tajantes en Non-Goals):*
+    *«¡Excelente! Al dejar fuera la modificación de estado persistente y limitarlo a una salida directa, el alcance se simplifica bastante. Ajusto nuestra estimación a 5 preguntas y cerramos de inmediato.»*
 - **Rúbrica Interna de Elicitación (Checklist Mental del Conductor):**
   Antes de formular cada pregunta, el conductor evalúa mentalmente en silencio estos 5 lentes para seleccionar únicamente la pregunta de mayor valor:
   1) *Dolor real:* ¿Estoy preguntando sobre un problema concreto del presente o sobre una hipótesis futurista que no aporta valor hoy?
@@ -32,7 +56,7 @@ Paso 4c (pregunta de cierre) → escribir `spec.md` inicial (`Estado: en-revisio
   Tan importante como definir lo que se construye es delimitar tajantemente lo que **no** se hará ni permitirá:
   - **Fuera de alcance (Non-Goals):** Funcionalidades válidas que deliberadamente se posponen para proteger el tiempo y evitar la inflación del alcance.
   - **Anti-objetivos (Anti-Goals e Invariantes Prohibidas):** Comportamientos, efectos secundarios nocivos, degradaciones de rendimiento o estados corruptos que el sistema tiene **terminantemente prohibido** provocar.
-- **Estimación y Presupuesto de Preguntas:** Cada pregunta de especificación se encabeza amigablemente con: `Pregunta k de como máximo N.` Donde $N$ es el tope estimado según el tier ($5$, $10$ o $15$). Se anuncia $N$ en el primer turno:
+- **Estimación y Presupuesto de Preguntas:** Cada pregunta de especificación se encabeza amigablemente con: `Pregunta k de como máximo N.` Donde $N$ es el tope estimado según el tier ($5$, $10$ o $15$). Se anuncia $N$ en el primer turno (o en Q2 si Q1 fue desambiguación):
   `● Estimación de diálogo: como máximo N preguntas breves (una por turno). Al final podrás agregar o aclarar cualquier punto.`
 - **No re-preguntar hechos ya resueltos:** Respetar lo acordado en `idea.md`. Indagar únicamente vacíos que harían que la especificación sea incompleta o no comprobable según el tier correspondiente.
 - **Descubrimiento de Directrices del Proyecto:** Tras seleccionar la idea y antes de la primera pregunta, el conductor lee `idea.md` y revisa si el proyecto cuenta con guías de desarrollo o restricciones documentadas (ej. `CONSTITUTION.md`, `README.md`, `CONTRIBUTING.md`). Si existen, se respetan sus límites funcionales; si no existen, se continúa sin bloquearse. Prohibido pegar textualmente estas guías en el chat.
@@ -60,12 +84,33 @@ El conductor no realiza recorridos masivos del código del proyecto en esta fase
 **Ola 1 (Análisis Agnóstico de Dominio, Huecos, Rabbit Holes y No-Gos):**
 Con la idea cargada, se despacha un subagente de exploración (modelo rápido y económico, ej: `flash` o `haiku`). El subagente actúa como un Senior Lead que recién llega al proyecto: inspecciona de forma 100% agnóstica el árbol general, el `README.md` o archivos de configuración/tipos que encuentre de forma natural, **sin asumir ni buscar tecnologías específicas**.
 Anunciar en chat: `● [Subagente: Exploración de Requisitos] Analizando contexto de dominio, completitud y límites con modelo: <modelo>...`
-El subagente evalúa el tier de complejidad ($5$, $10$ o $15$) e identifica:
-1) **Vocabulario y entidades clave del proyecto:** Nombres reales de actores y entidades detectadas en el repo para no inventar sinónimos.
-2) $Q1$ y temas clave de comportamiento observable.
-3) **Rabbit Holes:** 1 trampa de complejidad técnica o funcional donde se podría empantanar el desarrollo.
-4) **Propuesta de No-Go:** 1 límite tajante de exclusión para evitar scope creep.
+
+Prompt breve (≤16 líneas):
+```text
+Rol: Arquitecto Explorador de Contexto y Riesgo (Ola 1 de Spec).
+Idea cargada: <problema, solución y 'Listo cuando' de idea.md>
+Contexto del repo: <README.md, nombres de carpetas principales, tipos o módulos relevantes>
+
+Evalúa el tamaño y riesgo de la funcionalidad según la arquitectura real:
+1) Rieles existentes: ¿El proyecto ya tiene resuelto este patrón o requiere introducir algo sin precedentes?
+2) Radio de impacto (Blast Radius): ¿Es lectura/formato inocuo, mutación estándar, o mutación destructiva/irreversible (disco, git, contratos compartidos)?
+3) Estados: ¿Operación atómica o flujo con estados intermedios y recuperación ante fallos?
+
+Devolver estrictamente este formato (≤12 líneas):
+TIER_SUGERIDO: 5 | 10 | 15 | AMBIGUO
+JUSTIFICACION_ARQUITECTONICA: <1 línea contrastando contra el código y patrones reales del repo>
+ENTIDADES_DETECTADAS: [<nombre_real_1>, <nombre_real_2>]
+Q1: <pregunta inicial: si AMBIGUO, calibrar alcance tangible; si no, indagar flujo principal>
+RABBIT_HOLE: <1 trampa técnica concreta en este proyecto>
+NO_GO_PROPUESTO: <1 límite tajante de exclusión para evitar scope creep>
+```
+
 Reporte conciso ($\le 12$ líneas). Inmediatamente al recibir el memo, persistir en `context.json` (`saveFeatureExploration`). Si la herramienta falla, el agente principal analiza los huecos directamente en el mismo turno avisando en chat y guardando el análisis local.
+
+**Uso Operativo del Memo por el Conductor:**
+- Si `TIER_SUGERIDO` es `5`, `10` o `15`: Anuncia el tope $N$ con la justificación técnica real en el turno 1:
+  `● Estimación de diálogo: como máximo N preguntas breves (una por turno). <Justificación arquitectónica del repo>. Al final podrás agregar o aclarar cualquier punto.`
+- Si `TIER_SUGERIDO` es `AMBIGUO`: No fija tope arbitrario. Formula `Q1` para situar la idea en el sistema real y anuncia el tope definitivo en `Q2`.
 
 **Ola 2 (Exploración de mejores prácticas / referencias externas):**
 Solo si tras agotar los temas de la Ola 1 se determina que una consulta externa aportaría claridad real sobre cómo maneja la industria este caso de uso.

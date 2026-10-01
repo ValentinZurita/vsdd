@@ -63,7 +63,8 @@ Búsquedas masivas de código en el repositorio (`Grep`/`Glob` recursivos) o lec
    Devolver estrictamente este formato (≤12 líneas):
    MATCHED_IDS: [<id1>, <id2>] | NONE
    Ya existe: <1 línea sobre qué hay similar y si se detectaron módulos a reutilizar>
-   Q1: <pregunta clave de producto con 2-3 opciones>
+   ALCANCE_SUGERIDO: quirúrgico (rieles) | nuevo (capacidad) | núcleo (destructivo/crítico) | ambiguo
+   Q1: <pregunta clave de producto: si ambiguo, calibrar alcance tangible; si no, indagar valor central>
    Temas: <3-4 decisiones visibles de producto>
    Riesgo: <1 línea o "ninguno">
    ```

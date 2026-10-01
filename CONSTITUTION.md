@@ -41,12 +41,15 @@ Definir qué **NO** se construirá es tan vital como definir qué sí:
 
 La entrevista no es un interrogatorio policial; es un diálogo consultivo diseñado para minimizar la fatiga cognitiva del usuario:
 
-1. **Calibración por Tiers ($N \in \{5, 10, 15\}$):**
-   - **Tier Rápido ($N \le 5$ preguntas) — Micro-ajustes y scripts:** Indagar únicamente el camino feliz, qué pasa si algo falla de forma evidente y límites (qué NO hacer). Prohibido formular preguntas sobre matrices CRUD completas, skeletons o auditoría en este tier.
-   - **Tier Estándar ($N \le 10$ preguntas) — Pantallas o flujos nuevos:** Incluye lo anterior + el Estado Vacío (*Empty State*: qué ve alguien la primera vez o si no hay resultados) y ciclo de vida básico (*«¿se puede editar o cancelar?»*).
-   - **Tier Profundo ($N \le 15$ preguntas) — Módulos críticos, pagos, auth, permisos:** Profundiza en seguridad, concurrencia, pérdida de red y persistencia.
-2. **La Técnica del Puente Reflectivo:** Antes de disparar una pregunta, validar brevemente el acuerdo anterior en una sola línea para dar continuidad humana.
-3. **Salida Ágil ante Fatiga:** Si el usuario expresa duda, cansancio o responde *"lo que recomiendes"*, el conductor adopta de inmediato la opción recomendada más segura por defecto y avanza sin insistir.
+1. **Calibración por Tiers ($N \in \{5, 10, 15\}$) Anclada en el Contexto del Proyecto:**
+   No se inventan categorías ni se asumen tipos de proyectos específicos. El tamaño se calibra contrastando la idea contra la realidad del repositorio:
+   - **Tier Rápido ($N \le 5$ preguntas) — Ajuste quirúrgico / Extensión sobre rieles existentes:** Modifica o afina código sobre patrones ya consolidados en el proyecto sin alterar el flujo general. Radio de impacto localizado e inocuo (solo lectura, formateo, flags, opciones de config o scripts aislados). Indagar camino feliz, mensaje de error directo y límites (qué NO hacer). Prohibido inventar complejidad o matrices innecesarias.
+   - **Tier Estándar ($N \le 10$ preguntas) — Nueva capacidad dentro del paradigma del repo:** Nueva unidad funcional (comando, endpoint, vista o flujo de varios pasos) que sigue las convenciones existentes. Introduce nuevos estados y entradas. Incluye flujo completo, Estado Vacío (*Empty State*: sin datos o entrada vacía), validación de errores y ciclo de vida (cancelar/reintentar).
+   - **Tier Profundo ($N \le 15$ preguntas) — Núcleo crítico, mutaciones destructivas o nueva arquitectura:** Toca el núcleo compartido, altera contratos globales, introduce persistencia/concurrencia sin precedentes o ejecuta **operaciones destructivas o irreversibles** (borrado masivo, sobreescritura de datos, mutaciones destructivas en disco o Git). Profundiza en invariantes del sistema, recuperación ante fallos a mitad de proceso, consistencia y salvaguardas observables.
+2. **Desambiguación en Q1 ante Ideas Abiertas:** Si la idea es abierta o ambigua en el contexto del proyecto, el agente no inventa variables: formula Q1 para situar la idea dentro del sistema real antes de anunciar el tope $N$.
+3. **Protocolo de Recalibración Dinámica:** Si durante el diálogo se descubren dependencias con el núcleo o riesgos destructivos no previstos (o se recorta alcance en Non-Goals), el agente escala o desescala $N$ con transparencia, empatía y justificación técnica concreta sin reiniciar la sesión.
+4. **La Técnica del Puente Reflectivo:** Antes de disparar una pregunta, validar brevemente el acuerdo anterior en una sola línea para dar continuidad humana.
+5. **Salida Ágil ante Fatiga:** Si el usuario expresa duda, cansancio o responde *"lo que recomiendes"*, el conductor adopta de inmediato la opción recomendada más segura por defecto y avanza sin insistir.
 
 ---
 

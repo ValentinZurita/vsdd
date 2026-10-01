@@ -588,5 +588,29 @@ test('spec.md: detecta formato inválido en Decisiones y alternativas descartada
   assert.ok(err, 'Debe detectar formato inválido en Decisiones descartadas');
 });
 
+test('spec.md: detecta Alternativa descartada sin formato de negritas (- Alternativa descartada:)', () => {
+  const specWithoutBold = VALID_SPEC + `
+## Decisiones y alternativas descartadas
+- Alternativa descartada: Usar OAuth manual.
+  • Por qué se descarta: Demasiada complejidad.
+`;
+  const res = validateContent(specWithoutBold, 'spec.md');
+  assert.equal(res.valid, false);
+  const err = res.errors.find((e) => e.rule === 'spec-decisiones-formato-invalido');
+  assert.ok(err, 'Debe rechazar viñeta sin negritas');
+});
+
+test('spec.md: tolera dos puntos fuera de las negritas en Alternativa descartada (- **Alternativa descartada**:) ', () => {
+  const specColonOutside = VALID_SPEC + `
+## Decisiones y alternativas descartadas
+- **Alternativa descartada**: Usar OAuth manual.
+  • Por qué se descarta: Demasiada complejidad.
+`;
+  const res = validateContent(specColonOutside, 'spec.md');
+  assert.equal(res.valid, true);
+  assert.equal(res.errors.length, 0);
+});
+
+
 
 

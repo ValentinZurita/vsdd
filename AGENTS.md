@@ -34,10 +34,13 @@ Este documento instruye a cualquier agente de inteligencia artificial (Google An
 *   **Una pregunta por turno:** Detente obligatoriamente (`STOP`) tras cada pregunta y espera la respuesta del usuario.
 *   **Técnica del Puente Reflectivo:** Inicia cada turno validando en una línea amable la respuesta anterior antes de plantear la siguiente arista:
     *«Entendido, dejamos la descarga automática fuera de alcance para no inflar la entrega. Teniendo eso claro, pasemos a...»*
-*   **Elicitación Adaptativa por Tiers ($N \in \{5, 10, 15\}$):**
-    *   **Tier Rápido ($N \le 5$ preguntas) — Micro-ajustes y scripts:** Camino feliz, qué pasa si algo falla de forma evidente y límites (qué NO hacer). Cero preguntas sobre auditoría, skeletons o CRUD completo.
-    *   **Tier Estándar ($N \le 10$ preguntas) — Pantallas o flujos nuevos:** Incluye Estado Vacío (*Empty State*) y ciclo de vida básico (editar/cancelar).
-    *   **Tier Profundo ($N \le 15$ preguntas) — Módulos críticos, pagos, auth, permisos:** Invariantes de seguridad, concurrencia, pérdida de red y persistencia.
+*   **Elicitación Adaptativa por Tiers ($N \in \{5, 10, 15\}$) Anclada en el Contexto:**
+    *   **Tier Rápido ($N \le 5$ preguntas) — Ajuste quirúrgico / Rieles existentes:** Se apoya en patrones consolidados del repo. Modifica o extiende sin alterar el flujo general ni crear nuevos puntos de fallo (solo lectura, flags, opciones de config o scripts aislados). Camino feliz, error evidente y límites (qué NO hacer). Cero preguntas sobre matrices CRUD completas, skeletons o auditoría.
+    *   **Tier Estándar ($N \le 10$ preguntas) — Nueva capacidad dentro del paradigma:** Nueva unidad funcional (comando, endpoint, vista o flujo de varios pasos) que sigue las convenciones existentes. Incluye Estado Vacío (*Empty State*: sin datos o entrada vacía), validación de errores y ciclo de vida básico (editar/cancelar/reintentar).
+    *   **Tier Profundo ($N \le 15$ preguntas) — Núcleo crítico, mutaciones destructivas o nueva arquitectura:** Toca el núcleo compartido, altera contratos globales, introduce persistencia/concurrencia sin precedentes o ejecuta operaciones destructivas/irreversibles (borrado masivo, sobreescritura de datos, mutaciones destructivas en disco o Git). Invariantes del sistema, mitigación de fallos a mitad de proceso, consistencia y salvaguardas observables.
+*   **Desambiguación Temprana (Q1 ante Ideas Abiertas):** Si la idea es abierta o ambigua en el contexto del proyecto (*«un filtro»*, *«un exportador»*), el agente no inventa variables: formula Q1 situando la idea en el sistema real antes de fijar el tope $N$.
+*   **Protocolo de Recalibración Dinámica:** Si durante el diálogo se descubren dependencias con el núcleo o riesgos destructivos no previstos (o se recorta alcance en Non-Goals), escala o desescala el tope $N$ con transparencia, empatía y justificación técnica concreta:
+    *«Al identificar que esta operación modifica archivos compartidos de forma irreversible, ajusto nuestra estimación a como máximo 10 preguntas para blindar la recuperación ante fallos.»*
 *   **Salida Ágil ante Fatiga:** Si el usuario responde *"lo que sea más simple"*, *"lo que recomiendes"* o *"no sé"*, adopta de inmediato la opción recomendada más segura por defecto y avanza al siguiente punto.
 *   **Rúbrica Interna de los 5 Lentes:** Consulta mentalmente en silencio antes de formular cada pregunta:
     1. *Dolor real:* ¿Resuelve un problema de hoy y no una hipótesis futura?
@@ -59,7 +62,7 @@ Este documento instruye a cualquier agente de inteligencia artificial (Google An
     ```bash
     npm test
     ```
-    Asegúrate de que los 89 tests pasen en verde tras cualquier cambio en el validador o las referencias.
+    Asegúrate de que los 91 tests pasen en verde tras cualquier cambio en el validador o las referencias.
 *   **Inspección del Hub de Pendientes y Desfase (Drift):**
     ```bash
     node scripts/vsdd-status.js --json
