@@ -87,7 +87,7 @@ Para modelar qué ve el usuario en pantalla o consola según el estado del siste
 ```text
 ESTADO VACÍO (Sin datos):
 ╭──────────────────────────────────────╮
-│ 📭 HISTORIAL DE REPORTES             │
+│ [VACÍO] HISTORIAL DE REPORTES        │
 │                                      │
 │ No se encontraron reportes previos.  │
 │ [▸] Ejecuta: vsdd reportes --nuevo   │
@@ -95,7 +95,7 @@ ESTADO VACÍO (Sin datos):
 
 CAMINO FELIZ (Con datos procesados):
 ╭──────────────────────────────────────╮
-│ 📄 REPORTES GENERADOS                │
+│ [OK] REPORTES GENERADOS              │
 │                                      │
 │ [1] ventas_enero.csv   (1,200 filas) │
 │ [2] balance_q1.csv     (  450 filas) │
@@ -168,9 +168,9 @@ Formato estandarizado de alta jerarquía para revisar y aprobar la especificaci�
 Formato estructurado con criterio arquitectónico para validar decisiones y árbol de cambios antes de pasar a tareas:
 
 ```text
-╭── [RECAP] PLAN TÉCNICO & ARQUITECTURA ─╮
-│ docs/sdd/vsdd/<id>/plan.md            │
-╰────────────────────────────────────────╯
+╭── [RECAP] PLAN TÉCNICO ──────────────╮
+│ docs/sdd/vsdd/<id>/plan.md           │
+╰──────────────────────────────────────╯
 
 🏛️ ALINEACIÓN & PATRÓN DE DISEÑO
 • Estrategia: Cómo encaja en las convenciones del repositorio.
