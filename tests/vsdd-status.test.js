@@ -26,6 +26,8 @@ const {
   abortFeature,
   compareSemver,
   formatUpdateBanner,
+  formatMismatchBanner,
+  detectDualInstallationMismatch,
   checkVersionUpdate,
   performVsddUpdate,
   getLocalVsddVersion,
@@ -1631,5 +1633,104 @@ test('CLI vsdd update soporta bandera --json y emite resultado parseable', () =>
   assert.match(parsed.message, /VSDD actualizado/);
 });
 
+test('CLI soporta --version y -v en texto plano y --json', () => {
+  const cliPath = path.join(__dirname, '..', 'scripts', 'vsdd-status.js');
+  const vLong = execSync(`node "${cliPath}" --version`, { encoding: 'utf8' }).trim();
+  const vShort = execSync(`node "${cliPath}" -v`, { encoding: 'utf8' }).trim();
+  const vJson = execSync(`node "${cliPath}" --version --json`, { encoding: 'utf8' }).trim();
 
+  assert.match(vLong, /^⚡ VSDD v\d+\.\d+(\.\d+)?$/);
+  assert.equal(vLong, vShort);
 
+  const parsed = JSON.parse(vJson);
+  assert.ok(parsed.version);
+  assert.match(parsed.version, /^\d+\.\d+(\.\d+)?$/);
+});
+
+test('formatMismatchBanner genera un banner alineado a 40 columnas visuales con trueno y aviso', () => {
+  const banner = formatMismatchBanner('0.40.0', '0.43.0');
+  assert.match(banner, /\[AVISO\] Copia local antigua/);
+  assert.match(banner, /Local: v0\.40\.0/);
+  assert.match(banner, /Global: v0\.43\.0/);
+  assert.match(banner, /vsdd update/);
+
+  const lines = banner.split('\n');
+  assert.equal(lines.length, 6);
+  lines.forEach((l) => {
+    const visualWidth = l.includes('⚡') ? [...l].length + 1 : [...l].length;
+    assert.equal(visualWidth, 40);
+  });
+});
+
+test('detectDualInstallationMismatch detecta copia local obsoleta respecto a global', () => {
+  const tempProject = fs.mkdtempSync(path.join(os.tmpdir(), 'vsdd-mismatch-proj-'));
+  const tempHome = fs.mkdtempSync(path.join(os.tmpdir(), 'vsdd-mismatch-home-'));
+  try {
+    // 1. Sin instalación local -> mismatch: false
+    const res1 = detectDualInstallationMismatch(tempProject, tempHome);
+    assert.equal(res1.mismatch, false);
+
+    // 2. Con instalación local con versión 0.40.0 y global con 0.43.0
+    const localSkillDir = path.join(tempProject, '.agents', 'skills', 'vsdd');
+    fs.mkdirSync(localSkillDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(localSkillDir, 'SKILL.md'),
+      `---\nname: vsdd\nmetadata:\n  version: '0.40.0'\n---\n`,
+      'utf8'
+    );
+
+    const globalSkillDir = path.join(tempHome, '.gemini', 'config', 'skills', 'vsdd');
+    fs.mkdirSync(globalSkillDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(globalSkillDir, 'SKILL.md'),
+      `---\nname: vsdd\nmetadata:\n  version: '0.43.0'\n---\n`,
+      'utf8'
+    );
+
+    const res2 = detectDualInstallationMismatch(tempProject, tempHome);
+    assert.equal(res2.mismatch, true);
+    assert.equal(res2.localVersion, '0.40.0');
+    assert.equal(res2.globalVersion, '0.43.0');
+    assert.equal(res2.reason, 'local_outdated');
+
+    // 3. Con instalación local actualizada (versión igual o superior) -> mismatch: false
+    fs.writeFileSync(
+      path.join(localSkillDir, 'SKILL.md'),
+      `---\nname: vsdd\nmetadata:\n  version: '0.43.0'\n---\n`,
+      'utf8'
+    );
+    const res3 = detectDualInstallationMismatch(tempProject, tempHome);
+    assert.equal(res3.mismatch, false);
+
+    // 4. En el propio repositorio de desarrollo de vsdd (package.json name: vsdd) -> mismatch: false
+    fs.writeFileSync(
+      path.join(tempProject, 'package.json'),
+      JSON.stringify({ name: 'vsdd', version: '0.43.0' }),
+      'utf8'
+    );
+    fs.writeFileSync(
+      path.join(localSkillDir, 'SKILL.md'),
+      `---\nname: vsdd\nmetadata:\n  version: '0.10.0'\n---\n`,
+      'utf8'
+    );
+    const res4 = detectDualInstallationMismatch(tempProject, tempHome);
+    assert.equal(res4.mismatch, false);
+  } finally {
+    fs.rmSync(tempProject, { recursive: true, force: true });
+    fs.rmSync(tempHome, { recursive: true, force: true });
+  }
+});
+
+test('formatHubMenu incluye formatMismatchBanner cuando mismatchInfo.mismatch es true', () => {
+  const menu = formatHubMenu([], {
+    mismatchInfo: {
+      mismatch: true,
+      localVersion: '0.38.0',
+      globalVersion: '0.43.0',
+    },
+  });
+
+  assert.match(menu, /\[AVISO\] Copia local antigua/);
+  assert.match(menu, /Local: v0\.38\.0/);
+  assert.match(menu, /Global: v0\.43\.0/);
+});

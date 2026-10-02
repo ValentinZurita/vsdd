@@ -1030,8 +1030,11 @@ function formatHubMenu(features, options = {}) {
   const completed = features.filter((f) => f && f.isCompleted && !f.isCancelled);
 
   let banner = '';
+  if (options && options.mismatchInfo && options.mismatchInfo.mismatch) {
+    banner += formatMismatchBanner(options.mismatchInfo.localVersion, options.mismatchInfo.globalVersion) + '\n\n';
+  }
   if (options && options.updateInfo && options.updateInfo.updateAvailable) {
-    banner = formatUpdateBanner(options.updateInfo.currentVersion, options.updateInfo.latestVersion) + '\n\n';
+    banner += formatUpdateBanner(options.updateInfo.currentVersion, options.updateInfo.latestVersion) + '\n\n';
   }
 
   if (pending.length === 0) {
@@ -1420,6 +1423,112 @@ function formatUpdateBanner(currentVersion, latestVersion) {
 }
 
 /**
+ * Formatea el banner de advertencia de desincronización dual en 40 columnas visuales.
+ */
+function formatMismatchBanner(localVersion, globalVersion) {
+  function padBox(line, width = 40) {
+    const padding = Math.max(0, width - 1 - line.length);
+    return line + ' '.repeat(padding) + '│';
+  }
+
+  const prefix = '╭── ⚡ [AVISO] Copia local antigua ';
+  const remaining = 38 - [...prefix].length;
+  const line1 = prefix + '─'.repeat(Math.max(1, remaining)) + '╮';
+  const line2 = padBox('│ Tienes una skill local en el repo');
+  const line3 = padBox(`│ Local: v${localVersion}  ·  Global: v${globalVersion}`);
+  const line4 = padBox('│ Tu agente usará la versión local.');
+  const line5 = padBox('│ Actualiza con: vsdd update');
+  const line6 = '╰──────────────────────────────────────╯';
+  return `${line1}\n${line2}\n${line3}\n${line4}\n${line5}\n${line6}`;
+}
+
+/**
+ * Detecta si existe una instalación local de la skill en el proyecto que está
+ * desactualizada respecto a una instalación global más reciente.
+ * @param {string} cwd Directorio de trabajo del proyecto
+ * @param {string} homeDir Directorio home del usuario
+ * @returns {Object} { mismatch: boolean, localVersion?, globalVersion?, localPath?, globalPath?, reason? }
+ */
+function detectDualInstallationMismatch(cwd = process.cwd(), homeDir = os.homedir()) {
+  const localCandidates = [
+    path.join(cwd, '.agents', 'skills', 'vsdd'),
+    path.join(cwd, '.claude', 'skills', 'vsdd'),
+  ];
+
+  let localSkillDir = null;
+  let localVersion = null;
+
+  for (const cand of localCandidates) {
+    const skillFile = path.join(cand, 'SKILL.md');
+    if (fs.existsSync(skillFile)) {
+      localSkillDir = cand;
+      const content = fs.readFileSync(skillFile, 'utf8');
+      const vMatch = content.match(/version:\s*['"]?([0-9.]+)['"]?/i);
+      if (vMatch && vMatch[1]) {
+        localVersion = vMatch[1];
+      }
+      break;
+    }
+  }
+
+  if (!localSkillDir || !localVersion) {
+    return { mismatch: false };
+  }
+
+  // Si cwd es el propio repositorio de desarrollo de VSDD, no alertar sobre sí mismo
+  try {
+    const pkgPath = path.join(cwd, 'package.json');
+    if (fs.existsSync(pkgPath)) {
+      const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
+      if (pkg.name === 'vsdd') {
+        return { mismatch: false };
+      }
+    }
+  } catch (e) {}
+
+  // Buscar instalación global
+  const globalCandidates = [
+    path.join(homeDir, '.gemini', 'config', 'skills', 'vsdd'),
+    path.join(homeDir, '.claude', 'skills', 'vsdd'),
+    path.join(homeDir, '.agents', 'skills', 'vsdd'),
+  ];
+
+  let globalSkillDir = null;
+  let globalVersion = null;
+
+  for (const cand of globalCandidates) {
+    const skillFile = path.join(cand, 'SKILL.md');
+    if (fs.existsSync(skillFile)) {
+      globalSkillDir = cand;
+      const content = fs.readFileSync(skillFile, 'utf8');
+      const vMatch = content.match(/version:\s*['"]?([0-9.]+)['"]?/i);
+      if (vMatch && vMatch[1]) {
+        globalVersion = vMatch[1];
+        break;
+      }
+    }
+  }
+
+  // Si no hay versión en SKILL.md global, usar getLocalVsddVersion()
+  if (!globalVersion) {
+    globalVersion = getLocalVsddVersion(__dirname);
+  }
+
+  if (globalVersion && compareSemver(localVersion, globalVersion) > 0) {
+    return {
+      mismatch: true,
+      localVersion,
+      globalVersion,
+      localPath: localSkillDir,
+      globalPath: globalSkillDir || 'global',
+      reason: 'local_outdated',
+    };
+  }
+
+  return { mismatch: false };
+}
+
+/**
  * Chequea si hay una nueva versión disponible en GitHub (con caché de 24h y timeout de red).
  */
 async function checkVersionUpdate(currentVersion = getLocalVsddVersion(), options = {}) {
@@ -1584,6 +1693,16 @@ if (require.main === module) {
       return '';
     }
 
+    if (args.includes('--version') || args.includes('-v')) {
+      const version = getLocalVsddVersion(cwd);
+      if (args.includes('--json')) {
+        console.log(JSON.stringify({ version }));
+      } else {
+        console.log(`⚡ VSDD v${version}`);
+      }
+      return;
+    }
+
     if (args.includes('update') || args.includes('--update')) {
       const isJson = args.includes('--json');
       if (!isJson) {
@@ -1741,7 +1860,8 @@ if (require.main === module) {
     try {
       updateInfo = await checkVersionUpdate(getLocalVsddVersion(cwd), { timeoutMs: 1500 });
     } catch (e) {}
-    process.stdout.write(formatHubMenu(features, { updateInfo }));
+    const mismatchInfo = detectDualInstallationMismatch(cwd);
+    process.stdout.write(formatHubMenu(features, { updateInfo, mismatchInfo }));
   }
   })();
 }
@@ -1776,6 +1896,8 @@ module.exports = {
   compareSemver,
   getLocalVsddVersion,
   formatUpdateBanner,
+  formatMismatchBanner,
+  detectDualInstallationMismatch,
   checkVersionUpdate,
   performVsddUpdate,
 };
