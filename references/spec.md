@@ -61,7 +61,7 @@ Paso 4c (pregunta de cierre) → escribir `spec.md` inicial (`Estado: en-revisio
 - **No re-preguntar hechos ya resueltos:** Respetar lo acordado en `idea.md`. Indagar únicamente vacíos que harían que la especificación sea incompleta o no comprobable según el tier correspondiente.
 - **Descubrimiento de Directrices del Proyecto:** Tras seleccionar la idea y antes de la primera pregunta, el conductor lee `idea.md` y revisa si el proyecto cuenta con guías de desarrollo o restricciones documentadas (ej. `CONSTITUTION.md`, `README.md`, `CONTRIBUTING.md`). Si existen, se respetan sus límites funcionales; si no existen, se continúa sin bloquearse. Prohibido pegar textualmente estas guías en el chat.
 - **Trazabilidad Total de `idea.md`:** El 100% de lo acordado en la idea (**Problema**, **Qué vamos a hacer**, **Fuera de alcance** y fundamentalmente el **"Listo cuando"**) debe integrarse en la especificación. Las 1 a 3 condiciones del "Listo cuando" se importan obligatoriamente en `## Criterios de finalización` como base del contrato de aceptación.
-- **Requisitos Funcionales (EARS Defensivo y Example Mapping):** El conductor redacta los criterios bajo la sintaxis EARS a partir de las respuestas del usuario. En comportamiento no deseado es obligatoria la salvaguarda observable (`no debe <daño>; debe <protección visible>`). En RFs con lógica o validación, se complementa con micro-ejemplos concretos (entrada $\to$ salida observable).
+- **Requisitos Funcionales (EARS Defensivo y Example Mapping):** El conductor redacta los criterios bajo la sintaxis EARS a partir de las respuestas del usuario. En comportamiento no deseado es obligatoria la salvaguarda observable (`no debe <daño>; debe <protección visible>`). En RFs con lógica o validación, se complementa con micro-ejemplos concretos (entrada $\to$ salida observable) presentados en chat mediante las tablas TUI de [`references/guia-visual.md`](file:///Users/valentin/Documents/vsdd/references/guia-visual.md).
 - **Transparencia Absoluta de Agentes y Modelos:**
   - Prohibido realizar tareas ocultas o silenciosas.
   - Al despachar cualquier subagente se anuncia visiblemente en el chat su rol y el modelo exacto asignado:
@@ -69,7 +69,7 @@ Paso 4c (pregunta de cierre) → escribir `spec.md` inicial (`Estado: en-revisio
   - Si el entorno no soporta subagentes o la herramienta falla, se notifica de inmediato:
     `▲ [Aviso] No fue posible despachar el subagente; el agente principal asume la tarea localmente.`
 - **Gestión de Dudas Abiertas (`[NECESITA ATENCIÓN]`):** Todo aspecto funcional que quede sin definir o que el usuario prefiera postergar se registra en la sección `## Dudas abiertas` bajo la etiqueta `[NECESITA ATENCIÓN]`. No inventar requisitos ni esconder vacíos.
-- **Diagramas:** Como máximo un diagrama conceptual simple en Mermaid (`flowchart` o `sequenceDiagram`) solo si aclara un flujo acordado. De lo contrario, registrar `Ninguno.`.
+- **Diagramas y Representación Visual:** Para flujos con bifurcaciones, interfaces o casos límite, utilizar los diagramas de flujo y la tríada de estados observables (Empty/Happy/Error) de [`references/guia-visual.md`](file:///Users/valentin/Documents/vsdd/references/guia-visual.md). En el archivo físico `spec.md`, como máximo un diagrama conceptual en Mermaid solo si aclara un flujo acordado; de lo contrario, registrar `Ninguno.`.
 
 ---
 

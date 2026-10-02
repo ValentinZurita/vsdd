@@ -31,7 +31,7 @@ Este documento instruye a cualquier agente de inteligencia artificial (Google An
 
 ## 4. Dinámica de Entrevista y Elicitación Adaptativa
 
-*   **Motor de Entrevista y Formato Visual (`references/entrevista.md`):** Cada pregunta se formatea en el chat con una cabecera limpia en caja (`💬 PREGUNTA [k/N]`), indicador de progreso vivo (`📌 En curso:`), micro-escenario de la vida real, hipótesis recomendada por defecto (*Zero-Friction*) y opciones numeradas (`1 / 2 / 3`) con **Pro**, **Contra** y **Por qué elegirla**. En Intake nunca mostrar contadores `k/N`.
+*   **Motor de Entrevista y Formato Visual (`references/entrevista.md`, `references/guia-visual.md`):** Cada pregunta se formatea siguiendo el estándar de 40 columnas y ritmo visual: cabecera redondeada (`╭── [PREGUNTA [k/N]] ──╮`), indicador vivo `📌 En curso:`, diagramas de flujo verticales (`│`, `▼`), pregunta destacada con líneas de acento, hipótesis sugerida (`[HIPÓTESIS SUGERIDA]`), opciones aireadas con **Pro**, **Contra**, **Por qué elegirla** y tablas TUI redondeadas (`╭─┬─╮`). En Intake nunca mostrar contadores `k/N` ni abusar de cajas donde no apliquen.
 *   **Una pregunta por turno:** Detente obligatoriamente (`STOP`) tras cada pregunta y espera la respuesta del usuario.
 *   **Técnica del Puente Reflectivo:** Inicia cada turno validando en una línea amable la respuesta anterior y actualizando la línea `📌 En curso:` antes de plantear la siguiente arista:
     *«Entendido, dejamos la descarga automática fuera de alcance para no inflar la entrega. Teniendo eso claro, pasemos a...»*

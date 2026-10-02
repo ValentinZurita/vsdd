@@ -15,30 +15,35 @@ El usuario a menudo **no sabe de antemano exactamente qué quiere**, ni por qué
 
 ## 2. Formato Visual Estandarizado en el Chat
 
-Cada pregunta se presenta en el chat con una estructura limpia, aireada y altamente legible:
+Cada pregunta se presenta siguiendo el estándar y catálogo de componentes de [`references/guia-visual.md`](file:///Users/valentin/Documents/vsdd/references/guia-visual.md) (ancho seguro de 40 columnas, bordes redondeados y pregunta destacada con líneas de acento):
 
 ```text
-┌─────────────────────────────────────────────────────────────┐
-│ 💬 PREGUNTA [k/N] · [TEMA EN MAYÚSCULAS]                   │
-│ 📌 En curso: [Micro-resumen de lo acordado hasta ahora]     │
-└─────────────────────────────────────────────────────────────┘
+╭── [PREGUNTA [k/N]] · [TEMA EN MAYÚSCULAS] ──╮
+│ En curso: [Micro-resumen de lo acordado]    │
+╰─────────────────────────────────────────────╯
 
-[Micro-escenario o dilema de la vida real en 1-2 líneas cotidianas]
+[Puente reflectivo amable que valida el turno anterior en 1 línea]
 
-💡 Hipótesis sugerida por defecto:
-[La propuesta más segura y simple, explicada en lenguaje directo]
+[Micro-diagrama de flujo o componentes si hay 2+ pasos (guia-visual.md)]
 
-Opciones de diseño:
-1. [Nombre de opción A] [Recomendada]
-   • Pro: [Beneficio concreto]
-   • Contra: [Costo o limitación]
+────────────────────────────────────────
+¿[PREGUNTA CLAVE CON MÁXIMO PESO VISUAL]?
+────────────────────────────────────────
+
+[HIPÓTESIS SUGERIDA]
+[La propuesta más segura y simple, explicada en 1-2 líneas directas]
+
+Opciones:
+1. [Nombre de opción A] [RECOMENDADA]
+   • Pro: [Beneficio concreto e inmediato]
+   • Contra: [Costo o limitación tangible]
    • Por qué elegirla: [Razón de peso para el proyecto]
 
 2. [Nombre de opción B]
    • Pro: [Beneficio]
    • Contra: [Costo o complejidad añadida]
 
-👉 Escribe 1 (o pulsa Enter para la sugerida), elige otra opción, o cuéntame tu idea en tus propias palabras.
+Acción: Escribe 1 (o pulsa Enter para la sugerida), o indica tu idea.
 ```
 
 *(En Intake no se muestra contador `k/N`; en Spec y Plan se muestra `Pregunta k de como máximo N` como tope honesto).*
