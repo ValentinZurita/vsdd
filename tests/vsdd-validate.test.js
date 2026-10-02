@@ -124,12 +124,12 @@ Idea: \`001-oauth/idea.md\`
 Plan: \`001-oauth/plan.md\`
 
 ## Reglas de ejecución
-- Granularidad de 20 a 30 minutos.
+- Granularidad orientada a Slicing Vertical atómico.
 - TDD estricto.
 
 ## Fase 1: Dominio y Cliente OAuth
 
-- [ ] **TASK-01: Cliente OAuth básico (25 min)**
+- [ ] **TASK-01: Cliente OAuth básico**
   - **Qué:** Implementar función que genera la URL de autorización.
   - **Cubre:** RF-01, DT-01
   - **Archivos:** \`+ src/auth/oauth-client.js\`
@@ -249,15 +249,16 @@ test('plan.md: detecta DT sin alternativa descartada', () => {
   assert.ok(dtError, 'Debe exigir alternativa descartada');
 });
 
-test('tasks.md: detecta tarea sin duración explícita (min)', () => {
-  const badTask = VALID_TASKS.replace(
-    '**TASK-01: Cliente OAuth básico (25 min)**',
-    '**TASK-01: Cliente OAuth básico**'
+test('tasks.md: rechaza tarea con estimación de tiempo ficticia en minutos u horas (task-duracion-ficticia-prohibida)', () => {
+  const taskWithMinutes = VALID_TASKS.replace(
+    '**TASK-01: Cliente OAuth básico**',
+    '**TASK-01: Cliente OAuth básico (25 min)**'
   );
-  const result = validateContent(badTask, 'tasks.md');
+  const result = validateContent(taskWithMinutes, 'tasks.md');
   assert.equal(result.valid, false);
-  const durationError = result.errors.find((e) => e.rule === 'task-duracion-faltante');
-  assert.ok(durationError, 'Debe exigir duración explícita en minutos');
+  const err = result.errors.find((e) => e.rule === 'task-duracion-ficticia-prohibida');
+  assert.ok(err, 'Debe detectar y prohibir duración en minutos');
+  assert.ok(err.message.includes('Slicing Vertical estricto'));
 });
 
 test('Detector de Alias: sugiere asistidamente si se usó un sinónimo para sección obligatoria', () => {
@@ -448,8 +449,8 @@ test('plan.md: detecta DT sin justificación de mejor opción actual (dt-campo-m
 
 test('tasks.md: detecta tarea no automatizable o con verificación manual (task-no-automatizable)', () => {
   const manualTask = VALID_TASKS.replace(
-    '- [ ] **TASK-01: Cliente OAuth básico (25 min)**',
-    '- [ ] **TASK-01: Probar manualmente la API externa (25 min)**'
+    '- [ ] **TASK-01: Cliente OAuth básico**',
+    '- [ ] **TASK-01: Probar manualmente la API externa**'
   );
   const result = validateContent(manualTask, 'tasks.md');
   assert.equal(result.valid, false);
@@ -523,8 +524,8 @@ test('tasks.md: detecta evasión de TDD sin formato de negritas (- Test primero:
   assert.ok(err, 'Debe detectar evasión sin negritas');
 
   const taskSpikeTitle = VALID_TASKS.replace(
-    '- [ ] **TASK-01: Cliente OAuth básico (25 min)**',
-    '- [ ] **TASK-01: Hacer spike de viabilidad técnica (25 min)**'
+    '- [ ] **TASK-01: Cliente OAuth básico**',
+    '- [ ] **TASK-01: Hacer spike de viabilidad técnica**'
   );
   const res2 = validateContent(taskSpikeTitle, 'tasks.md');
   assert.equal(res2.valid, false);
@@ -610,6 +611,33 @@ test('spec.md: tolera dos puntos fuera de las negritas en Alternativa descartada
   assert.equal(res.valid, true);
   assert.equal(res.errors.length, 0);
 });
+
+test('spec.md: detecta si una segunda alternativa descartada carece del formato correcto', () => {
+  const specMultipleAlt = VALID_SPEC + `
+## Decisiones y alternativas descartadas
+- **Alternativa descartada:** Usar OAuth manual.
+  • Por qué se descarta: Demasiada complejidad.
+- Usar librería externa pesada sin justificar.
+`;
+  const res = validateContent(specMultipleAlt, 'spec.md');
+  assert.equal(res.valid, false);
+  const err = res.errors.find((e) => e.rule === 'spec-decisiones-formato-invalido');
+  assert.ok(err, 'Debe detectar error en la segunda alternativa');
+});
+
+test('spec.md: aprueba múltiples alternativas descartadas bien estructuradas', () => {
+  const specMultipleAltValid = VALID_SPEC + `
+## Decisiones y alternativas descartadas
+- **Alternativa descartada:** Usar OAuth manual.
+  • Por qué se descarta: Demasiada complejidad.
+- **Alternativa descartada:** Guardar tokens en localStorage.
+  • Por qué se descarta: Riesgo de seguridad XSS.
+`;
+  const res = validateContent(specMultipleAltValid, 'spec.md');
+  assert.equal(res.valid, true);
+  assert.equal(res.errors.length, 0);
+});
+
 
 
 

@@ -55,11 +55,12 @@ Valida de forma exhaustiva que la funcionalidad implementada cumple al 100% con 
    - Checkpoint en chat: `✔ [VERIFY AUDIT] Requisitos verificados` o `▲ [VERIFY AUDIT] k discrepancias detectadas`.
 
 ```text
-Rol: auditor independiente de verificación. Solo lectura. No propongas parches ni reescribas código.
-1) Cada RF-xx: archivo impl + test + PASS/FAIL (una línea)
-2) Cada RNF-xx: evidencia observable + PASS/FAIL (una línea)
-3) Criterios "Listo cuando" de idea.md / spec.md: cumplido o pendiente
-4) Diff fuera del árbol de plan.md, o sobre-ingeniería innecesaria vs idea.md
+Rol: auditor independiente de verificación (Oráculo Independiente). Solo lectura. No propongas parches ni reescribas código.
+1) Cada RF-xx: archivo impl + test + PASS/FAIL (una línea). Validar que el test automatizado compruebe exactamente el contrato observable (Entrada -> Salida) del Example Mapping en spec.md, y NO detalles privados de implementación.
+2) Calidad de pruebas: Identificar y rechazar test smells (tests tautológicos/espejo, mocks de mocks o aserciones superficiales tipo toBeDefined).
+3) Cada RNF-xx: evidencia observable + PASS/FAIL (una línea).
+4) Criterios "Listo cuando" de idea.md / spec.md: cumplido o pendiente.
+5) Diff fuera del árbol de plan.md, o sobre-ingeniería innecesaria vs idea.md.
 Veredicto: limpio | ok-con-huecos | bloquea
 ≤40 líneas. Prohibido volcar stdout o diffs crudos.
 ```
@@ -175,8 +176,8 @@ Superficie: <CLI Interactivo | Web | API | Headless>
 - **Paso 2 (Acción):** `<input, clics o parámetros exactos>`
 - **Paso 3 (Resultado esperado observable):** `<qué se debe observar en pantalla>`
 
-## 4. Notas de entrega
-- <Máximo 2 viñetas con observaciones técnicas relevantes. Si no: Ninguna.>
+## 4. Aprendizajes del repositorio
+- <1 a 2 viñetas breves únicamente si se descubrió un gotcha técnico o convención no obvia del proyecto. Si no: Ninguno.>
 ```
 
        2. Actualizar la cabecera de `tasks.md` y `spec.md` en disco a `Estado: completado`. Con esto la funcionalidad queda formalmente terminada y archivada.

@@ -584,17 +584,29 @@ function validateSpec(parsed, errors, warnings) {
     );
     if (!isVacio && contentLines.length > 0) {
       const bullets = contentLines.filter((l) => /^\s*[-*]\s+/.test(l.trimmed));
-      const hasAlternativa = bullets.some((b) =>
-        /^\s*[-*]\s+\*\*alternativa\s+descartada:?\*\*:?/i.test(b.trimmed)
-      );
-      if (!hasAlternativa) {
+      if (bullets.length === 0) {
         errors.push({
           line: adrSection.lineNumber,
           rule: 'spec-decisiones-formato-invalido',
-          message: "En '## Decisiones y alternativas descartadas', cada decisión debe estructurarse con '- **Alternativa descartada:** <enfoque>' y '• Por qué se descarta: <justificación>'.",
-          expected: '- **Alternativa descartada:** ...',
+          message: "En '## Decisiones y alternativas descartadas', debe registrarse 'Ninguna.' o una lista de alternativas descartadas estructuradas.",
+          expected: '- **Alternativa descartada:** <enfoque>',
           found: contentLines[0].trimmed,
         });
+      } else {
+        const minIndent = Math.min(...bullets.map((b) => b.text.match(/^(\s*)/)[1].length));
+        const topLevelBullets = bullets.filter((b) => b.text.match(/^(\s*)/)[1].length <= minIndent + 1);
+
+        for (const bullet of topLevelBullets) {
+          if (!/^\s*[-*]\s+\*\*alternativa\s+descartada:?\*\*:?/i.test(bullet.trimmed)) {
+            errors.push({
+              line: bullet.lineNumber,
+              rule: 'spec-decisiones-formato-invalido',
+              message: "En '## Decisiones y alternativas descartadas', cada alternativa debe comenzar con '- **Alternativa descartada:** <enfoque>' y contener '• Por qué se descarta: <justificación>'.",
+              expected: '- **Alternativa descartada:** <enfoque>',
+              found: bullet.trimmed,
+            });
+          }
+        }
       }
     }
   }
@@ -929,21 +941,21 @@ function validateTasks(parsed, errors, warnings) {
     errors.push({
       line: 1,
       rule: 'tasks-sin-tareas',
-      message: "tasks.md debe contener al menos una tarea con formato '- [ ] **TASK-01: <título> (<tiempo> min)**'.",
-      expected: '- [ ] **TASK-01: ... (20-30 min)**',
+      message: "tasks.md debe contener al menos una tarea con formato '- [ ] **TASK-01: <título>**'.",
+      expected: '- [ ] **TASK-01: Título de la tarea**',
       found: 'Sin tareas detectadas',
     });
   }
 
   for (const tl of taskLines) {
-    // Validar duración (ej: 20-30 min)
-    const hasDuration = /\(\s*\d+(?:-\d+)?\s*min\s*\)/i.test(tl.trimmed);
-    if (!hasDuration) {
+    // Validar rechazo de duración ficticia en minutos u horas (Slicing Vertical estricto)
+    const durationMatch = tl.trimmed.match(/\(\s*\d+\s*(?:-\s*\d+)?\s*(?:min(?:utos)?|horas?)\s*\)/i);
+    if (durationMatch) {
       errors.push({
         line: tl.lineNumber,
-        rule: 'task-duracion-faltante',
-        message: `La tarea en línea ${tl.lineNumber} no especifica la duración recomendada (ej: '(20-30 min)').`,
-        expected: '- [ ] **TASK-xx: Título (20-30 min)**',
+        rule: 'task-duracion-ficticia-prohibida',
+        message: `La tarea en línea ${tl.lineNumber} contiene una estimación de tiempo ficticia '${durationMatch[0]}'. VSDD exige Slicing Vertical estricto basado en comportamiento atómico comprobable, no en minutos o cronómetros de reloj.`,
+        expected: '- [ ] **TASK-xx: <título descriptivo de la rebanada vertical>**',
         found: tl.trimmed,
       });
     }

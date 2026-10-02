@@ -15,7 +15,7 @@ Plan: `<nnn>-<slug>/plan.md`
 
 ## Reglas de ejecución
 
-- **Granularidad:** tareas pequeñas de 20 a 30 minutos máximo. Si una tarea excede este tiempo, se subdivide.
+- **Granularidad:** tareas pequeñas orientadas a Slicing Vertical (comportamiento atómico comprobable). Si una tarea abarca más de una unidad de valor observable, se subdivide.
 - **TDD estricto:** cada tarea define y ejecuta primero la prueba automatizada que debe fallar antes de tocar código de producción.
 - **Código puro y automatizable:** cada tarea debe ser 100% ejecutable mediante código y pruebas automatizadas (TDD). Prohibido incluir tareas manuales, spikes de investigación exploratoria o configuraciones manuales de entorno. Todo prerrequisito debe haberse resuelto previamente en `plan.md`.
 - **Commits atómicos:** commit obligatorio al terminar cada tarea y cada fase, bajo el estándar Conventional Commits (`<tipo>(<alcance>): <descripción>`), sin trailers de IA ni Co-Authored-By.
@@ -23,7 +23,7 @@ Plan: `<nnn>-<slug>/plan.md`
 
 ## Fase 1: <Nombre de la fase (ej: Dominio, Contratos y Datos)>
 
-- [ ] **TASK-01: <título corto (20-30 min)>**
+- [ ] **TASK-01: <título descriptivo y conciso>**
   - **Qué:** <comportamiento observable derivado del plan>
   - **Cubre:** RF-xx, RNF-xx, DT-xx
   - **Archivos:** <rutas completas del árbol del plan con prefijos `+`, `~`, `-`>
@@ -38,7 +38,7 @@ Plan: `<nnn>-<slug>/plan.md`
 
 ## Fase 2: <Nombre de la fase (ej: Aplicación e Integración / Servicios)>
 
-- [ ] **TASK-02: <título corto (20-30 min)>**
+- [ ] **TASK-02: <título descriptivo y conciso>**
   - **Qué:** <comportamiento observable derivado del plan>
   - **Cubre:** RF-xx, RNF-xx, DT-xx
   - **Archivos:** <rutas completas del árbol del plan con prefijos `+`, `~`, `-`>

@@ -4,7 +4,7 @@ Aterrizar la idea. No especificar, no planificar, no implementar, no crear ramas
 
 ## Reglas de Comunicación y Rol
 
-- **Rol y Tono:** Actuar como un **Product Lead / Desarrollador Senior empático y cercano**. Idioma: **español neutro, ameno y directo, con tratamiento de tú** (sin formalismos de usted, sin voseo, sin rodeos innecesarios). Habla como un compañero de equipo de alto nivel: breve, claro y al grano. Entiende que el usuario no necesariamente tiene claras todas las variables iniciales; guíalo con mente abierta, filtrando complejidades prematuras y preguntando **únicamente lo necesario** para definir el valor del producto.
+- **Rol y Tono:** Hereda el **Contrato Universal de Rol y Tono de SKILL.md** (Product Lead / Senior Developer empático y cercano, español neutro, trato cercano de tú, sin formalismos de usted, sin voseo ni rodeos innecesarios, y Regla de Oro de Ejemplos Didácticos). Habla como un compañero de equipo de alto nivel: breve, claro y al grano. Entiende que el usuario no necesariamente tiene claras todas las variables iniciales; guíalo con mente abierta, filtrando complejidades prematuras y preguntando **únicamente lo necesario** para definir el valor del producto.
 - **Una pregunta por turno:** Detenerse obligatoriamente tras cada pregunta (`STOP y esperar`). Preguntas breves, directas y claras.
 - **Formato visual de opciones (Baja fatiga cognitiva):**
   Las preguntas de opción se presentan en el chat con opciones numeradas (`1 / 2 / 3`), espaciado amplio y estructura en viñetas:
@@ -70,7 +70,7 @@ Búsquedas masivas de código en el repositorio (`Grep`/`Glob` recursivos) o lec
    ```
 3. **Inyección Quirúrgica Just-in-Time (JIT):**
    - Si `MATCHED_IDS` es `NONE`: continuar sin leer ningún archivo adicional (cero sobrecosto de tokens).
-   - Si `MATCHED_IDS` contiene IDs válidos: leer únicamente el archivo `docs/sdd/vsdd/<id>/resumen.md` de las features seleccionadas (máximo 2 resúmenes, ≤35 líneas c/u) para que el conductor conozca los contratos y puntos de integración consolidados.
+   - Si `MATCHED_IDS` contiene IDs válidos: leer únicamente el archivo `docs/sdd/vsdd/<id>/resumen.md` de las features seleccionadas (máximo 2 resúmenes, ≤35 líneas c/u) para que el conductor conozca los contratos, puntos de integración consolidados y los aprendizajes o gotchas previos registrados en la sección 'Aprendizajes del repositorio'.
 4. **Persistencia del memo:** Al recibir la respuesta, persistir inmediatamente con `saveIntakeDraft` antes de formular Q1 en el chat. Si el reporte viene vacío o falla, continuar directamente a partir del texto de la idea del usuario. Nunca pegar el reporte interno en el chat.
 
 **Ola 2 (Benchmarking Quirúrgico y Puntos Ciegos):**
@@ -90,7 +90,7 @@ Búsquedas masivas de código en el repositorio (`Grep`/`Glob` recursivos) o lec
   ```
 - **Integración en el diálogo (Q2 o Q3):**
   El conductor formula la siguiente pregunta de opciones (**Pro**, **Contra**, **Recomendada**) presentando el hallazgo:
-  *«Mirando cómo lo resuelven proyectos de referencia como [Referente], encontramos que suelen contemplar [Punto Ciego]. ¿Te interesa incluirlo en el alcance de este corte o preferís dejarlo expresamente fuera de alcance para no inflar el MVP?»*
+  *«Mirando cómo lo resuelven proyectos de referencia como [Referente], encontramos que suelen contemplar [Punto Ciego]. ¿Te interesa incluirlo en el alcance de este corte o prefieres dejarlo expresamente fuera de alcance para no inflar el MVP?»*
   La elección del usuario alimenta directamente las viñetas de `## En alcance / Fuera de alcance` en `idea.md`.
 
 ## Ciclo de Conversación (Loop)

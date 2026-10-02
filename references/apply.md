@@ -64,7 +64,7 @@ Para evitar acoplar la skill a nombres efímeros de modelos de proveedores, se c
 Listo para implementar tareas de tasks.md.
 ¿Cómo prefieres ejecutar?
 1. Por Fases [Recomendada] (ejecuta una fase completa con micro-commits, auditoría al final y frena).
-2. Tarea por Tarea (ejecuta 1 sola micro-tarea de 20-30 min, comitea y pregunta antes de seguir).
+2. Tarea por Tarea (ejecuta 1 sola tarea de slicing vertical, comitea y pregunta antes de seguir).
 3. Modo Continuo (avanza fase tras fase con auditorías automáticas hasta completar tasks.md).
 ```
 
@@ -76,12 +76,17 @@ Listo para implementar tareas de tasks.md.
 3. **Ejecución de Tarea (Subagente Implementador):**
    - Anunciar en chat: `● [Subagente: Implementador] Ejecutando TASK-xx (<título>) con modelo: <modelo>...`
    - Invocar subagente implementador con los paths a `idea.md`, `spec.md`, `plan.md`, `tasks.md`, directrices del proyecto y el identificador `TASK-xx`.
-   - El subagente redacta la prueba que falla, implementa en archivos autorizados en el árbol del plan, verifica pruebas en verde, realiza el commit atómico y marca `- [x]` en `tasks.md`.
+   - **Directrices Innegociables de Calidad y TDD:**
+     * *Slicing Vertical:* Escribir primero el test que falla (Red) derivado del Example Mapping de `spec.md`, luego el código mínimo que lo hace pasar (Green), y refactorizar.
+     * *Anti-Test-Smells:* Prohibido generar tests tautológicos/espejo, sobre-mockeo (mocks de mocks) o aserciones superficiales (ej. `toBeDefined`). Toda aserción debe validar el comportamiento observable del contrato.
+     * *Árbol Cerrado:* Modificar únicamente los archivos autorizados en el árbol de `plan.md`.
+   - El subagente verifica pruebas en verde, realiza el commit atómico y marca `- [x]` en `tasks.md`.
    - Checkpoint en chat: `✔ [TASK-xx OK] <título> · Commit: <hash>`.
 
 4. **Cierre de Fase (Subagente Auditor y Reparador):**
    - Anunciar en chat: `● [Subagente: Auditoría de Fase N] Verificando diff de la fase con modelo: <modelo>...`
    - Invocar subagente auditor independiente (solo lectura, nivel Crítico) sobre el diff de la fase. No pegar el reporte en el chat.
+   - **Evaluación del Auditor de Fase:** Confirma que el diff esté confinado al árbol del plan, que no haya sobre-ingeniería y rechaza activamente *test smells* (tests que validen perogrulladas, que espíen métodos internos en lugar de la API pública o que tengan mocks innecesarios).
    - Si el veredicto es `limpio`:
      - Anunciar en chat: `● [Subagente: Cierre de Fase N] Ejecutando pruebas (<comando>) con modelo: <modelo>...`
      - El subagente ejecuta el comando de pruebas y calidad del proyecto, realiza el commit de fase y marca el bloque de control en `tasks.md`.

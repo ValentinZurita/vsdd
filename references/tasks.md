@@ -3,7 +3,7 @@
 Convierte un plan técnico aprobado (`plan.md`) en un desglose estructurado de tareas (`tasks.md`) de forma **100% autónoma, sin preguntas de entrevista al usuario**. **Esta fase no modifica código de producto ni tests.** Prohibido inventar tareas que no hayan sido establecidas en el plan.
 
 **Contrato de Tareas:**
-Leer plan aprobado → estructurar tareas autónomamente en fases lógicas con TDD estricto y micro-tareas (20-30 min) → redactar `tasks.md` inicial (`Estado: en-revision`) → despachar **Auditor Independiente de QA** (anunciando subagente y modelo) → el conductor aplica correcciones técnicas exclusivamente en `tasks.md` en disco (nunca código de producto) → persistir estado en memoria → presentar versión ejecutiva estructurada en el chat de la terminal → mostrar menú interactivo para pasar a implementación o ajustar.
+Leer plan aprobado → estructurar tareas autónomamente en fases lógicas bajo Slicing Vertical con TDD estricto → redactar `tasks.md` inicial (`Estado: en-revision`) → despachar **Auditor Independiente de QA** (anunciando subagente y modelo) → el conductor aplica correcciones técnicas exclusivamente en `tasks.md` en disco (nunca código de producto) → persistir estado en memoria → presentar versión ejecutiva estructurada en el chat de la terminal → mostrar menú interactivo para pasar a implementación o ajustar.
 
 ---
 
@@ -11,8 +11,8 @@ Leer plan aprobado → estructurar tareas autónomamente en fases lógicas con T
 
 - **Sin entrevista al usuario:** El problema, la especificación y el plan arquitectónico ya están formalmente acordados. La descomposición en micro-tareas es una responsabilidad técnica del agente. No abrir cupos de preguntas ni consultar cómo dividir el trabajo.
 - **Estructura por Fases Lógicas:** Las tareas se agrupan en fases secuenciales (`## Fase 1: ...`, `## Fase 2: ...`) respetando el grafo de dependencias de `plan.md` (módulos base, contratos y datos antes de servicios, lógica de negocio e interfaces).
-- **Granularidad Estricta (20 a 30 minutos):** Cada tarea debe ser una micro-tarea acotada a **20 a 30 minutos máximo**. Si una tarea excede ese tiempo, debe subdividirse en unidades más pequeñas. Formato: `- [ ] **TASK-xx: <título> (20-30 min)**`.
-- **TDD Estricto (Test Primero):** Cada tarea debe incluir obligatoriamente su especificación de `Test primero (TDD)` indicando la prueba automatizada que debe fallar antes de tocar código de producción.
+- **Slicing Vertical Estricto (Unidad Mínima Comprobable):** Cada tarea representa una rebanada vertical completa: su test automatizado que falla (Red) derivado del Example Mapping de `spec.md`, el código mínimo que lo hace pasar (Green) y refactorización. Al finalizar la tarea, el sistema compila y el test pasa en verde de forma aislada. Queda terminantemente prohibido el *Slicing Horizontal* (tareas desconectadas de "solo tipos", "solo interfaces" o "solo scaffolding"). La granularidad no se mide por cronómetros ficticios de minutos, sino por constituir la unidad atómica más pequeña de comportamiento observable verificable. Formato: `- [ ] **TASK-xx: <título de la rebanada vertical>**`.
+- **TDD Estricto (Test Primero):** Cada tarea debe incluir obligatoriamente su especificación de `Test primero (TDD)` indicando la prueba automatizada que debe fallar antes de tocar código de producción. Cero tests tautológicos o aserciones superficiales.
 - **Frontera de Código Puro (Sin tareas manuales ni spikes):** `tasks.md` está reservado exclusivamente para código de producción y pruebas automatizadas bajo TDD. Queda estrictamente prohibido incluir tareas de "probar manualmente", "configurar credenciales", "hacer spike" o "investigar alternativas". Si existían dudas previas o pruebas exploratorias, debieron quedar resueltas en `plan.md`; si existe verificación manual final, pertenece al Golden Path de `verify.md`.
 - **Commits Atómicos y Sin Trailers de IA:**
   - Casilla de marcado para commit atómico por tarea (`- [ ] **Commit de tarea:**`).
@@ -37,32 +37,32 @@ Leer plan aprobado → estructurar tareas autónomamente en fases lógicas con T
 2. **Lectura de Contexto:** Leer las directrices del proyecto si existen (ej. `README.md`, `CONTRIBUTING.md`), `idea.md`, `spec.md` y `plan.md`. No imprimir volcados de texto en el chat.
 3. **Generación Autónoma:** Con base en el árbol de archivos determinista y las decisiones técnicas de `plan.md`, redactar las tareas siguiendo estrictamente `tasks-template.md`:
    - Agrupar en Fases secuenciales lógicas.
-   - Definir micro-tareas (20-30 min) con requisitos observables.
+   - Definir micro-tareas bajo **Slicing Vertical** atómico con requisitos observables.
    - Especificar el test que falla primero para cada una.
    - Asignar casillas de commit de tarea y bloques de control de fase con el comando de calidad del proyecto.
 4. **Escritura Inicial y Compuerta de Formato:** Guardar `docs/sdd/vsdd/<nnn>-<slug>/tasks.md` en disco (`Estado: en-revision`).
-   - **Compuerta Determinista de Formato (Obligatoria):** Ejecutar inmediatamente `node scripts/vsdd-validate.js docs/sdd/vsdd/<nnn>-<slug>/tasks.md`. Si el validador emite algún error (duración ausente `(20-30 min)`, campos TDD faltantes o controles de fase omitidos), el conductor debe corregirlos en disco de inmediato. Queda estrictamente prohibido despachar la auditoría de QA sobre un archivo que no pase `vsdd-validate` con código 0.
+   - **Compuerta Determinista de Formato (Obligatoria):** Ejecutar inmediatamente `node scripts/vsdd-validate.js docs/sdd/vsdd/<nnn>-<slug>/tasks.md`. Si el validador emite algún error (campos TDD faltantes o controles de fase omitidos), el conductor debe corregirlos en disco de inmediato. Queda estrictamente prohibido despachar la auditoría de QA sobre un archivo que no pase `vsdd-validate` con código 0.
 5. **Auditoría Independiente de QA (Subagente Obligatorio):**
    Despachar un subagente auditor independiente (modelo analítico de alto razonamiento, ej: `pro` o `sonnet`):
-   Anunciar en chat: `● [Subagente: Auditoría QA de Tareas] Verificando dependencias, TDD y granularidad con modelo: <modelo>...`
+   Anunciar en chat: `● [Subagente: Auditoría QA de Tareas] Verificando dependencias, TDD y slicing vertical con modelo: <modelo>...`
    Si el subagente falla tras un reintento, avisar en consola y realizar la revisión de forma local.
    El auditor evalúa:
    1) Requisitos o DTs del plan sin tarea asignada.
    2) Tareas con archivos que no pertenecen al árbol del plan.
    3) Orden de tareas que vulnere el grafo de dependencias técnicas.
    4) Alineación con la entrega de valor de `idea.md`.
-   5) Tareas cuyo alcance estimado supere los 30 minutos (exigir subdivisión), tareas sin especificación TDD o fases sin bloque de control.
+   5) Slicing Vertical vs Horizontal: rechazar tareas de "solo tipos", "solo interfaces" o scaffolding que no entreguen comportamiento comprobable de punta a punta, tareas sin especificación TDD o fases sin bloque de control.
    6) Detección de tareas manuales: rechazar de inmediato cualquier tarea que exija pruebas manuales, spikes de investigación o configuraciones de entorno fuera del código automatizable.
 6. **Correcciones Autónomas en `tasks.md`:** El conductor lee el reporte del auditor (sin pegarlo crudo en el chat) y corrige directamente `tasks.md` en disco (subdivide tareas extensas, ajusta dependencias y completa mapeos). Prohibido editar código del producto.
    - Actualizar cabecera a `Estado: listo-para-aplicar`.
    - Actualizar `context.json` en la carpeta de la funcionalidad (`saveFeatureContext`) registrando el estado `listo-para-aplicar` y el timestamp actual.
    - Si Engram está disponible, persistir estado con `mem_save topic_key: vsdd-tasks-<slug>`.
    - Si el proyecto usa Git, preguntar cordialmente al usuario si desea registrar un commit convencional de documentación o prefiere continuar sin commitear:
-     *«¿Deseas que prepare un commit de git (`docs(sdd): aprobar tareas para <slug>`) o preferís continuar sin commitear?»*
+     *«¿Deseas que prepare un commit de git (`docs(sdd): aprobar tareas para <slug>`) o prefieres continuar sin commitear?»*
 7. **Presentación Ejecutiva en Terminal y Menú de Transición:**
    Mostrar en el chat una vista ejecutiva estructurada con:
    - Resumen de Fases planificadas.
-   - Conteo total de micro-tareas y estimación total de tiempo (ej. `8 micro-tareas · ~3.5 horas estimadas`).
+   - Conteo total de tareas de slicing vertical y cobertura de requisitos (ej. `8 tareas de slicing vertical · 100% RF/RNF cubiertos`).
    - Ajustes automáticos aplicados tras la auditoría QA.
    - Formular directamente la pregunta de transición:
 

@@ -51,7 +51,21 @@ Este documento instruye a cualquier agente de inteligencia artificial (Google An
 
 ---
 
-## 5. Compuertas de Calidad y Comandos Operativos
+## 5. Diseño para Testabilidad (DFT), Slicing Vertical y Oráculo Independiente
+
+*   **Slicing Vertical Estricto:** Prohibido definir tareas por minutos ficticios de reloj (20-30 min). Cada tarea en `tasks.md` debe ser una rebanada vertical atómica de comportamiento de extremo a extremo que compila y se prueba de forma autónoma con TDD.
+*   **Diseño para Testabilidad (DFT) en Plan:**
+    *   *Núcleo Puro vs Efectos Secundarios:* La lógica de negocio no toca disco, red ni base de datos directamente.
+    *   *Inyección de Dependencias:* Prohibido instanciar dependencias duras dentro de clases o funciones (`new Inside`). Se reciben como parámetros.
+    *   *Costuras Observables:* Interfaces públicas diseñadas para verificar salidas observables sin espiar variables privadas ni sobre-mockear.
+*   **Oráculo Independiente (Cero Test Basura) en Apply y Verify:**
+    *   Los tests no se inventan según lo que el implementador acaba de escribir: se deducen estrictamente de los Requisitos Funcionales EARS y del Example Mapping (Entrada $\to$ Salida) de `spec.md`.
+    *   Prohibidos los tests tautológicos (espejo del código), mocks circulares y aserciones superficiales (`expect(res).toBeDefined()`).
+*   **Memoria Interna y Aprendizajes del Repositorio:** En `resumen.md`, mantener una sola sección concisa (`## 4. Aprendizajes del repositorio`) con 1-2 viñetas si hubo gotchas reales o `Ninguno.`. En features futuras, la Ola 1 (`MATCHED_IDS`) consulta estos aprendizajes para no tropezar con la misma piedra.
+
+---
+
+## 6. Compuertas de Calidad y Comandos Operativos
 
 *   **Linter Determinista Obligatorio:** Inmediatamente tras escribir o editar cualquier artefacto Markdown de negocio (`idea.md`, `spec.md`, `plan.md`, `tasks.md`), ejecuta:
     ```bash
