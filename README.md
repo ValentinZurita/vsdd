@@ -1,17 +1,15 @@
 <div align="center">
 
+<img src="https://media.tenor.com/hsZZX4Z7PLQAAAAd/boy-kid.gif" alt="VSDD Thumbs Up" width="340" />
+
 # VSDD
 **Valentin Spec-Driven Development para tus agentes de IA.**  
-*Para que tus agentes dejen de inventar código que nadie les pidió.*
+*El Spec-Driven Development que nadie pidió.*
 
 [![Version](https://img.shields.io/badge/version-0.43.0-blue.svg)](https://github.com/ValentinZurita/vsdd)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Platforms](https://img.shields.io/badge/plataformas-macOS%20%7C%20Linux%20%7C%20Windows-lightgrey.svg)]()
 [![Compatible Agents](https://img.shields.io/badge/agentes-Cursor%20%7C%20Claude%20Code%20%7C%20Codex%20%7C%20Antigravity-purple.svg)]()
-
-<br>
-
-<img src="https://media.tenor.com/hsZZX4Z7PLQAAAAd/boy-kid.gif" alt="VSDD Thumbs Up" width="360" />
 
 </div>
 
