@@ -76,9 +76,13 @@ Listo para implementar tareas de tasks.md.
 3. **Ejecución de Tarea (Subagente Implementador):**
    - Anunciar en chat: `● [Subagente: Implementador] Ejecutando TASK-xx (<título>) con modelo: <modelo>...`
    - Invocar subagente implementador con los paths a `idea.md`, `spec.md`, `plan.md`, `tasks.md`, directrices del proyecto y el identificador `TASK-xx`.
-   - **Directrices Innegociables de Calidad y TDD:**
-     * *Slicing Vertical:* Escribir primero el test que falla (Red) derivado del Example Mapping de `spec.md`, luego el código mínimo que lo hace pasar (Green), y refactorizar.
-     * *Anti-Test-Smells:* Prohibido generar tests tautológicos/espejo, sobre-mockeo (mocks de mocks) o aserciones superficiales (ej. `toBeDefined`). Toda aserción debe validar el comportamiento observable del contrato.
+   - **Directrices Innegociables de Calidad y Creación de Tests (TDD):**
+     * *El Norte del Test (Comportamiento Observable):* El test interactúa exclusivamente con la interfaz pública del módulo y valida que con los datos de entrada del Example Mapping de `spec.md`, se produzca exactamente la salida observable esperada. Escribir primero el test que falla (Red) y luego el código mínimo que lo hace pasar (Green).
+     * *Las 4 Fronteras Negativas (Qué NO HACER jamás):*
+       1. **Prohibido el test espejo:** No recalcular la lógica o fórmula dentro del test; usar los valores concretos esperados de la spec.
+       2. **Prohibido espiar las entrañas (Cero White-Box):** No probar funciones privadas ni verificar llamadas a helpers auxiliares internos; evaluar únicamente entradas y salidas públicas.
+       3. **Prohibido mockear la memoria (Mocks solo para frontera I/O):** No sustituir modelos, utilidades ni lógica pura en memoria por mocks; los test doubles se reservan exclusivamente para frontera I/O (red externa, disco, base de datos o reloj).
+       4. **Prohibido el test cosmético:** Cero aserciones que solo pregunten si una variable existe (`toBeDefined`, `not.toBeNull`); toda aserción debe comprobar un valor de negocio o estado observable.
      * *Árbol Cerrado:* Modificar únicamente los archivos autorizados en el árbol de `plan.md`.
    - El subagente verifica pruebas en verde, realiza el commit atómico y marca `- [x]` en `tasks.md`.
    - Checkpoint en chat: `✔ [TASK-xx OK] <título> · Commit: <hash>`.
@@ -86,7 +90,7 @@ Listo para implementar tareas de tasks.md.
 4. **Cierre de Fase (Subagente Auditor y Reparador):**
    - Anunciar en chat: `● [Subagente: Auditoría de Fase N] Verificando diff de la fase con modelo: <modelo>...`
    - Invocar subagente auditor independiente (solo lectura, nivel Crítico) sobre el diff de la fase. No pegar el reporte en el chat.
-   - **Evaluación del Auditor de Fase:** Confirma que el diff esté confinado al árbol del plan, que no haya sobre-ingeniería y rechaza activamente *test smells* (tests que validen perogrulladas, que espíen métodos internos en lugar de la API pública o que tengan mocks innecesarios).
+   - **Evaluación del Auditor de Fase:** Confirma que el diff esté confinado al árbol del plan, que no haya sobre-ingeniería y rechaza activamente cualquier violación a las 4 fronteras negativas (tests espejo, espionaje de métodos internos, mocks en memoria o aserciones cosméticas).
    - Si el veredicto es `limpio`:
      - Anunciar en chat: `● [Subagente: Cierre de Fase N] Ejecutando pruebas (<comando>) con modelo: <modelo>...`
      - El subagente ejecuta el comando de pruebas y calidad del proyecto, realiza el commit de fase y marca el bloque de control en `tasks.md`.
