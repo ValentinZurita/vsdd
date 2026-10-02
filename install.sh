@@ -9,7 +9,7 @@ set -o pipefail
 # ------------------------------------------------------------------------------
 # Configuración y Constantes
 # ------------------------------------------------------------------------------
-VSDD_VERSION="0.42"
+VSDD_VERSION="0.43"
 REPO_RAW_URL="https://raw.githubusercontent.com/ValentinZurita/vsdd/main"
 REPO_API_TAR="https://api.github.com/repos/ValentinZurita/vsdd/tarball/main"
 
