@@ -9,6 +9,10 @@
 [![Platforms](https://img.shields.io/badge/plataformas-macOS%20%7C%20Linux%20%7C%20Windows-lightgrey.svg)]()
 [![Compatible Agents](https://img.shields.io/badge/agentes-Cursor%20%7C%20Claude%20Code%20%7C%20Codex%20%7C%20Antigravity-purple.svg)]()
 
+<br>
+
+<img src="https://media.tenor.com/hsZZX4Z7PLQAAAAd/boy-kid.gif" alt="VSDD Thumbs Up" width="360" />
+
 </div>
 
 ---
