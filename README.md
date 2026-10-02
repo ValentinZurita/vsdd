@@ -1,8 +1,8 @@
 <div align="center">
 
 # VSDD
-**Spec-Driven Development interactivo para tus agentes de IA.**  
-*Tú dictas los requisitos; la IA nunca asume ni inventa por su cuenta.*
+**Valentin Spec-Driven Development para tus agentes de IA.**  
+*Para que tus agentes dejen de inventar código que nadie les pidió.*
 
 [![Version](https://img.shields.io/badge/version-0.43.0-blue.svg)](https://github.com/ValentinZurita/vsdd)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
@@ -25,8 +25,6 @@ curl -fsSL https://raw.githubusercontent.com/ValentinZurita/vsdd/main/install.sh
 irm https://raw.githubusercontent.com/ValentinZurita/vsdd/main/install.ps1 | iex
 ```
 
-El instalador detecta automáticamente tus herramientas (**Cursor**, **Claude Code**, **Codex**, **Antigravity**) y las configura en un paso.
-
 ---
 
 ## Comandos
@@ -36,8 +34,8 @@ El instalador detecta automáticamente tus herramientas (**Cursor**, **Claude Co
 | `vsdd intake` | Inicia una nueva funcionalidad con entrevista interactiva |
 | `vsdd` | Abre el panel de pendientes y retoma trabajo en curso |
 | `vsdd update` | Actualiza VSDD a la última versión |
-| `vsdd --version` | Muestra la versión instalada (`-v`) |
-| `vsdd --abort <id>` | Cancela una funcionalidad y limpia la rama de Git |
+| `vsdd -v` | Muestra la versión instalada (`--version`) |
+| `vsdd --abort <funcionalidad>` | Descarta una funcionalidad en curso y limpia la rama de Git |
 
 ---
 
