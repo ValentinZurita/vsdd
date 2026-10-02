@@ -26,6 +26,8 @@ Este documento instruye a cualquier agente de inteligencia artificial (Google An
 *   **Aislamiento de Hilo Principal:** El conductor principal nunca realiza lecturas masivas de código en el chat. Las exploraciones se delegan a subagentes rápidos y económicos (`flash` o `haiku`) en hilos efímeros.
 *   **Memos Destilados ($\le 12$ líneas):** El subagente solo devuelve al conductor un resumen ultracompacto con entidades detectadas, temas clave, 1 Rabbit Hole y 1 propuesta de No-Go.
 *   **Persistencia Inmediata:** Toda respuesta de la entrevista y memo de exploración se persiste de inmediato en `context.json` (o `.draft-intake.json`) para permitir la reanudación ante interrupciones sin re-preguntar.
+*   **Presentación Ejecutiva sin Pérdida de Decisión:** Los recapitulativos en chat priorizan los elementos sustantivos de negocio (objetivo, EARS, Example Mapping en tabla TUI, límites y criterios de aceptación), evitando volcar archivos crudos de disco con metadatos repetitivos. El artefacto completo vive en disco para inspección técnica.
+*   **Cero Terminal Spew (Comandos Silenciosos y Resumidos):** Prohibido ejecutar comandos en el hilo principal que escupan texto crudo masivo (`git diff` sin `--stat`, logs de compilación o tests sin filtrar). Usar siempre banderas compactas o silenciosas (`--stat`, `-q`, `--silent`, `--json`) y reportar en el chat únicamente checkpoints de una línea (ej: `[✓ OK] 97/97 tests pasando`).
 
 ---
 

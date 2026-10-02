@@ -202,7 +202,13 @@ A lo sumo 2 consultas genéricas breves. Al recibir el reporte, persistir acumul
 
     **Presentación en Terminal y Pregunta de Satisfacción:**
     Con todos los puntos resueltos o consensuados:
-    - Imprimir en el chat la especificación estructurada y completa en Markdown limpio, permitiendo al usuario leerla con total comodidad sin abandonar la terminal ni abrir archivos externos.
+    - **Presentación Ejecutiva de Decisión en Terminal:** Imprimir en el chat la síntesis de decisión estructurada y completa, eliminando metadatos crudos de archivo (`Estado:`, frontmatter, comentarios de plantilla) pero preservando íntegramente la sustancia que permite al usuario evaluar y decidir:
+      1) *Objetivo central y alcance:* Qué dolor resuelve y qué valor entrega hoy.
+      2) *Requisitos Funcionales EARS:* Comportamientos clave ante cada estímulo.
+      3) *Example Mapping:* Tabla TUI redondeada (`╭─┬─╮`) con Escenario, Entrada y Salida esperada.
+      4) *Fronteras Negativas (QUÉ NO HACER):* Non-Goals (qué posponemos) y Anti-Goals (invariantes prohibidas).
+      5) *Listo cuando:* Condiciones observables de éxito y aceptación.
+      6) *Enlace al archivo en disco:* `docs/sdd/vsdd/<nnn>-<slug>/spec.md` para inspección técnica detallada si se desea.
     - Formular con calidez la pregunta de satisfacción:
       `¿Estás satisfecho con esta especificación o deseas ajustar algo? (Sí / No, deseo realizar ajustes)`
       **DETENERSE (STOP).**
