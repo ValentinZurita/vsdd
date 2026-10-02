@@ -537,6 +537,34 @@ function validateSpec(parsed, errors, warnings) {
         }
       }
     }
+
+    // Validar presencia de Example Mapping como oráculo TDD en Requisitos Funcionales
+    const hasExampleMapping = rfHeadings.some((rfh) => {
+      const rfStartIndex = parsed.lines.findIndex((l) => l.lineNumber === rfh.lineNumber);
+      const nextHIndex = parsed.lines.findIndex(
+        (l, idx) =>
+          idx > rfStartIndex &&
+          !l.inCodeBlock &&
+          /^#{1,3}\s+/.test(l.trimmed)
+      );
+      const rfLines = parsed.lines.slice(
+        rfStartIndex + 1,
+        nextHIndex !== -1 ? nextHIndex : parsed.lines.length
+      );
+      return rfLines.some((l) =>
+        /^\s*[-*]\s+\*\*ejemplo\s+concreto:?\*\*/i.test(l.trimmed)
+      );
+    });
+
+    if (!hasExampleMapping) {
+      errors.push({
+        line: rfSection.lineNumber,
+        rule: 'spec-example-mapping-faltante',
+        message: "En '## Requisitos funcionales', al menos un requisito debe contener un ejemplo concreto ('- **Ejemplo concreto:** Entrada: ... → Resultado observable: ...') que actúe como oráculo independiente para las pruebas TDD.",
+        expected: '- **Ejemplo concreto:** Entrada: <valor> → Resultado observable: <salida>',
+        found: 'Sin viñetas de ejemplo concreto en requisitos funcionales',
+      });
+    }
   }
 
   // 5. Validación estricta de Criterios de Finalización (- Se puede comprobar que:)
@@ -608,6 +636,44 @@ function validateSpec(parsed, errors, warnings) {
           }
         }
       }
+    }
+  }
+
+  // 7. Validación de Límites y exclusiones (Non-Goals y Anti-Goals)
+  const limitesSection = parsed.headings.find(
+    (h) => h.level === 2 && normalizeText(h.text) === 'limites y exclusiones'
+  );
+  if (limitesSection) {
+    const hasNonGoals = parsed.headings.some(
+      (h) =>
+        h.level === 3 &&
+        (normalizeText(h.text).includes('non-goals') ||
+         normalizeText(h.text).includes('fuera de alcance'))
+    );
+    const hasAntiGoals = parsed.headings.some(
+      (h) =>
+        h.level === 3 &&
+        (normalizeText(h.text).includes('anti-goals') ||
+         normalizeText(h.text).includes('anti-objetivos') ||
+         normalizeText(h.text).includes('invariantes'))
+    );
+    if (!hasNonGoals) {
+      errors.push({
+        line: limitesSection.lineNumber,
+        rule: 'spec-non-goals-faltante',
+        message: "En '## Límites y exclusiones', falta la subsección obligatoria '### Fuera de alcance (Non-Goals)'.",
+        expected: '### Fuera de alcance (Non-Goals)',
+        found: 'Subsección ausente',
+      });
+    }
+    if (!hasAntiGoals) {
+      errors.push({
+        line: limitesSection.lineNumber,
+        rule: 'spec-anti-goals-faltante',
+        message: "En '## Límites y exclusiones', falta la subsección obligatoria '### Anti-objetivos e invariantes prohibidas (Anti-Goals)'.",
+        expected: '### Anti-objetivos e invariantes prohibidas (Anti-Goals)',
+        found: 'Subsección ausente',
+      });
     }
   }
 }
@@ -764,6 +830,33 @@ function validatePlan(parsed, errors, warnings) {
     }
   }
 
+  // 6b. Validación de Estrategia de tests: Paseo de Verificación Manual (Golden Path Walkthrough)
+  const testsSection = parsed.headings.find(
+    (h) => h.level === 2 && normalizeText(h.text) === 'estrategia de tests'
+  );
+  if (testsSection) {
+    const hasGoldenPathH3 = parsed.headings.some(
+      (h) =>
+        h.level === 3 &&
+        (normalizeText(h.text).includes('paseo de verificacion manual') ||
+         normalizeText(h.text).includes('golden path'))
+    );
+    const contentLines = testsSection.lines.filter((l) => l.trimmed.length > 0);
+    const hasNoAplica = contentLines.some((l) =>
+      /no\s+aplica/i.test(l.trimmed)
+    );
+
+    if (!hasGoldenPathH3 && !hasNoAplica) {
+      errors.push({
+        line: testsSection.lineNumber,
+        rule: 'plan-golden-path-faltante',
+        message: "En '## Estrategia de tests', debe incluirse la subsección '### Paseo de Verificación Manual (Golden Path Walkthrough)' con pasos de humo (≤ 2 min), o registrar explícitamente 'No aplica (cambio 100% interno cubierto por pruebas automatizadas)'.",
+        expected: '### Paseo de Verificación Manual (Golden Path Walkthrough) o No aplica',
+        found: 'Subsección de Golden Path ausente',
+      });
+    }
+  }
+
   // 7. Validación de Decisiones Técnicas (campos obligatorios en DT-xx)
   const dtHeadings = parsed.headings.filter(
     (h) => h.level === 3 && /^DT-?\d+/i.test(h.text)
@@ -900,6 +993,8 @@ function validateTasks(parsed, errors, warnings) {
   // 4. Secciones Obligatorias del Contrato Mínimo Viable
   const requiredH2 = [
     { key: 'reglas de ejecución', title: 'Reglas de ejecución' },
+    { key: 'fuera de este corte', title: 'Fuera de este corte' },
+    { key: 'dudas abiertas', title: 'Dudas abiertas' },
   ];
 
   for (const req of requiredH2) {
@@ -907,13 +1002,24 @@ function validateTasks(parsed, errors, warnings) {
       (h) => h.level === 2 && normalizeText(h.text) === normalizeText(req.title)
     );
     if (!found) {
-      errors.push({
-        line: 1,
-        rule: 'seccion-obligatoria-faltante',
-        message: `Falta la sección obligatoria '## ${req.title}' en tasks.md.`,
-        expected: `## ${req.title}`,
-        found: 'Sección ausente',
-      });
+      const aliasFound = findHeadingByAlias(parsed.headings, 2, req.key);
+      if (aliasFound && aliasFound.aliasUsed) {
+        errors.push({
+          line: aliasFound.match.lineNumber,
+          rule: 'seccion-mal-nombrada',
+          message: `Falta la sección obligatoria '## ${req.title}'. Se detectó '## ${aliasFound.aliasUsed}'. Usa el encabezado estándar para cumplir con el contrato.`,
+          expected: `## ${req.title}`,
+          found: `## ${aliasFound.aliasUsed}`,
+        });
+      } else {
+        errors.push({
+          line: 1,
+          rule: 'seccion-obligatoria-faltante',
+          message: `Falta la sección obligatoria '## ${req.title}' en tasks.md.`,
+          expected: `## ${req.title}`,
+          found: 'Sección ausente',
+        });
+      }
     }
   }
 

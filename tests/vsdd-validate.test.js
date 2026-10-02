@@ -57,6 +57,7 @@ Permitir a los clientes autenticarse con su cuenta de Google para agilizar las c
 - Cuando el usuario hace clic en el botón de Google, el sistema debe redirigir a la pantalla de consentimiento.
 - Si la autenticación es exitosa, la interfaz debe mostrar la sesión activa.
 - Si el usuario rechaza los permisos, el sistema no debe iniciar sesión; debe mostrar un mensaje amigable.
+- **Ejemplo concreto:** Entrada: Clic en botón 'Iniciar sesión con Google' → Resultado observable: Redirección exitosa y nombre visible en barra superior.
 
 ## Casos límite
 - Si se corta la conexión durante la redirección, se debe mostrar una pantalla de error reintentable.
@@ -97,6 +98,13 @@ Ninguno: el entorno cuenta con todo lo necesario y no hay incertidumbre técnica
 
 ## Estrategia de tests
 - **AuthOAuthTest:** Valida Listo cuando: el usuario autenticado visualiza su nombre. Cubre: RF-01.
+
+### Paseo de Verificación Manual (Golden Path Walkthrough)
+- **Superficie:** Web
+- **Duración estimada:** ≤ 2 minutos
+- **Paso 1 (Arranque):** Navegar a \`/login\`
+- **Paso 2 (Acción):** Clic en 'Iniciar con Google'
+- **Paso 3 (Resultado esperado observable):** Dashboard con nombre visible en la barra superior
 
 ## Cobertura RF / RNF
 | ID | Dónde se resuelve (Módulo, DT, Tests) |
@@ -637,6 +645,56 @@ test('spec.md: aprueba múltiples alternativas descartadas bien estructuradas', 
   assert.equal(res.valid, true);
   assert.equal(res.errors.length, 0);
 });
+
+test('spec.md: detecta ausencia de Example Mapping en Requisitos Funcionales', () => {
+  const specWithoutExample = VALID_SPEC.replace(
+    '- **Ejemplo concreto:** Entrada: Clic en botón \'Iniciar sesión con Google\' → Resultado observable: Redirección exitosa y nombre visible en barra superior.',
+    ''
+  );
+  const res = validateContent(specWithoutExample, 'spec.md');
+  assert.equal(res.valid, false);
+  const err = res.errors.find((e) => e.rule === 'spec-example-mapping-faltante');
+  assert.ok(err, 'Debe exigir Example Mapping en RFs');
+  assert.ok(err.message.includes('ejemplo concreto'));
+});
+
+test('spec.md: detecta ausencia de Non-Goals o Anti-Goals en Límites y exclusiones', () => {
+  const specLimitesIncomplete = VALID_SPEC.replace(
+    '## Fuera de alcance\n- No se soportan otros proveedores en este corte.',
+    '## Límites y exclusiones\n### Fuera de alcance (Non-Goals)\n- No se soportan otros proveedores.'
+  );
+  const res = validateContent(specLimitesIncomplete, 'spec.md');
+  assert.equal(res.valid, false);
+  const err = res.errors.find((e) => e.rule === 'spec-anti-goals-faltante');
+  assert.ok(err, 'Debe exigir Anti-Goals cuando se usa Límites y exclusiones');
+});
+
+test('plan.md: detecta ausencia de Golden Path Walkthrough en Estrategia de tests', () => {
+  const planWithoutGoldenPath = VALID_PLAN; // VALID_PLAN no tenía Golden Path originalmente
+  const res = validateContent(planWithoutGoldenPath, 'plan.md');
+  assert.equal(res.valid, true); // ahora VALID_PLAN sí tiene Golden Path
+  const planBroken = VALID_PLAN.replace(
+    '### Paseo de Verificación Manual (Golden Path Walkthrough)\n- **Superficie:** Web\n- **Duración estimada:** ≤ 2 minutos\n- **Paso 1 (Arranque):** Navegar a `/login`\n- **Paso 2 (Acción):** Clic en \'Iniciar con Google\'\n- **Paso 3 (Resultado esperado observable):** Dashboard con nombre visible en la barra superior\n',
+    ''
+  );
+  const resBroken = validateContent(planBroken, 'plan.md');
+  assert.equal(resBroken.valid, false);
+  const err = resBroken.errors.find((e) => e.rule === 'plan-golden-path-faltante');
+  assert.ok(err, 'Debe exigir Golden Path Walkthrough o No aplica');
+});
+
+test('tasks.md: detecta ausencia de sección obligatoria Fuera de este corte o Dudas abiertas', () => {
+  const tasksNoDudas = VALID_TASKS.replace(
+    '## Dudas abiertas\nNinguna.\n',
+    ''
+  );
+  const res = validateContent(tasksNoDudas, 'tasks.md');
+  assert.equal(res.valid, false);
+  const err = res.errors.find((e) => e.rule === 'seccion-obligatoria-faltante');
+  assert.ok(err, 'Debe exigir Dudas abiertas');
+  assert.ok(err.message.includes('Dudas abiertas'));
+});
+
 
 
 
