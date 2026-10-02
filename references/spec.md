@@ -202,7 +202,7 @@ A lo sumo 2 consultas genéricas breves. Al recibir el reporte, persistir acumul
 
     **Presentación en Terminal y Pregunta de Satisfacción:**
     Con todos los puntos resueltos o consensuados:
-    - **Presentación Ejecutiva de Decisión en Terminal:** Imprimir en el chat la síntesis de decisión estructurada y completa, eliminando metadatos crudos de archivo (`Estado:`, frontmatter, comentarios de plantilla) pero preservando íntegramente la sustancia que permite al usuario evaluar y decidir:
+    - **Presentación Ejecutiva de Decisión en Terminal (Componente 7 de [`references/guia-visual.md`](file:///Users/valentin/Documents/vsdd/references/guia-visual.md)):** Imprimir en el chat la síntesis de decisión estructurada y completa, eliminando metadatos crudos de archivo (`Estado:`, frontmatter, comentarios de plantilla) pero preservando íntegramente la sustancia que permite al usuario evaluar y decidir con criterio y jerarquía visual:
       1) *Objetivo central y alcance:* Qué dolor resuelve y qué valor entrega hoy.
       2) *Requisitos Funcionales EARS:* Comportamientos clave ante cada estímulo.
       3) *Example Mapping:* Tabla TUI redondeada (`╭─┬─╮`) con Escenario, Entrada y Salida esperada.

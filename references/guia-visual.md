@@ -123,6 +123,83 @@ Opciones:
 Acción: Escribe 1 (o pulsa Enter para la sugerida), o indica tu idea.
 ```
 
+### Componente 7: Placa Ejecutiva de Decisión de Spec (`spec.md`)
+Formato estandarizado de alta jerarquía para revisar y aprobar la especificación funcional sin volcar el archivo crudo de disco:
+
+```text
+╭── [RECAP] ESPECIFICACIÓN FUNCIONAL ──╮
+│ docs/sdd/vsdd/<id>/spec.md           │
+╰──────────────────────────────────────╯
+
+🎯 OBJETIVO & VALOR
+• Problema: Qué dolor concreto del usuario resolvemos hoy.
+• Solución: Comportamiento central acordado.
+
+📋 REQUISITOS CLAVE (EARS)
+• Ubicuo: El sistema SIEMPRE <invariante>.
+• Evento: CUANDO <evento>, el sistema <reacción>.
+• Estado: MIENTRAS <estado>, el sistema <comportamiento>.
+• Error: SI <fallo>, ENTONCES <mensaje amigable y salida limpia>.
+
+🧪 CASOS OBSERVABLES (EXAMPLE MAPPING)
+╭────────────────┬──────────┬──────────╮
+│ ESCENARIO      │ ENTRADA  │ SALIDA   │
+├────────────────┼──────────┼──────────┤
+│ Camino Feliz   │ flag -v  │ Detalle  │
+│ Estado Vacío   │ sin logs │ [EMPTY]  │
+│ Error Formato  │ inv.json │ [✕ FAIL] │
+╰────────────────┴──────────┴──────────╯
+
+🚫 FRONTERAS NEGATIVAS (QUÉ NO HACER)
+• Fuera de alcance (Non-Goals): Funcionalidad que posponemos.
+• Prohibido (Anti-Goals): [✕] Estados corruptos o efectos colaterales.
+
+🏁 LISTO CUANDO
+[✓] 1. Salida observable en pantalla o comando.
+[✓] 2. Código de salida exacto comprobado.
+
+────────────────────────────────────────
+¿ESTÁS SATISFECHO CON ESTA ESPECIFICACIÓN?
+────────────────────────────────────────
+(Sí para avanzar a Plan / No para ajustar)
+```
+
+### Componente 8: Placa Ejecutiva de Plan Técnico (`plan.md`)
+Formato estructurado con criterio arquitectónico para validar decisiones y árbol de cambios antes de pasar a tareas:
+
+```text
+╭── [RECAP] PLAN TÉCNICO & ARQUITECTURA ─╮
+│ docs/sdd/vsdd/<id>/plan.md            │
+╰────────────────────────────────────────╯
+
+🏛️ ALINEACIÓN & PATRÓN DE DISEÑO
+• Estrategia: Cómo encaja en las convenciones del repositorio.
+• Principio DFT: Lógica pura aislada de I/O y dependencias inyectadas.
+
+📐 DECISIONES TÉCNICAS (DT)
+• DT-01: <Decisión elegida>
+  - Por qué: Razón de peso frente a la alternativa descartada.
+  - Descartada: <Alternativa evaluada y rechazada>.
+
+🌳 ÁRBOL DE CAMBIOS DETERMINISTA
++ [CREAR]     src/modulo/nuevo_servicio.ts
+~ [MODIFICAR] src/cli/comandos.ts
+- [ELIMINAR]  src/legacy/obsoleto.ts
+
+🛡️ ESTRATEGIA DE TESTS & ORÁCULO INDEPENDIENTE
+• Unitarios puros: Cobertura exhaustiva de EARS sin tocar I/O.
+• Frontera observable: Validación de comandos o salidas reales.
+
+🚀 VERIFICACIÓN GOLDEN PATH
+Paso 1: Ejecutar comando con flags estándar.
+Paso 2: Confirmar salida esperada según el Example Mapping.
+
+────────────────────────────────────────
+¿ESTÁS SATISFECHO CON ESTE PLAN TÉCNICO?
+────────────────────────────────────────
+(Sí para avanzar a Tareas / No para ajustar)
+```
+
 ---
 
 ## 3. Matriz de Aplicación por Fase
@@ -130,6 +207,6 @@ Acción: Escribe 1 (o pulsa Enter para la sugerida), o indica tu idea.
 | Fase | Dónde se aplica | Componente a utilizar |
 | :--- | :--- | :--- |
 | **Intake** | Aterrizaje de idea y disyuntivas de alcance | Cabecera + Diagrama de Flujo (viaje del usuario) + Pregunta con acento |
-| **Spec** | Requisitos EARS y Example Mapping | Tablas TUI de pruebas + Tríada de Estados (Empty/Happy/Error) |
-| **Plan** | Decisiones Técnicas (DT) y Arquitectura | Diagramas de Componentes + Tabla de Módulos (`+`, `~`, `-`) |
+| **Spec** | Requisitos EARS, Example Mapping y Cierre | Tablas TUI + Tríada de Estados + **Componente 7 (Placa de Spec)** |
+| **Plan** | Decisiones Técnicas (DT), Árbol y Cierre | Diagramas de Componentes + **Componente 8 (Placa de Plan)** |
 | **Verify** | Golden Path Walkthrough y Cierre | Secuencia observable paso a paso en terminal |

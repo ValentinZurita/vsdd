@@ -127,7 +127,7 @@ Máximo 2 búsquedas web breves. Al recibir el reporte, persistir acumulativamen
 10. **Procesamiento de Hallazgos y Presentación Ejecutiva en Terminal:**
     - Ajustes técnicos menores de redacción o rutas: se aplican directamente en `plan.md` en disco.
     - Disyuntivas que requieren decisión del usuario: se formula una pregunta puntual antes de cerrar.
-    - **Presentación en Terminal:** Imprimir en el chat la síntesis ejecutiva del plan estructurada en bloques limpios (Alineación, Módulos, DTs sintetizadas, Árbol determinista con `+`/`~`/`-` y Estrategia de tests que valida el "Listo cuando").
+    - **Presentación Ejecutiva en Terminal (Componente 8 de [`references/guia-visual.md`](file:///Users/valentin/Documents/vsdd/references/guia-visual.md)):** Imprimir en el chat la síntesis ejecutiva del plan estructurada con jerarquía visual y criterio arquitectónico (Alineación, Decisiones Técnicas sintetizadas, Árbol determinista con `+`/`~`/`-`, Estrategia de tests DFT y Verificación Golden Path). Incluir enlace al archivo `docs/sdd/vsdd/<nnn>-<slug>/plan.md`.
     - **Pregunta de Satisfacción (Reunión con Arquitecto Senior):**
       En el mismo mensaje del recapitulativo, formular con calidez y profesionalismo:
       `¿Estás satisfecho con este plan técnico o deseas ajustar algún aspecto? (Sí / No, deseo realizar ajustes)`
