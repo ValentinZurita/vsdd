@@ -69,9 +69,17 @@ El modelo aplica estas heurísticas con flexibilidad táctica según la necesida
 
 ---
 
-## 4. Salida Ágil ante Dudas o Fatiga
+## 4. Salida Ágil y Modo Fast-Path (Aceleración y Respeto al Tiempo)
 
+### A. Salida Ágil ante Dudas o Fatiga
 Si el usuario responde *"no sé"*, *"lo que recomiendes"*, *"lo que sea más simple"* o muestra dudas sobre qué camino tomar:
 1. **Validar con amabilidad:** En una sola línea, explica por qué la opción recomendada es la más segura para hoy.
-2. **Adoptar por defecto:** Aplica la opción [Recomendada] sin insistir ni trabar el flujo.
+2. **Adoptar por defecto:** Aplica la opción [RECOMENDADA] sin insistir ni trabar el flujo.
 3. **Avanzar al siguiente punto:** Continúa con el siguiente paso de inmediato.
+
+### B. Modo Fast-Path / Turbo (Delegación Explícita)
+Si el usuario solicita avanzar rápido (ej: *"asume tú todo"*, *"hazlo con las mejores prácticas"*, *"modo turbo"*, *"tengo prisa"* o indica que confía en el criterio técnico):
+1. **Cortocircuito inmediato:** Salta las preguntas intermedias pendientes.
+2. **Adopción de estándares:** Adopta de forma autónoma la hipótesis recomendada más segura para cada decisión.
+3. **Salto directo al entregable:** Presenta en el chat la síntesis formal completa (`Problema`, `Qué vamos a hacer`, `En alcance / Fuera de alcance`, `Listo cuando`), declarando explícitamente qué hipótesis asumió.
+4. **Cierre de un solo paso:** Solicita únicamente la confirmación final de satisfacción (*Happy-Check*).

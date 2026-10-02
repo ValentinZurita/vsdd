@@ -16,6 +16,9 @@ Fuente Única de Verdad (SSOT) para la presentación gráfica, diagramas, tablas
 3. **Badges Técnicos vs. Cero Emojis Distractores:**
    - Prohibidos los emojis amarillos, caritas o fuegos que desalinean columnas o restan seriedad.
    - Usar badges de ingeniería sobrios entre corchetes: `[HIPÓTESIS SUGERIDA]`, `[RECOMENDADA]`, `[PREGUNTA 2/5]`, `[✓ OK]`, `[✕ FAIL]`, `[! WARN]`.
+4. **Soberanía de Copiado (Copy-Paste Clean):**
+   - Prohibido encerrar comandos ejecutables o código a copiar dentro de cajas con bordes laterales (`│`), ya que al copiarlos con el ratón se capturan los caracteres de borde.
+   - Todo comando sugerido va en su propia línea limpia o bloque de código Markdown (`` `comando` `` o ````bash ````) para que un doble clic lo copie intacto.
 
 ---
 
