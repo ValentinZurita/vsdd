@@ -24,6 +24,11 @@ const {
   extractArchivosClaveSafe,
   generateFeatureCatalog,
   abortFeature,
+  compareSemver,
+  formatUpdateBanner,
+  checkVersionUpdate,
+  performVsddUpdate,
+  getLocalVsddVersion,
 } = require('../scripts/vsdd-status');
 
 test('scanFeatures returns empty array if docs/sdd/vsdd does not exist', () => {
@@ -1536,5 +1541,95 @@ test('abortFeature refuses to delete branch when it is the only branch in repo (
     fs.rmSync(tempDir, { recursive: true, force: true });
   }
 });
+
+test('compareSemver compara correctamente versiones semver con y sin prefijo v', () => {
+  assert.equal(compareSemver('0.43.0', '0.44.0'), 1);
+  assert.equal(compareSemver('0.43.0', '0.43.0'), 0);
+  assert.equal(compareSemver('0.44.0', '0.43.0'), -1);
+  assert.equal(compareSemver('v0.43.0', '0.44.0'), 1);
+  assert.equal(compareSemver('0.43', '0.43.1'), 1);
+  assert.equal(compareSemver('0.43.1', '0.43'), -1);
+});
+
+test('formatUpdateBanner genera un banner alineado a 40 columnas visuales con el trueno', () => {
+  const banner = formatUpdateBanner('0.43.0', '0.44.0');
+  assert.match(banner, /\[UPDATE\] 0\.43\.0 -> 0\.44\.0/);
+  assert.match(banner, /vsdd update/);
+  const lines = banner.split('\n');
+  assert.equal(lines.length, 4);
+  lines.forEach((l) => {
+    const visualWidth = l.includes('⚡') ? [...l].length + 1 : [...l].length;
+    assert.equal(visualWidth, 40);
+  });
+});
+
+test('checkVersionUpdate utiliza caché cuando está vigente y consulta fetcher ante vencimiento', async () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'vsdd-update-cache-test-'));
+  try {
+    let fetchCalls = 0;
+    const mockFetcher = async () => {
+      fetchCalls += 1;
+      return { version: '0.45.0' };
+    };
+
+    // 1. Primera consulta: sin caché, debe consultar fetcher
+    const res1 = await checkVersionUpdate('0.43.0', {
+      cacheDir: tempDir,
+      fetchRemote: mockFetcher,
+    });
+    assert.equal(fetchCalls, 1);
+    assert.equal(res1.updateAvailable, true);
+    assert.equal(res1.latestVersion, '0.45.0');
+    assert.equal(res1.cached, false);
+
+    // 2. Segunda consulta: con caché vigente, NO debe consultar fetcher
+    const res2 = await checkVersionUpdate('0.43.0', {
+      cacheDir: tempDir,
+      fetchRemote: mockFetcher,
+    });
+    assert.equal(fetchCalls, 1); // No incrementó
+    assert.equal(res2.updateAvailable, true);
+    assert.equal(res2.latestVersion, '0.45.0');
+    assert.equal(res2.cached, true);
+
+    // 3. Consulta con fallo de red: no explota y retorna error controlado
+    const failingFetcher = async () => {
+      throw new Error('Connection refused');
+    };
+    const resFail = await checkVersionUpdate('0.43.0', {
+      cacheDir: path.join(tempDir, 'sub'),
+      fetchRemote: failingFetcher,
+      force: true,
+    });
+    assert.equal(resFail.updateAvailable, false);
+    assert.equal(resFail.latestVersion, '0.43.0');
+    assert.match(resFail.error, /Connection refused/);
+  } finally {
+    fs.rmSync(tempDir, { recursive: true, force: true });
+  }
+});
+
+test('performVsddUpdate ejecuta runner y devuelve objeto estructurado de resultado', () => {
+  const commands = [];
+  const mockRunner = (cmd) => {
+    commands.push(cmd);
+    return 'Mock update completed';
+  };
+
+  const res = performVsddUpdate(process.cwd(), { execCommand: mockRunner });
+  assert.equal(res.success, true);
+  assert.match(res.message, /VSDD actualizado/);
+  assert.ok(commands.some((c) => /git pull|install-skill|install\.sh/.test(c)));
+});
+
+test('CLI vsdd update soporta bandera --json y emite resultado parseable', () => {
+  const cliPath = path.join(__dirname, '..', 'scripts', 'vsdd-status.js');
+  const out = execSync(`node "${cliPath}" update --json`, { encoding: 'utf8' }).trim();
+  const parsed = JSON.parse(out);
+  assert.equal(typeof parsed.success, 'boolean');
+  assert.equal(parsed.success, true);
+  assert.match(parsed.message, /VSDD actualizado/);
+});
+
 
 

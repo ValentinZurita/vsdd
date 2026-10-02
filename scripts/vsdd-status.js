@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 const fs = require('fs');
 const path = require('path');
-const { execFileSync } = require('child_process');
+const os = require('os');
+const { execFileSync, execSync } = require('child_process');
 
 /**
  * Escanea el directorio docs/sdd/vsdd en busca de funcionalidades y su estado.
@@ -1024,13 +1025,18 @@ function readFileSafe(filePath) {
 /**
  * Formatea el menú visual para terminal.
  */
-function formatHubMenu(features) {
+function formatHubMenu(features, options = {}) {
   const pending = features.filter((f) => !f.isCompleted && !f.isCancelled);
   const completed = features.filter((f) => f && f.isCompleted && !f.isCancelled);
 
+  let banner = '';
+  if (options && options.updateInfo && options.updateInfo.updateAvailable) {
+    banner = formatUpdateBanner(options.updateInfo.currentVersion, options.updateInfo.latestVersion) + '\n\n';
+  }
+
   if (pending.length === 0) {
     if (completed.length === 0) {
-      return `╭────────────────────────────────────────────────────────╮
+      return `${banner}╭────────────────────────────────────────────────────────╮
 │  VSDD  ·  Panel de Funcionalidades                      │
 ╰────────────────────────────────────────────────────────╯
 
@@ -1040,7 +1046,7 @@ Puedes iniciar tu primera funcionalidad escribiendo: vsdd intake
     }
 
     const topCompleted = generateFeatureCatalog(null, 3, features);
-    let output = `╭────────────────────────────────────────────────────────╮
+    let output = `${banner}╭────────────────────────────────────────────────────────╮
 │  VSDD  ·  Panel de Funcionalidades                      │
 ╰────────────────────────────────────────────────────────╯
 
@@ -1062,7 +1068,7 @@ Puedes iniciar tu primera funcionalidad escribiendo: vsdd intake
     return output;
   }
 
-  let output = `╭────────────────────────────────────────────────────────╮
+  let output = `${banner}╭────────────────────────────────────────────────────────╮
 │  VSDD  ·  Panel de Funcionalidades Pendientes          │
 ╰────────────────────────────────────────────────────────╯
 
@@ -1367,32 +1373,234 @@ function abortFeature(featureId, options = {}, cwd = process.cwd()) {
   };
 }
 
+/**
+ * Compara dos versiones semver (v1 y v2).
+ * Devuelve 1 si latest > current, 0 si son iguales, -1 si current > latest.
+ */
+function compareSemver(current, latest) {
+  const parse = (v) => (v || '').replace(/^v/, '').split('.').map((n) => parseInt(n, 10) || 0);
+  const p1 = parse(current);
+  const p2 = parse(latest);
+  const len = Math.max(p1.length, p2.length);
+  for (let i = 0; i < len; i += 1) {
+    const num1 = p1[i] || 0;
+    const num2 = p2[i] || 0;
+    if (num2 > num1) return 1;
+    if (num2 < num1) return -1;
+  }
+  return 0;
+}
+
+/**
+ * Obtiene la versión actual local de VSDD desde package.json.
+ */
+function getLocalVsddVersion(cwd = __dirname) {
+  try {
+    const pkgPath = path.join(__dirname, '..', 'package.json');
+    if (fs.existsSync(pkgPath)) {
+      const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
+      if (pkg.version) return pkg.version;
+    }
+  } catch (e) {}
+  return '0.43.0';
+}
+
+/**
+ * Formatea el banner de actualización en 40 columnas visuales con el trueno ⚡.
+ */
+function formatUpdateBanner(currentVersion, latestVersion) {
+  const versionStr = `${currentVersion} -> ${latestVersion}`;
+  const prefix = `╭── ⚡ [UPDATE] ${versionStr} `;
+  const remaining = 38 - [...prefix].length;
+  const topBorder = prefix + '─'.repeat(Math.max(1, remaining)) + '╮';
+  const line2 = `│ Nueva versión de VSDD disponible     │`;
+  const line3 = `│ Ejecuta: vsdd update                 │`;
+  const botBorder = `╰──────────────────────────────────────╯`;
+  return `${topBorder}\n${line2}\n${line3}\n${botBorder}`;
+}
+
+/**
+ * Chequea si hay una nueva versión disponible en GitHub (con caché de 24h y timeout de red).
+ */
+async function checkVersionUpdate(currentVersion = getLocalVsddVersion(), options = {}) {
+  const cacheDir = options.cacheDir || path.join(os.homedir(), '.vsdd');
+  const cacheFile = path.join(cacheDir, 'version-cache.json');
+  const interval = options.checkIntervalMs || 24 * 60 * 60 * 1000;
+  const timeoutMs = options.timeoutMs || 1500;
+
+  // 1. Revisar caché si aún está vigente
+  if (!options.force && fs.existsSync(cacheFile)) {
+    try {
+      const cached = JSON.parse(fs.readFileSync(cacheFile, 'utf8'));
+      if (cached.lastCheck && Date.now() - cached.lastCheck < interval) {
+        return {
+          updateAvailable: Boolean(cached.updateAvailable),
+          latestVersion: cached.latestVersion || currentVersion,
+          currentVersion,
+          cached: true,
+        };
+      }
+    } catch (e) {}
+  }
+
+  // 2. Fetch remoto (inyectable para tests o nativo con fetch)
+  const fetcher =
+    options.fetchRemote ||
+    (async (url, ms) => {
+      const res = await fetch(url, { signal: AbortSignal.timeout(ms) });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return await res.json();
+    });
+
+  try {
+    const remotePkg = await fetcher(
+      'https://raw.githubusercontent.com/ValentinZurita/vsdd/main/package.json',
+      timeoutMs
+    );
+    const latestVersion = remotePkg.version || currentVersion;
+    const updateAvailable = compareSemver(currentVersion, latestVersion) > 0;
+
+    // Guardar en caché
+    try {
+      if (!fs.existsSync(cacheDir)) {
+        fs.mkdirSync(cacheDir, { recursive: true });
+      }
+      fs.writeFileSync(
+        cacheFile,
+        JSON.stringify(
+          {
+            lastCheck: Date.now(),
+            latestVersion,
+            updateAvailable,
+          },
+          null,
+          2
+        ),
+        'utf8'
+      );
+    } catch (e) {}
+
+    return {
+      updateAvailable,
+      latestVersion,
+      currentVersion,
+      cached: false,
+    };
+  } catch (err) {
+    return {
+      updateAvailable: false,
+      latestVersion: currentVersion,
+      currentVersion,
+      cached: false,
+      error: err.message,
+    };
+  }
+}
+
+/**
+ * Ejecuta la actualización de VSDD.
+ */
+function performVsddUpdate(cwd = process.cwd(), options = {}) {
+  const runner = options.execCommand || ((cmd, opts) => execSync(cmd, opts));
+  const isVsddRepo =
+    fs.existsSync(path.join(cwd, 'SKILL.md')) &&
+    fs.existsSync(path.join(cwd, 'package.json')) &&
+    (() => {
+      try {
+        return require(path.join(cwd, 'package.json')).name === 'vsdd';
+      } catch (e) {
+        return false;
+      }
+    })();
+
+  if (isVsddRepo) {
+    try {
+      const pullOut = runner('git pull origin main', { cwd, encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] });
+      const installScript = path.join(cwd, 'scripts', 'install-skill.js');
+      const installOut = runner(`node "${installScript}" --scope global --hosts all --apply --update`, {
+        cwd,
+        encoding: 'utf8',
+        stdio: ['pipe', 'pipe', 'pipe'],
+      });
+      return {
+        success: true,
+        isRepo: true,
+        message: 'VSDD actualizado con éxito desde el repositorio local y sincronizado globalmente.',
+        output: `${pullOut || ''}\n${installOut || ''}`.trim(),
+      };
+    } catch (err) {
+      return {
+        success: false,
+        isRepo: true,
+        message: `Error al actualizar VSDD desde repositorio: ${err.message}`,
+        error: err.message,
+      };
+    }
+  }
+
+  // Ejecución en proyecto consumidor o instalación global
+  try {
+    const cmd = 'curl -fsSL https://raw.githubusercontent.com/ValentinZurita/vsdd/main/install.sh | bash -s -- -y';
+    const updateOut = runner(cmd, { encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] });
+    return {
+      success: true,
+      isRepo: false,
+      message: 'VSDD actualizado con éxito a la última versión desde GitHub.',
+      output: (updateOut || '').trim(),
+    };
+  } catch (err) {
+    return {
+      success: false,
+      isRepo: false,
+      message: `Error al ejecutar la actualización remota de VSDD: ${err.message}`,
+      error: err.message,
+    };
+  }
+}
+
 // Punto de entrada CLI
 if (require.main === module) {
-  const args = process.argv.slice(2);
-  const cwd = process.cwd();
+  (async () => {
+    const args = process.argv.slice(2);
+    const cwd = process.cwd();
 
-  function getCliDir(cliArgs, commandFlag, workingDir) {
-    const dirIdx = cliArgs.indexOf(commandFlag);
-    if (dirIdx !== -1 && cliArgs[dirIdx + 1] && !cliArgs[dirIdx + 1].startsWith('--')) {
-      return path.resolve(workingDir, cliArgs[dirIdx + 1]);
+    function getCliDir(cliArgs, commandFlag, workingDir) {
+      const dirIdx = cliArgs.indexOf(commandFlag);
+      if (dirIdx !== -1 && cliArgs[dirIdx + 1] && !cliArgs[dirIdx + 1].startsWith('--')) {
+        return path.resolve(workingDir, cliArgs[dirIdx + 1]);
+      }
+      const explicitDirIdx = cliArgs.indexOf('--dir');
+      if (explicitDirIdx !== -1 && cliArgs[explicitDirIdx + 1] && !cliArgs[explicitDirIdx + 1].startsWith('--')) {
+        return path.resolve(workingDir, cliArgs[explicitDirIdx + 1]);
+      }
+      return '';
     }
-    const explicitDirIdx = cliArgs.indexOf('--dir');
-    if (explicitDirIdx !== -1 && cliArgs[explicitDirIdx + 1] && !cliArgs[explicitDirIdx + 1].startsWith('--')) {
-      return path.resolve(workingDir, cliArgs[explicitDirIdx + 1]);
-    }
-    return '';
-  }
 
-  function getCliPhase(cliArgs) {
-    const phaseIdx = cliArgs.indexOf('--phase');
-    if (phaseIdx !== -1 && cliArgs[phaseIdx + 1] && !cliArgs[phaseIdx + 1].startsWith('--')) {
-      return cliArgs[phaseIdx + 1];
+    function getCliPhase(cliArgs) {
+      const phaseIdx = cliArgs.indexOf('--phase');
+      if (phaseIdx !== -1 && cliArgs[phaseIdx + 1] && !cliArgs[phaseIdx + 1].startsWith('--')) {
+        return cliArgs[phaseIdx + 1];
+      }
+      return '';
     }
-    return '';
-  }
 
-  if (args.includes('--abort')) {
+    if (args.includes('update') || args.includes('--update')) {
+      const isJson = args.includes('--json');
+      if (!isJson) {
+        console.log(`╭── ⚡ ACTUALIZACIÓN DE VSDD ──────────╮\n│ Buscando e instalando última versión │\n╰──────────────────────────────────────╯\n`);
+      }
+      const result = performVsddUpdate(cwd);
+      if (isJson) {
+        console.log(JSON.stringify(result, null, 2));
+      } else {
+        if (result.success) {
+          console.log(`✔ [✓ OK] ${result.message}`);
+        } else {
+          console.error(`✖ [✕ FAIL] ${result.message}`);
+          process.exit(1);
+        }
+      }
+    } else if (args.includes('--abort')) {
     const abortIdx = args.indexOf('--abort');
     const featureId = args[abortIdx + 1];
     if (!featureId || featureId.startsWith('--')) {
@@ -1529,8 +1737,13 @@ if (require.main === module) {
     console.log(JSON.stringify(result, null, 2));
   } else {
     const features = scanFeatures(cwd);
-    process.stdout.write(formatHubMenu(features));
+    let updateInfo = null;
+    try {
+      updateInfo = await checkVersionUpdate(getLocalVsddVersion(cwd), { timeoutMs: 1500 });
+    } catch (e) {}
+    process.stdout.write(formatHubMenu(features, { updateInfo }));
   }
+  })();
 }
 
 module.exports = {
@@ -1560,4 +1773,9 @@ module.exports = {
   hasGitCommits,
   isCommitInTree,
   getCurrentBranch,
+  compareSemver,
+  getLocalVsddVersion,
+  formatUpdateBanner,
+  checkVersionUpdate,
+  performVsddUpdate,
 };
