@@ -13,9 +13,10 @@ Fuente Única de Verdad (SSOT) para la presentación gráfica, diagramas, tablas
 2. **Principio de No Abuso (Espacio en Blanco y Respiración):**
    - **Llevan caja redondeada (`╭─╮`, `╰─╯`):** Únicamente cabeceras de sesión, diagramas de flujo de 2+ pasos, maquetas de pantalla y tablas.
    - **Van en texto limpio y aireado:** El puente reflectivo, las opciones de decisión (`1.`, `2.`), los pros y contras (`• Pro:`, `• Contra:`) y las explicaciones. Enjaular todo en cajas satura la vista y destruye la jerarquía.
-3. **Badges Técnicos vs. Cero Emojis Distractores:**
+3. **Badges Técnicos y Sello de Marca (Cero Emojis Distractores):**
    - Prohibidos los emojis amarillos, caritas o fuegos que desalinean columnas o restan seriedad.
    - Usar badges de ingeniería sobrios entre corchetes: `[HIPÓTESIS SUGERIDA]`, `[RECOMENDADA]`, `[PREGUNTA 2/5]`, `[✓ OK]`, `[✕ FAIL]`, `[! WARN]`.
+   - **Excepción del Trueno Oficial (`⚡`):** El trueno es el sello de identidad de VSDD. Se permite en la cabecera principal siempre que se compense su ancho de display (2 columnas visuales) restando exactamente 1 carácter `─` al borde superior para que la pared derecha (`╮`) encaje milimétricamente en las 40 columnas.
 4. **Soberanía de Copiado (Copy-Paste Clean):**
    - Prohibido encerrar comandos ejecutables o código a copiar dentro de cajas con bordes laterales (`│`), ya que al copiarlos con el ratón se capturan los caracteres de borde.
    - Todo comando sugerido va en su propia línea limpia o bloque de código Markdown (`` `comando` `` o ````bash ````) para que un doble clic lo copie intacto.
@@ -25,12 +26,12 @@ Fuente Única de Verdad (SSOT) para la presentación gráfica, diagramas, tablas
 ## 2. Catálogo de Componentes
 
 ### Componente 1: Cabecera de Sesión (Session Header)
-Enmarca el contexto, número de pregunta y la línea viva de acuerdos.
+Enmarca el contexto, número de pregunta y la línea viva de acuerdos con el sello oficial `⚡`:
 
 ```text
-╭── [PREGUNTA 2/5] · TEMA EN MAYÚSCULAS ─╮
-│ En curso: Resumen de acuerdos previos  │
-╰────────────────────────────────────────╯
+╭── ⚡ [PREGUNTA 2/5] · TEMA ──────────╮
+│ En curso: Resumen de acuerdos        │
+╰──────────────────────────────────────╯
 ```
 
 ### Componente 2: Diagrama de Flujo (Flowchart de Nodos Conectados)

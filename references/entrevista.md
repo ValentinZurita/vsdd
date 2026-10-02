@@ -18,9 +18,9 @@ El usuario a menudo **no sabe de antemano exactamente qué quiere**, ni por qué
 Cada pregunta se presenta siguiendo el estándar y catálogo de componentes de [`references/guia-visual.md`](file:///Users/valentin/Documents/vsdd/references/guia-visual.md) (ancho seguro de 40 columnas, bordes redondeados y pregunta destacada con líneas de acento):
 
 ```text
-╭── [PREGUNTA [k/N]] · [TEMA EN MAYÚSCULAS] ──╮
-│ En curso: [Micro-resumen de lo acordado]    │
-╰─────────────────────────────────────────────╯
+╭── ⚡ [PREGUNTA [k/N]] · [TEMA] ──────╮
+│ En curso: [Micro-resumen acordado]   │
+╰──────────────────────────────────────╯
 
 [Puente reflectivo amable que valida el turno anterior en 1 línea]
 
