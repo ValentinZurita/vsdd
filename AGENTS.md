@@ -31,9 +31,15 @@ Este documento instruye a cualquier agente de inteligencia artificial (Google An
 
 ## 4. Dinámica de Entrevista y Elicitación Adaptativa
 
+*   **Motor de Entrevista y Formato Visual (`references/entrevista.md`):** Cada pregunta se formatea en el chat con una cabecera limpia en caja (`💬 PREGUNTA [k/N]`), indicador de progreso vivo (`📌 En curso:`), micro-escenario de la vida real, hipótesis recomendada por defecto (*Zero-Friction*) y opciones numeradas (`1 / 2 / 3`) con **Pro**, **Contra** y **Por qué elegirla**. En Intake nunca mostrar contadores `k/N`.
 *   **Una pregunta por turno:** Detente obligatoriamente (`STOP`) tras cada pregunta y espera la respuesta del usuario.
-*   **Técnica del Puente Reflectivo:** Inicia cada turno validando en una línea amable la respuesta anterior antes de plantear la siguiente arista:
+*   **Técnica del Puente Reflectivo:** Inicia cada turno validando en una línea amable la respuesta anterior y actualizando la línea `📌 En curso:` antes de plantear la siguiente arista:
     *«Entendido, dejamos la descarga automática fuera de alcance para no inflar la entrega. Teniendo eso claro, pasemos a...»*
+*   **Las 4 Heurísticas de Elicitación (Sin Camisas de Fuerza):**
+    1. *Indagación por Hipótesis:* Siempre plantear la opción más simple y segura por defecto para permitir avance inmediato (*"1"*, *"ok"* o Enter).
+    2. *Micro-Escenarios Concretos:* Llevar cualquier dilema a una situación cotidiana del usuario final antes de pedir una decisión.
+    3. *Progreso Vivo:* Actualizar la cabecera en cada turno para dar sensación de avance tangible.
+    4. *Trade-offs Visibles:* Evidenciar la complejidad oculta antes de sumar funcionalidades.
 *   **Elicitación Adaptativa por Tiers ($N \in \{5, 10, 15\}$) Anclada en el Contexto:**
     *   **Tier Rápido ($N \le 5$ preguntas) — Ajuste quirúrgico / Rieles existentes:** Se apoya en patrones consolidados del repo. Modifica o extiende sin alterar el flujo general ni crear nuevos puntos de fallo (solo lectura, flags, opciones de config o scripts aislados). Camino feliz, error evidente y límites (qué NO hacer). Cero preguntas sobre matrices CRUD completas, skeletons o auditoría.
     *   **Tier Estándar ($N \le 10$ preguntas) — Nueva capacidad dentro del paradigma:** Nueva unidad funcional (comando, endpoint, vista o flujo de varios pasos) que sigue las convenciones existentes. Incluye Estado Vacío (*Empty State*: sin datos o entrada vacía), validación de errores y ciclo de vida básico (editar/cancelar/reintentar).

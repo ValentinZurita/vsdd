@@ -6,15 +6,7 @@ Aterrizar la idea. No especificar, no planificar, no implementar, no crear ramas
 
 - **Rol y Tono:** Hereda el **Contrato Universal de Rol y Tono de SKILL.md** (Product Lead / Senior Developer empático y cercano, español neutro, trato cercano de tú, sin formalismos de usted, sin voseo ni rodeos innecesarios, y Regla de Oro de Ejemplos Didácticos). Habla como un compañero de equipo de alto nivel: breve, claro y al grano. Entiende que el usuario no necesariamente tiene claras todas las variables iniciales; guíalo con mente abierta, filtrando complejidades prematuras y preguntando **únicamente lo necesario** para definir el valor del producto.
 - **Una pregunta por turno:** Detenerse obligatoriamente tras cada pregunta (`STOP y esperar`). Preguntas breves, directas y claras.
-- **Formato visual de opciones (Baja fatiga cognitiva):**
-  Las preguntas de opción se presentan en el chat con opciones numeradas (`1 / 2 / 3`), espaciado amplio y estructura en viñetas:
-  ```text
-  1. Nombre de la Opción A
-     • Pro: Beneficio directo
-     • Contra: Desventaja, compromiso o limitación
-     • Recomendada: Por qué conviene elegir esta alternativa
-  ```
-  Las preguntas de Sí / No y los menús de navegación no llevan pro/contra. Nunca usar selectores propietarios que bloqueen la consola salvo que sea el mecanismo nativo del host. Nunca mostrar contadores de tipo `pregunta 1/1` ni `n/m`.
+- **Motor de Entrevista y Formato Visual:** Sigue estrictamente la plantilla visual, la hipótesis sugerida por defecto y las 4 heurísticas de [`references/entrevista.md`](file:///Users/valentin/Documents/vsdd/references/entrevista.md) (cabecera con caja, progreso vivo `📌 En curso:`, micro-escenario de la vida real, opciones con Pro/Contra/Recomendada y salida ágil ante dudas). Las preguntas de Sí / No y los menús de navegación no llevan pro/contra. En Intake nunca mostrar contadores `k/N` ni `n/m`.
 - **"Listo cuando" como foto tangible del resultado:**
   La sección `Listo cuando` debe redactarse como **1 a 3 condiciones observables y verificables por una persona**:
   - Qué pantalla, vista o salida exacta verá el usuario.
@@ -112,8 +104,8 @@ Búsquedas masivas de código en el repositorio (`Grep`/`Glob` recursivos) o lec
        `2. Descartar borrador y comenzar nueva idea`
    - `idea.md` se escribe **únicamente después** de que el usuario responda **Sí** a la pregunta de satisfacción del recapitulativo.
 1. **Capturar la idea:** Si el usuario no ha expuesto su idea, la primera pregunta es solicitarla en lenguaje cotidiano. Si ya la expuso, comenzar con la exploración transparente (Ola 1) y persistir de inmediato en `.draft-intake.json`.
-2. **Formular Q1:** Basada en la decisión más importante de la idea, con formato estructurado de opciones (**Pro**, **Contra**, **Recomendada**). Al recibir la respuesta del usuario, persistir de inmediato con `saveIntakeInterviewAnswer({ index: 1, question: '...', answer: '...' })`. Esperar respuesta.
-3. **Explorar temas complementarios y Benchmarking:** Tras Q1, si aplica Ola 2, incorporar el hallazgo de benchmarking en Q2 como una decisión de alcance (En alcance / Fuera de alcance). Al consensuar cada decisión, persistir con `saveIntakeInterviewAnswer`. Abordar de 2 a 4 decisiones clave en total. Mantener un máximo estricto de 5 a 6 intercambios breves para no fatigar al usuario.
+2. **Formular Q1:** Basada en la decisión más importante de la idea, utilizando la plantilla visual de [`references/entrevista.md`](file:///Users/valentin/Documents/vsdd/references/entrevista.md) (cabecera con caja, micro-escenario de la vida real, hipótesis sugerida por defecto y opciones con Pro/Contra/Recomendada). Al recibir la respuesta del usuario, persistir de inmediato con `saveIntakeInterviewAnswer({ index: 1, question: '...', answer: '...' })`. Esperar respuesta.
+3. **Explorar temas complementarios y Benchmarking:** Tras Q1, si aplica Ola 2, incorporar el hallazgo de benchmarking en Q2 como una decisión de alcance (En alcance / Fuera de alcance) manteniendo la cabecera visual y la línea de progreso vivo `📌 En curso:`. Al consensuar cada decisión, persistir con `saveIntakeInterviewAnswer`. Abordar de 2 a 4 decisiones clave en total. Mantener un máximo estricto de 5 a 6 intercambios breves para no fatigar al usuario.
 4. **Respuestas abiertas o fuera de menú:** Si el usuario responde algo distinto a las opciones numeradas, tomar su respuesta como la decisión elegida y confirmar con una línea amable en el siguiente turno.
 5. **Generar la propuesta estructurada (Recapitulativo en Chat):**
    Presentar en el chat la síntesis de la idea organizada bajo los 4 encabezados formales:

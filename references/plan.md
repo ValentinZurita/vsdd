@@ -18,11 +18,7 @@ Paso 4c (pregunta de cierre técnico) → escribir `plan.md` inicial (`Estado: e
   1. *¿Por qué se aplica de esta forma?* (Alineación con buenas prácticas y estándares modernos).
   2. *¿Por qué es la mejor opción actual?* (Beneficios tangibles de rendimiento, mantenibilidad o simplicidad).
   3. *¿Por qué no de otra forma?* (Alternativas descartadas analizadas con argumentos técnicos rigurosos).
-- **Interacción Uno a Uno:** Una sola pregunta por turno. **DETENERSE (STOP) y esperar respuesta.** Opciones en el chat numeradas (`1 / 2 / 3`) con formato estructurado:
-  - `• Pro:`
-  - `• Contra:`
-  - `• Recomendada:`
-  Las preguntas de confirmación simple (Sí / No) no llevan análisis de pros y contras.
+- **Interacción Uno a Uno y Motor de Entrevista:** Una sola pregunta por turno. **DETENERSE (STOP) y esperar respuesta.** Aplica la plantilla visual en caja, las heurísticas de elicitación y los dilemas de trade-offs visibles de [`references/entrevista.md`](file:///Users/valentin/Documents/vsdd/references/entrevista.md). Toda consulta arquitectónica incluye hipótesis por defecto (*Zero-Friction*) y opciones numeradas con `• Pro:`, `• Contra:` y `• Por qué elegirla:`. Las preguntas de confirmación simple (Sí / No) no llevan análisis de pros y contras.
 - **Estimación y Presupuesto de Preguntas:** Cada pregunta técnica se encabeza amigablemente con: `Pregunta k de como máximo N.` Donde $N$ es el tope estimado según la complejidad ($5$, $10$ o $15$). Se anuncia $N$ en el primer turno:
   `● Estimación de diálogo técnico: como máximo N preguntas breves (una por turno). Al final podrás agregar o aclarar cualquier aspecto.`
 - **No re-preguntar hechos de producto ya resueltos:** Respetar lo acordado en `spec.md` e `idea.md`. Indagar únicamente el **cómo**: dónde se aloja la lógica, contratos, estructura de datos y cómo se prueba.
