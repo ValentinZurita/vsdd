@@ -250,7 +250,8 @@ function performVsddUpdate(cwd = process.cwd(), options = {}) {
         fs.existsSync(path.join(cwd, '.agents', 'skills', 'vsdd')) ||
         fs.existsSync(path.join(cwd, '.claude', 'skills', 'vsdd'));
       if (hasLocalSkill && fs.existsSync(cliInstaller)) {
-        runner(`node "${cliInstaller}" --scope project --hosts all --apply --update`, {
+        const cliRoot = path.join(os.homedir(), '.vsdd', 'cli');
+        runner(`node "${cliInstaller}" --scope project --project "${cwd}" --source "${cliRoot}" --hosts all --apply --update`, {
           cwd,
           encoding: 'utf8',
           stdio: ['pipe', 'pipe', 'pipe'],

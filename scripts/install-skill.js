@@ -296,13 +296,13 @@ function resolveSourceDir(projectRoot, customSource) {
   if (isVsddSkillDir(root)) {
     return root;
   }
-  const agentsPath = path.join(root, '.agents', 'skills', 'vsdd');
-  if (isVsddSkillDir(agentsPath)) {
-    return agentsPath;
-  }
   const pkgRoot = path.resolve(__dirname, '..');
   if (isVsddSkillDir(pkgRoot)) {
     return pkgRoot;
+  }
+  const agentsPath = path.join(root, '.agents', 'skills', 'vsdd');
+  if (isVsddSkillDir(agentsPath)) {
+    return agentsPath;
   }
   return root;
 }

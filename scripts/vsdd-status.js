@@ -127,6 +127,9 @@ if (require.main === module) {
       const result = performVsddUpdate(cwd);
       if (isJson) {
         console.log(JSON.stringify(result, null, 2));
+        if (!result.success) {
+          process.exit(1);
+        }
       } else {
         if (result.success) {
           console.log(`✔ [✓ OK] ${result.message}`);
