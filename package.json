@@ -8,6 +8,7 @@
     "vsdd-status": "./scripts/vsdd-status.js",
     "vsdd-validate": "./scripts/vsdd-validate.js",
     "vsdd-oracle": "./scripts/vsdd-oracle.js",
+    "vsdd-sonar": "./scripts/vsdd-sonar.js",
     "vsdd-install": "./scripts/install-skill.js"
   },
   "scripts": {
@@ -15,6 +16,7 @@
     "status": "./scripts/vsdd-status.js",
     "validate": "./scripts/vsdd-validate.js",
     "oracle": "./scripts/vsdd-oracle.js",
+    "sonar": "./scripts/vsdd-sonar.js",
     "install:skill": "./install.sh",
     "uninstall:skill": "./install.sh --uninstall"
   },

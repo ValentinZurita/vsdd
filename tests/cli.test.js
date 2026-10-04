@@ -61,6 +61,12 @@ test('cli: parseCliCommand install rutea a install-skill.js', () => {
   assert.deepEqual(parsed.args, ['--scope', 'project', '--hosts', 'cursor']);
 });
 
+test('cli: parseCliCommand sonar rutea a vsdd-sonar.js con argumentos', () => {
+  const parsed = parseCliCommand(['sonar', '--focus', 'scripts/cli.js', '--json'], scriptsDir);
+  assert.equal(parsed.script, path.join(scriptsDir, 'vsdd-sonar.js'));
+  assert.deepEqual(parsed.args, ['--focus', 'scripts/cli.js', '--json']);
+});
+
 test('cli: parseCliCommand reconoce banderas de versión y ayuda', () => {
   const parsedV = parseCliCommand(['-v'], scriptsDir);
   assert.equal(parsedV.action, 'version');
@@ -122,4 +128,16 @@ test('cli integración: vsdd validate propaga código 1 ante archivo con errores
   } finally {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   }
+});
+
+test('cli integración: vsdd sonar --json emite mapa de exploración válido', () => {
+  const stdout = execSync(`node ${path.join(scriptsDir, 'cli.js')} sonar --json`, {
+    encoding: 'utf8',
+    cwd: repoRoot,
+  });
+  const parsed = JSON.parse(stdout);
+  assert.ok(parsed.tree);
+  assert.ok(parsed.extensions);
+  assert.ok(parsed.tests);
+  assert.equal(typeof parsed.files, 'number');
 });

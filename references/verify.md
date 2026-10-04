@@ -182,10 +182,12 @@ Superficie: <CLI Interactivo | Web | API | Headless>
 
        2. Actualizar la cabecera de `tasks.md` y `spec.md` en disco a `Estado: completado`. Con esto la funcionalidad queda formalmente terminada y archivada.
        3. Persistir en Engram el cierre formal: `mem_save(topic_key: "sdd/<slug>/archive-report", title: "Resumen de Entrega: <slug>")`.
-       4. Preguntar amablemente:
+       4. Si se identifican aprendizajes o gotchas transversales verificables del repositorio, registrarlos en la memoria determinista para futuras funcionalidades:
+          `vsdd sonar --remember "<hipótesis/gotcha transversal>" --anchor <ruta-del-archivo-ancla> [--contains "<texto-clave>"]`
+       5. Preguntar amablemente:
           `¿Deseas eliminar la rama local integrada (<rama_actual>) y en el repositorio remoto si existe? (1: Solo local / 2: Local y remota / 3: Conservar ambas)`
           Ejecutar la opción seleccionada limpiamente.
-       5. Confirmar en el chat la finalización exitosa del ciclo VSDD.
+       6. Confirmar en el chat la finalización exitosa del ciclo VSDD.
 
 ---
 

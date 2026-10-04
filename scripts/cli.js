@@ -25,6 +25,7 @@ Uso:
   vsdd status [--json|--catalog]    Inspecciona estado, drift y catálogo de funcionalidades
   vsdd abort <id> [--delete-branch] Cancela y excluye una funcionalidad en curso
   vsdd oracle [id] [--target <r>]   Genera el oráculo de pruebas universal desde spec.md
+  vsdd sonar [opciones]             Exploración determinista y memoria del repositorio
   vsdd update [--json]              Actualiza VSDD a la última versión
   vsdd install [opciones]           Instala o actualiza la skill en tus agentes
   vsdd --version | -v               Muestra la versión instalada
@@ -32,6 +33,7 @@ Uso:
 
 Comandos directos del agente:
   vsdd oracle <id> [--target <ruta>] [--dry-run|--json]
+  vsdd sonar [--path <d>] [--focus <f>] [--remember <t>] [--forget <id>] [--json]
   vsdd validate docs/sdd/vsdd/<slug>/idea.md
   vsdd validate docs/sdd/vsdd/<slug>/spec.md
   vsdd validate docs/sdd/vsdd/<slug>/plan.md
@@ -96,6 +98,13 @@ function parseCliCommand(args, baseDir) {
   if (first === 'oracle' || first === 'scaffold-tests' || first === 'scaffold') {
     return {
       script: path.join(baseDir, 'vsdd-oracle.js'),
+      args: args.slice(1),
+    };
+  }
+
+  if (first === 'sonar') {
+    return {
+      script: path.join(baseDir, 'vsdd-sonar.js'),
       args: args.slice(1),
     };
   }

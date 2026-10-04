@@ -62,3 +62,12 @@ test('constitution: Artículo 7 formaliza la Separación de Planos e Higiene de 
     'Debe exigir aislamiento mediante Subagentes Efímeros'
   );
 });
+
+test('constitution: Artículo 6.4 formaliza la memoria verificable con ancla física', () => {
+  const content = fs.readFileSync(constitutionPath, 'utf8');
+  assert.match(
+    content,
+    /ancla física verificable/i,
+    'El Artículo 6.4 debe exigir ancla física verificable para los aprendizajes transversales'
+  );
+});

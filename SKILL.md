@@ -62,6 +62,7 @@ En cada turno o transición de fase, sigue estrictamente este ciclo:
 ## 5. Comandos del Conductor
 
 - `vsdd status --json`: Inspección de DAG, drift y rutas canónicas absolutas.
+- `vsdd sonar [--path|--focus|--remember] [--json]`: Radar de exploración determinista y memoria del repo.
 - `vsdd validate <archivo>`: Linter determinista (Exit 0 verde / Exit 1 con número de línea).
 - `vsdd oracle <id>`: Generador universal de oráculo de pruebas desde `spec.md`.
 - `vsdd abort <id>`: Cancelación segura con guardias de Git.

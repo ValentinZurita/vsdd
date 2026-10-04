@@ -73,7 +73,7 @@ Filtro mental previo a formular cada pregunta:
    - Prohibido espiar las entrañas (cero llamadas a helpers internos o funciones privadas).
    - Prohibido mockear la memoria (mocks solo para frontera I/O externa).
    - Prohibido el test cosmético (`toBeDefined` sin validar valor de negocio).
-4. **Memoria de Aprendizajes:** `resumen.md` captura en `## 4. Aprendizajes del repositorio` gotchas reales para que futuras funcionalidades no tropiecen con la misma piedra.
+4. **Memoria de Aprendizajes:** `resumen.md` captura en `## 4. Aprendizajes del repositorio` gotchas reales para que futuras funcionalidades no tropiecen con la misma piedra. Los aprendizajes transversales se registran con ancla física verificable; una memoria sin ancla vigente es hipótesis, no hecho.
 
 ---
 

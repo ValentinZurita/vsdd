@@ -45,31 +45,35 @@ El conductor no realiza lecturas masivas ni tours completos del código en esta 
 - **Excepción de Metadatos Técnicos:** La regla de escritura diferida aplica exclusivamente a los artefactos Markdown de negocio (`plan.md`). Todo mapeo de módulos y hallazgos de subagentes se persiste de inmediato en `context.json` mediante `saveFeatureExploration(featDir, 'plan', ...)` en el mismo turno en que se recibe, capturando el `baseCommit` y los módulos propuestos.
 - Si Engram está disponible, respaldar adicionalmente con `mem_save topic_key: vsdd-explore-<slug>-plan`.
 
-**Ola 1 (Exploración de Módulos, Contratos Previos y Arquitectura Existente):**
+**Ola 1 (Exploración Determinista con Sonar y Arquitectura Existente):**
 1. **Comprobación de Herencia de Intake y Catálogo:**
-   - Si `context.json` ya cuenta con `matchedIds` determinados en Intake (`phases.intake`), heredarlos directamente (cero tokens de re-evaluación y cero riesgo de contradicciones arquitectónicas).
-   - Si no provienen de Intake (ej: especificación creada manualmente), consultar el catálogo (`vsdd status --catalog`). Si el catálogo está vacío (0 completadas), aplicar *short-circuit* asumiendo `MATCHED_IDS: NONE`.
-2. **Subagente de exploración arquitectónica** (modelo rápido y económico: `flash`, `haiku`, etc.):
-   Anunciar en chat: `● [Subagente: Exploración Arquitectónica] Analizando estructura del repositorio, antecedentes y módulos con modelo: <modelo>...`
+   - Si `context.json` ya cuenta con `matchedIds` determinados en Intake (`phases.intake`), heredarlos directamente (cero tokens de re-evaluación).
+   - Si no provienen de Intake (ej: especificación creada manualmente), consultar el catálogo (`vsdd status --catalog`). Si el catálogo está vacío (0 completadas), asumir `MATCHED_IDS: NONE`.
+2. **Ejecución del Sonar Determinista (0 tokens de LLM):**
+   - Ejecutar inmediatamente `vsdd sonar --json`. El CLI devuelve en milisegundos los hechos físicos crudos del repositorio: árbol L2, extensiones, pruebas detectadas, manifiestos de raíz y memoria del repo (`repo-memory.json` con estatus verificado de hipótesis).
+   - Si la funcionalidad se ubica en un subdirectorio claro o monorrepo, usar `vsdd sonar --path <directorio> --json`.
+3. **Subagente de exploración arquitectónica** (modelo rápido y económico: `flash`, `haiku`, etc.):
+   Anunciar en chat: `● [Subagente: Exploración Arquitectónica] Analizando estructura con sonar y antecedentes con modelo: <modelo>...`
    Prompt breve (≤14 líneas):
    ```text
    Rol: Explorador de Arquitectura y Módulos (Ola 1).
    Especificación: <resumen de spec.md>
-   Antecedentes heredados o Catálogo: <MATCHED_IDS heredados o JSON de vsdd status --catalog>
+   Radar Sonar (hechos crudos): <JSON de vsdd sonar --json>
+   Antecedentes heredados o Catálogo: <MATCHED_IDS o NONE>
 
-   Evalúa módulos existentes y coherencia con antecedentes.
+   Evalúa módulos existentes respetando el árbol y tests reales. Si identificas un archivo existente clave para acoplar contratos, puedes consultar `vsdd sonar --focus <ruta> --json`.
    Devolver estrictamente este formato (≤12 líneas):
-   MATCHED_IDS: [<id1>, <id2>] | NONE
-   Módulos a tocar: <lista concisa de rutas a crear o modificar>
-   Reutilización: <1 línea sobre qué interfaces o contratos previos se respetan o extienden>
-   Complejidad: <5 | 10 | 15>
+   Módulos a tocar: <rutas a crear o modificar en el árbol real>
+   Patrón de tests: <directorio o convención de tests detectada>
+   Hipótesis vigentes usadas: [<id>] | ninguna
+   Convención detectada: <1 línea sobre estilo o convención observable>
+   Complejidad sugerida: <5 | 10 | 15>
    Q1: <disyuntiva técnica principal con 2-3 opciones>
-   Riesgo: <1 línea o "ninguno">
+   Riesgo / Gotcha: <1 línea o "ninguno">
    ```
-3. **Inyección Quirúrgica de Contratos Reales:**
-   - Si `MATCHED_IDS` es `NONE`: continuar con arquitectura limpia sobre el código base sin lecturas adicionales.
-   - Si `MATCHED_IDS` contiene IDs válidos: en lugar de limitarse al resumen de 35 líneas, leer quirúrgicamente los **archivos clave de código o tipos** listados en `archivosClave` de esas features (máximo 2 a 3 archivos reales, ej: `src/checkout/types.ts`). Esto garantiza que las Decisiones Técnicas (DT) y el árbol de cambios se acoplen a las firmas exactas sin alucinar interfaces.
-4. **Persistencia Inmediata:** Guardar el memo y los módulos detectados en `context.json` (`saveFeatureExploration(featDir, 'plan', ...)`) antes de formular Q1. Si la herramienta falla, el agente principal analiza los módulos localmente avisando en chat.
+4. **Inyección Quirúrgica de Contratos Reales:**
+   - Si se detecta un archivo clave existente sobre el que acoplar la arquitectura (o si `MATCHED_IDS` contiene IDs con `archivosClave`), ejecutar `vsdd sonar --focus <archivo> --json` o leer únicamente los 2-3 archivos clave detectados. Prohibido hacer barridos masivos de código.
+5. **Persistencia Inmediata:** Guardar el memo y los módulos detectados en `context.json` (`saveFeatureExploration(featDir, 'plan', ...)`) antes de formular Q1. Si la herramienta falla, el agente principal analiza los módulos localmente avisando en chat.
 
 **Ola 2 (Exploración de Estándares Externos / Mejores Prácticas):**
 Solo si una decisión técnica requiere contrastar opciones contra el estado del arte de la industria.
@@ -138,6 +142,8 @@ Máximo 2 búsquedas web breves. Al recibir el reporte, persistir acumulativamen
     - Actualizar en `plan.md` la cabecera a `Estado: listo-para-tareas`.
     - Generar o actualizar `context.json` en la carpeta de la funcionalidad (`saveFeatureContext`): extraer la lista de archivos con sus acciones (`+` crear, `~` modificar, `-` eliminar) desde el `## Árbol de cambios`, y registrar el commit base actual (`git rev-parse HEAD`), la rama activa y el timestamp de captura.
     - Si Engram está disponible, persistir un resumen con `mem_save topic_key: vsdd-plan-<slug>`.
+    - Si durante el diseño arquitectónico se descubrieron aprendizajes transversales o gotchas de infraestructura comprobables en archivos físicos, registrarlos en la memoria persistente del repositorio:
+      `vsdd sonar --remember "<hipótesis de arquitectura o gotcha>" --anchor <ruta-del-archivo-ancla> [--contains "<texto-clave>"]`
     - Si el proyecto usa Git, preguntar cordialmente al usuario si desea registrar un commit convencional de documentación o prefiere continuar sin commitear:
       *«¿Deseas que prepare un commit de git (`docs(sdd): aprobar plan técnico para <slug>`) o prefieres continuar sin commitear?»*
     - Presentar en la terminal el menú de transición de 3 opciones:

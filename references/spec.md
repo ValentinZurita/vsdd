@@ -82,14 +82,14 @@ El conductor no realiza recorridos masivos del código del proyecto en esta fase
 - Si Engram está disponible, respaldar adicionalmente con `mem_save topic_key: vsdd-explore-<slug>-spec`.
 
 **Ola 1 (Análisis Agnóstico de Dominio, Huecos, Rabbit Holes y No-Gos):**
-Con la idea cargada, se despacha un subagente de exploración (modelo rápido y económico, ej: `flash` o `haiku`). El subagente actúa como un Senior Lead que recién llega al proyecto: inspecciona de forma 100% agnóstica el árbol general, el `README.md` o archivos de configuración/tipos que encuentre de forma natural, **sin asumir ni buscar tecnologías específicas**.
+Con la idea cargada, el conductor puede ejecutar `vsdd sonar --json` para obtener el mapa estructural determinista en 0 tokens, y se despacha un subagente de exploración (modelo rápido y económico, ej: `flash` o `haiku`). El subagente actúa como un Senior Lead que recién llega al proyecto: inspecciona de forma 100% agnóstica el árbol general, el `README.md` o archivos de configuración/tipos que encuentre de forma natural, **sin asumir ni buscar tecnologías específicas**.
 Anunciar en chat: `● [Subagente: Exploración de Requisitos] Analizando contexto de dominio, completitud y límites con modelo: <modelo>...`
 
 Prompt breve (≤16 líneas):
 ```text
 Rol: Arquitecto Explorador de Contexto y Riesgo (Ola 1 de Spec).
 Idea cargada: <problema, solución y 'Listo cuando' de idea.md>
-Contexto del repo: <README.md, nombres de carpetas principales, tipos o módulos relevantes>
+Contexto del repo: <salida de vsdd sonar --json o README.md y nombres de carpetas principales>
 
 Evalúa el tamaño y riesgo de la funcionalidad según la arquitectura real:
 1) Rieles existentes: ¿El proyecto ya tiene resuelto este patrón o requiere introducir algo sin precedentes?

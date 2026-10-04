@@ -32,6 +32,7 @@ test('slender-skill: SKILL.md contiene el ciclo de ejecución de 4 pasos (The 4-
 
   // Paso 4: Compuerta determinista
   assert.match(content, /vsdd validate/i, 'Debe validar con vsdd validate en 0 tokens');
+  assert.match(content, /vsdd sonar/i, 'Debe incluir vsdd sonar en los comandos del conductor');
 });
 
 test('slender-skill: SKILL.md formaliza el Artículo 7 y la seguridad Git no-interactiva', () => {
