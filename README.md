@@ -33,11 +33,10 @@ irm https://raw.githubusercontent.com/ValentinZurita/vsdd/main/install.ps1 | iex
 
 | Comando | Acción |
 | :--- | :--- |
-| `vsdd intake` | Inicia una nueva funcionalidad con entrevista interactiva |
 | `vsdd` | Abre el panel de pendientes y retoma trabajo en curso |
 | `vsdd update` | Actualiza VSDD a la última versión |
-| `vsdd -v` | Muestra la versión instalada (`--version`) |
-| `vsdd --abort <funcionalidad>` | Descarta una funcionalidad en curso y limpia la rama de Git |
+
+Para cancelar una funcionalidad: `vsdd abort <id>`. Añade `--delete-branch` solo si también quieres eliminar su rama. Para ver todos los comandos: `vsdd --help`.
 
 ## Flujo de Trabajo
 
