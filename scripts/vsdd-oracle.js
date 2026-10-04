@@ -18,7 +18,7 @@ const {
   formatCSharp,
   formatOracle,
 } = require('./lib/oracle/generators');
-const { resolveSpecPath } = require('./lib/oracle/paths');
+const { resolveSpecPath, resolveAutoTestTarget, isTestFilePath } = require('./lib/oracle/paths');
 
 /**
  * Muestra el mensaje de ayuda de uso del oráculo VSDD.
@@ -29,6 +29,7 @@ Uso: vsdd oracle [id-funcionalidad] [opciones]
      vsdd scaffold-tests [id-funcionalidad] [opciones]
 
 Genera un oráculo de pruebas independiente y agnóstico a partir de la especificación (spec.md).
+Si no se especifica --target, intenta auto-detectar el archivo de pruebas nuevo (+) en plan.md.
 
 Opciones:
   -t, --target <ruta>   Ruta del archivo de tests de destino (.ts, .py, .go, .rs, .cs, .md)
@@ -63,8 +64,34 @@ function runOracle(args = process.argv.slice(2), cwd = process.cwd()) {
       force = true;
     } else if (arg.startsWith('--target=')) {
       targetPath = arg.slice('--target='.length);
+      if (!targetPath) {
+        const err = {
+          error: "La opción '--target' requiere especificar la ruta del archivo destino.",
+          hint: 'Uso: vsdd oracle [id-funcionalidad] --target <ruta>',
+        };
+        if (isJson || args.includes('--json')) {
+          console.error(JSON.stringify(err, null, 2));
+        } else {
+          console.error(`✖ Error: ${err.error}\n  ${err.hint}`);
+        }
+        process.exitCode = 1;
+        return;
+      }
     } else if (arg.startsWith('-t=')) {
       targetPath = arg.slice('-t='.length);
+      if (!targetPath) {
+        const err = {
+          error: "La opción '-t' requiere especificar la ruta del archivo destino.",
+          hint: 'Uso: vsdd oracle [id-funcionalidad] -t <ruta>',
+        };
+        if (isJson || args.includes('--json')) {
+          console.error(JSON.stringify(err, null, 2));
+        } else {
+          console.error(`✖ Error: ${err.error}\n  ${err.hint}`);
+        }
+        process.exitCode = 1;
+        return;
+      }
     } else if (arg === '--target' || arg === '-t') {
       const nextArg = args[i + 1];
       if (!nextArg || nextArg.startsWith('-')) {
@@ -110,11 +137,30 @@ function runOracle(args = process.argv.slice(2), cwd = process.cwd()) {
     return;
   }
 
+  // Intentar auto-detección segura desde plan.md si no se pasó --target
+  let autoResolved = false;
+  let autoAmbiguous = false;
+  let autoCandidates = [];
+
+  if (!targetPath) {
+    const autoResult = resolveAutoTestTarget(featureArg, cwd);
+    if (autoResult.targetPath) {
+      targetPath = autoResult.targetPath;
+      autoResolved = true;
+    } else if (autoResult.ambiguous) {
+      autoAmbiguous = true;
+      autoCandidates = autoResult.candidates;
+    }
+  }
+
   const requirements = extractAcceptanceOracle(specContent);
   const featureId = path.basename(path.dirname(specPath));
   const meta = {
     featureId,
     source: path.relative(cwd, specPath),
+    targetPath: targetPath || null,
+    autoResolved,
+    ambiguousCandidates: autoAmbiguous ? autoCandidates : undefined,
   };
 
   if (isJson) {
@@ -122,9 +168,49 @@ function runOracle(args = process.argv.slice(2), cwd = process.cwd()) {
     return;
   }
 
+  if (autoAmbiguous && !targetPath) {
+    console.error(`▲ [Aviso] Se detectaron múltiples archivos de prueba nuevos en plan.md:`);
+    for (const cand of autoCandidates) {
+      console.error(`    - ${cand}`);
+    }
+    console.error(`  Especifica cuál usar con: vsdd oracle ${featureArg || ''} --target <ruta> (emitiendo a stdout por defecto).\n`);
+  }
+
   const formattedOutput = formatOracle(requirements, targetPath, meta);
   const resolvedTarget = targetPath ? path.resolve(cwd, targetPath) : null;
   const targetDir = resolvedTarget ? path.dirname(resolvedTarget) : null;
+
+  // Validación de seguridad contra Directory Traversal (incluyendo resolución de symlinks)
+  if (resolvedTarget) {
+    let realCwd = cwd;
+    try {
+      realCwd = fs.realpathSync(cwd);
+    } catch (_) {}
+
+    let targetToCheck = resolvedTarget;
+    let curr = path.dirname(resolvedTarget);
+    while (curr && curr !== path.dirname(curr) && !fs.existsSync(curr)) {
+      curr = path.dirname(curr);
+    }
+    try {
+      if (fs.existsSync(curr)) {
+        const realParent = fs.realpathSync(curr);
+        targetToCheck = path.join(realParent, path.relative(curr, resolvedTarget));
+      }
+    } catch (_) {}
+
+    const relFromCwd = path.relative(realCwd, targetToCheck);
+    const escapesCwd =
+      relFromCwd === '..' ||
+      relFromCwd.startsWith('..' + path.sep) ||
+      path.isAbsolute(relFromCwd);
+
+    if (escapesCwd) {
+      console.error(`✖ Error de seguridad: El destino '${targetPath}' intenta escribir fuera del workspace del proyecto.`);
+      process.exitCode = 1;
+      return;
+    }
+  }
 
   if (dryRun || !targetPath) {
     if (dryRun && resolvedTarget && fs.existsSync(resolvedTarget)) {
@@ -145,10 +231,15 @@ function runOracle(args = process.argv.slice(2), cwd = process.cwd()) {
     } catch (_) {}
   }
 
-  // Escritura en archivo destino
+  // Escritura en archivo destino con salvaguardas
   if (fs.existsSync(resolvedTarget) && !force) {
-    console.error(`▲ [Aviso] El archivo destino '${targetPath}' ya existe.`);
-    console.error(`  Para no pisar código accidentalmente, usa --force para sobrescribir o --dry-run para previsualizar.`);
+    if (autoResolved) {
+      console.error(`▲ [Aviso] El archivo destino '${targetPath}' detectado desde plan.md ya existe en disco.`);
+      console.error(`  Para actualizarlo usa: vsdd oracle ${featureArg || ''} --force o especifica --target <ruta>.`);
+    } else {
+      console.error(`▲ [Aviso] El archivo destino '${targetPath}' ya existe.`);
+      console.error(`  Para no pisar código accidentalmente, usa --force para sobrescribir o --dry-run para previsualizar.`);
+    }
     process.exitCode = 1;
     return;
   }
@@ -158,7 +249,8 @@ function runOracle(args = process.argv.slice(2), cwd = process.cwd()) {
       fs.mkdirSync(targetDir, { recursive: true });
     }
     fs.writeFileSync(resolvedTarget, formattedOutput, 'utf8');
-    console.log(`✔ Oráculo de aceptación generado exitosamente en: ${targetPath}`);
+    const autoNote = autoResolved ? ' (auto-detectado desde plan.md)' : '';
+    console.log(`✔ Oráculo de aceptación generado exitosamente en: ${targetPath}${autoNote}`);
   } catch (err) {
     console.error(`✖ Error al escribir en '${targetPath}': ${err.message}`);
     process.exitCode = 1;
@@ -179,5 +271,7 @@ module.exports = {
   formatCSharp,
   formatOracle,
   resolveSpecPath,
+  resolveAutoTestTarget,
+  isTestFilePath,
   runOracle,
 };

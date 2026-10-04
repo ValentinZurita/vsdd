@@ -13,6 +13,8 @@ const {
   formatCSharp,
   formatOracle,
   resolveSpecPath,
+  resolveAutoTestTarget,
+  isTestFilePath,
   runOracle,
 } = require('../scripts/vsdd-oracle');
 const { parseCliCommand } = require('../scripts/cli');
@@ -420,6 +422,20 @@ test('oracle: runOracle rechaza --target sin argumento o seguido de bandera', ()
     runOracle(['001', '-t', '-h']);
     assert.equal(process.exitCode, 1);
     assert.match(capturedErr, /requiere especificar la ruta/);
+
+    // 4. --target= vacío
+    capturedErr = '';
+    process.exitCode = 0;
+    runOracle(['001', '--target=']);
+    assert.equal(process.exitCode, 1);
+    assert.match(capturedErr, /requiere especificar la ruta/);
+
+    // 5. -t= vacío
+    capturedErr = '';
+    process.exitCode = 0;
+    runOracle(['001', '-t=']);
+    assert.equal(process.exitCode, 1);
+    assert.match(capturedErr, /requiere especificar la ruta/);
   } finally {
     console.error = originalError;
     process.exitCode = originalExitCode;
@@ -519,3 +535,191 @@ test('oracle: soporta sintaxis --target=<ruta> y rechaza directorios existentes'
     fs.rmSync(tmpDir, { recursive: true, force: true });
   }
 });
+
+test('oracle: isTestFilePath reconoce suites de prueba y descarta fixtures, configs y helpers', () => {
+  // Positivos
+  assert.equal(isTestFilePath('tests/services/auth.test.ts'), true);
+  assert.equal(isTestFilePath('src/__tests__/button.spec.tsx'), true);
+  assert.equal(isTestFilePath('tests/unit_test.py'), true);
+  assert.equal(isTestFilePath('tests/test_calculator.py'), true);
+  assert.equal(isTestFilePath('pkg/server_test.go'), true);
+  assert.equal(isTestFilePath('tests/integration.rs'), true);
+  assert.equal(isTestFilePath('Tests/Services/AuthTest.cs'), true);
+  assert.equal(isTestFilePath('tests/sub/my.test.js'), true);
+
+  // Negativos (exclusiones explícitas de auditoría)
+  assert.equal(isTestFilePath('tests/fixtures/data.json'), false);
+  assert.equal(isTestFilePath('tests/README.md'), false);
+  assert.equal(isTestFilePath('tests/mocks/user.mock.ts'), false);
+  assert.equal(isTestFilePath('tests/helpers/setup.ts'), false);
+  assert.equal(isTestFilePath('tests/utils/helper.ts'), false);
+  assert.equal(isTestFilePath('tests/__init__.py'), false);
+  assert.equal(isTestFilePath('tests/conftest.py'), false);
+  assert.equal(isTestFilePath('tests/mod.rs'), false);
+  assert.equal(isTestFilePath('src/components/button.tsx'), false);
+  assert.equal(isTestFilePath('docs/spec.md'), false);
+  assert.equal(isTestFilePath(''), false);
+  assert.equal(isTestFilePath(null), false);
+});
+
+test('oracle: resolveAutoTestTarget localiza archivo nuevo (+) en plan.md y protege archivos modificados (~)', () => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'vsdd-auto-target-'));
+
+  try {
+    const specDir = path.join(tmpDir, 'docs', 'sdd', 'vsdd', '001-galeria');
+    fs.mkdirSync(specDir, { recursive: true });
+    fs.writeFileSync(path.join(specDir, 'spec.md'), '# Spec\n## Requisitos funcionales\n### RF-01 Test\n- Entrada: A -> Salida: B\n', 'utf8');
+
+    // Caso 1: plan.md con 1 archivo nuevo de test (+)
+    const planContent1 = `
+# Plan 001 Galeria
+## Árbol de cambios
+- + tests/galeria.test.ts
+- + src/galeria.ts
+`;
+    fs.writeFileSync(path.join(specDir, 'plan.md'), planContent1, 'utf8');
+
+    const res1 = resolveAutoTestTarget('001-galeria', tmpDir);
+    assert.equal(res1.targetPath, 'tests/galeria.test.ts');
+    assert.equal(res1.ambiguous, false);
+    assert.equal(res1.candidates.length, 1);
+
+    // Caso 2: plan.md con archivo existente modificado (~) -> NO auto-escribe en targetPath para evitar sobreescritura destructiva
+    const planContent2 = `
+# Plan 001 Galeria
+## Árbol de cambios
+- ~ tests/existing.test.ts
+- + src/galeria.ts
+`;
+    fs.writeFileSync(path.join(specDir, 'plan.md'), planContent2, 'utf8');
+
+    const res2 = resolveAutoTestTarget('001-galeria', tmpDir);
+    assert.equal(res2.targetPath, null);
+    assert.equal(res2.ambiguous, false);
+    assert.equal(res2.candidates.length, 0);
+
+    // Caso 3: plan.md con múltiples archivos de test nuevos (+) -> reporta ambigüedad si no desambigua
+    const planContent3 = `
+# Plan 001 Galeria
+## Árbol de cambios
+- + tests/unit/service.test.ts
+- + tests/e2e/flow.spec.ts
+`;
+    fs.writeFileSync(path.join(specDir, 'plan.md'), planContent3, 'utf8');
+
+    const res3 = resolveAutoTestTarget('001-galeria', tmpDir);
+    assert.equal(res3.targetPath, null);
+    assert.equal(res3.ambiguous, true);
+    assert.equal(res3.candidates.length, 2);
+  } finally {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  }
+});
+
+test('oracle: runOracle auto-detecta target desde plan.md sin necesidad de bandera --target', () => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'vsdd-oracle-auto-cli-'));
+  const originalExitCode = process.exitCode;
+  const originalError = console.error;
+  const originalLog = console.log;
+  let capturedLog = '';
+  let capturedErr = '';
+  console.log = (msg) => { capturedLog += msg + '\n'; };
+  console.error = (msg) => { capturedErr += msg + '\n'; };
+
+  try {
+    const specDir = path.join(tmpDir, 'docs', 'sdd', 'vsdd', '002-pago');
+    fs.mkdirSync(specDir, { recursive: true });
+    fs.writeFileSync(path.join(specDir, 'spec.md'), '# Spec 002 Pago\n## Requisitos funcionales\n### RF-01 Pago\n- Entrada: $10 -> Salida: OK\n', 'utf8');
+
+    const planContent = `
+# Plan 002 Pago
+## Árbol de cambios
+- + tests/pago.test.ts
+- + src/pago.ts
+`;
+    fs.writeFileSync(path.join(specDir, 'plan.md'), planContent, 'utf8');
+
+    // 1. Ejecutar sin --target -> auto-escribe en tests/pago.test.ts
+    process.exitCode = 0;
+    capturedLog = '';
+    runOracle(['002-pago'], tmpDir);
+    assert.equal(process.exitCode, 0);
+    assert.match(capturedLog, /auto-detectado desde plan\.md/);
+
+    const generatedFile = path.join(tmpDir, 'tests', 'pago.test.ts');
+    assert.equal(fs.existsSync(generatedFile), true);
+    const content = fs.readFileSync(generatedFile, 'utf8');
+    assert.match(content, /describe\('RF-01: Pago'/);
+
+    // 2. Ejecutar de nuevo sin --force -> previene sobreescritura accidental
+    process.exitCode = 0;
+    capturedErr = '';
+    runOracle(['002-pago'], tmpDir);
+    assert.equal(process.exitCode, 1);
+    assert.match(capturedErr, /detectado desde plan\.md ya existe/);
+
+    // 3. Ejecutar de nuevo con --force -> sobrescribe exitosamente
+    process.exitCode = 0;
+    capturedLog = '';
+    runOracle(['002-pago', '--force'], tmpDir);
+    assert.equal(process.exitCode, 0);
+    assert.match(capturedLog, /generado exitosamente/);
+  } finally {
+    console.log = originalLog;
+    console.error = originalError;
+    process.exitCode = originalExitCode;
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  }
+});
+
+test('oracle: resolveAutoTestTarget desambigua correctamente en Python, Go y Rust', () => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'vsdd-multi-lang-'));
+
+  try {
+    const specDir = path.join(tmpDir, 'docs', 'sdd', 'vsdd', '003-auth');
+    fs.mkdirSync(specDir, { recursive: true });
+    fs.writeFileSync(path.join(specDir, 'spec.md'), '# Spec 003 Auth\n## Requisitos funcionales\n### RF-01\n', 'utf8');
+
+    // Múltiples tests pero uno contiene el slug '003-auth' en Python (test_003_auth.py)
+    const planPython = `
+# Plan 003 Auth
+## Árbol de cambios
+- + tests/test_003_auth.py
+- + tests/test_other.py
+`;
+    fs.writeFileSync(path.join(specDir, 'plan.md'), planPython, 'utf8');
+    const resPy = resolveAutoTestTarget('003-auth', tmpDir);
+    assert.equal(resPy.targetPath, 'tests/test_003_auth.py');
+    assert.equal(resPy.ambiguous, false);
+
+    // Rust anidado en subdirectorio
+    assert.equal(isTestFilePath('tests/api/auth.rs'), true);
+  } finally {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  }
+});
+
+test('oracle: runOracle rechaza intentos de Directory Traversal fuera del workspace', () => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'vsdd-traversal-'));
+  const originalExitCode = process.exitCode;
+  const originalError = console.error;
+  let capturedErr = '';
+  console.error = (msg) => { capturedErr += msg + '\n'; };
+
+  try {
+    const specDir = path.join(tmpDir, 'docs', 'sdd', 'vsdd', '004-sec');
+    fs.mkdirSync(specDir, { recursive: true });
+    fs.writeFileSync(path.join(specDir, 'spec.md'), '# Spec 004 Sec\n## Requisitos funcionales\n### RF-01\n', 'utf8');
+
+    process.exitCode = 0;
+    runOracle(['004-sec', '--target=../../../../tmp/malicious.test.js'], tmpDir);
+    assert.equal(process.exitCode, 1);
+    assert.match(capturedErr, /fuera del workspace/);
+  } finally {
+    console.error = originalError;
+    process.exitCode = originalExitCode;
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  }
+});
+
+

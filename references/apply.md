@@ -35,7 +35,7 @@ Ejecuta las tareas de `tasks.md` en código real bajo TDD estricto y commits at�
     * `✔ [FASE-N OK] Pruebas verdes (<comando>) · Commit de fase: <hash>`
 - **Cancelación Segura (Zero-Loss):**
   - Si el usuario indica "para", "stop" o interrumpe la ejecución:
-    1. Ejecutar `git restore . && git clean -fd` para limpiar cambios incompletos de la tarea en curso.
+    1. Revertir únicamente los cambios incompletos de los archivos tocados en la tarea en curso (`git restore <archivos_tarea>`), evitando limpiezas destructivas globales.
     2. Las tareas anteriores quedan 100% preservadas en sus respectivos commits previos.
     3. Asegurar que `tasks.md` en disco conserve marcadas `[x]` las tareas completadas y `[ ]` la interrumpida.
     4. Informar al usuario el punto exacto de guardado y cómo retomar ejecutando `vsdd apply`.
@@ -77,7 +77,7 @@ Listo para implementar tareas de tasks.md.
    - Anunciar en chat: `● [Subagente: Implementador] Ejecutando TASK-xx (<título>) con modelo: <modelo>...`
    - Invocar subagente implementador con los paths a `idea.md`, `spec.md`, `plan.md`, `tasks.md`, directrices del proyecto y el identificador `TASK-xx`.
    - **Directrices Innegociables de Calidad y Creación de Tests (TDD):**
-     * *El Norte del Test (Comportamiento Observable):* El test interactúa exclusivamente con la interfaz pública del módulo y valida que con los datos de entrada del Example Mapping de `spec.md`, se produzca exactamente la salida observable esperada (pudiendo apoyarse en `vsdd oracle <id> [--target <ruta>]` para generar el oráculo o esqueleto declarativo agnóstico). Escribir primero el test que falla (Red) y luego el código mínimo que lo hace pasar (Green).
+     * *El Norte del Test (Comportamiento Observable):* El test interactúa exclusivamente con la interfaz pública del módulo y valida que con los datos de entrada del Example Mapping de `spec.md`, se produzca exactamente la salida observable esperada (pudiendo apoyarse en `vsdd oracle <id>` para autodescubrir y generar el esqueleto declarativo en disco). Si el archivo de tests ya fue preparado por el oráculo, el implementador activa el caso correspondiente a `TASK-xx` (reemplazando `it.todo`/`skip` por la aserción activa), comprueba el fallo en rojo (Red) y luego implementa el código mínimo que lo hace pasar (Green).
      * *Las 4 Fronteras Negativas (Qué NO HACER jamás):*
        1. **Prohibido el test espejo:** No recalcular la lógica o fórmula dentro del test; usar los valores concretos esperados de la spec.
        2. **Prohibido espiar las entrañas (Cero White-Box):** No probar funciones privadas ni verificar llamadas a helpers auxiliares internos; evaluar únicamente entradas y salidas públicas.

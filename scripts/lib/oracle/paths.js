@@ -1,12 +1,47 @@
 /**
  * VSDD Oracle - Paths
- * Resolución de rutas y localización de especificaciones (spec.md) en docs/sdd/vsdd.
+ * Resolución de rutas, localización de especificaciones (spec.md) y
+ * autodescubrimiento determinista de archivos de test en plan.md.
  */
 
 'use strict';
 
 const fs = require('fs');
 const path = require('path');
+const { parseTrackedFilesFromPlanContent } = require('../drift');
+
+/**
+ * Determina si una ruta de archivo corresponde inequívocamente a una suite de pruebas.
+ * Descarta explícitamente fixtures, configuraciones, helpers, mocks y documentación.
+ * @param {string} filePath
+ * @returns {boolean}
+ */
+function isTestFilePath(filePath) {
+  if (!filePath || typeof filePath !== 'string') return false;
+  const clean = filePath.replace(/\\/g, '/');
+  const base = path.basename(clean);
+
+  // Descartar explícitamente archivos de soporte, configs, fixtures y docs
+  if (
+    /\.(?:json|md|ya?ml|txt|csv|png|jpe?g|gif|svg)$/i.test(clean) ||
+    /^(?:__init__|conftest|setup|jest\.config|vitest\.config|mod)\.[a-zA-Z0-9]+$/i.test(base) ||
+    /(?:^|\/)(?:fixtures?|helpers?|mocks?|utils?)\//i.test(clean) ||
+    /(?:^|[_\-.])(?:fixtures?|helpers?|mocks?|utils?)(?:[_\-.])/i.test(base)
+  ) {
+    return false;
+  }
+
+  // Patrones estrictos por ecosistema
+  return (
+    /\.(?:test|spec)\.[cm]?[jt]sx?$/i.test(base) ||
+    /^test_[^/]+\.py$/i.test(base) ||
+    /[^/]+_test\.py$/i.test(base) ||
+    /[^/]+_test\.go$/i.test(base) ||
+    /(?:^|\/)tests\/.*?\.rs$/i.test(clean) ||
+    /[^/]+Test(?:s)?\.(?:cs|java|php)$/i.test(base) ||
+    /[^/]+_test\.rb$/i.test(base)
+  );
+}
 
 /**
  * Localiza la ruta del spec.md a partir de un identificador de feature o búsqueda en docs/sdd/vsdd.
@@ -69,6 +104,88 @@ function resolveSpecPath(featureArg, cwd = process.cwd()) {
   return null;
 }
 
+/**
+ * Resuelve automáticamente el archivo de pruebas destino a partir del Árbol de Cambios de plan.md.
+ * @param {string} [featureArg] Identificador de feature o ruta
+ * @param {string} [cwd=process.cwd()]
+ * @returns {{ targetPath: string|null, ambiguous: boolean, candidates: string[], planFound: boolean }}
+ */
+function resolveAutoTestTarget(featureArg, cwd = process.cwd()) {
+  const specPath = resolveSpecPath(featureArg, cwd);
+  if (!specPath) {
+    return { targetPath: null, ambiguous: false, candidates: [], planFound: false };
+  }
+
+  const featureDir = path.dirname(specPath);
+  const planPath = path.join(featureDir, 'plan.md');
+  if (!fs.existsSync(planPath)) {
+    return { targetPath: null, ambiguous: false, candidates: [], planFound: false };
+  }
+
+  let planContent = '';
+  try {
+    planContent = fs.readFileSync(planPath, 'utf8');
+  } catch (_) {
+    return { targetPath: null, ambiguous: false, candidates: [], planFound: true };
+  }
+
+  const tracked = parseTrackedFilesFromPlanContent(planContent);
+  // Solo consideramos archivos nuevos (+) para prevenir sobreescrituras destructivas
+  const testCandidates = tracked
+    .filter((item) => item.action === 'create' && isTestFilePath(item.path))
+    .map((item) => item.path);
+
+  if (testCandidates.length === 1) {
+    return {
+      targetPath: testCandidates[0],
+      ambiguous: false,
+      candidates: testCandidates,
+      planFound: true,
+    };
+  }
+
+  if (testCandidates.length > 1) {
+    // Intentar desambiguar si alguno coincide con el nombre de la carpeta de la feature
+    const featureSlug = path.basename(featureDir).toLowerCase();
+    const normSlug = featureSlug.replace(/[-_]/g, '');
+    const matchingSlug = testCandidates.filter((cand) => {
+      const cleanCand = cand.replace(/\\/g, '/');
+      const candBase = path.basename(cleanCand).toLowerCase();
+      const normCand = candBase.replace(/[-_]/g, '');
+      const stripped = candBase
+        .replace(/^(?:test_)/i, '')
+        .replace(/(?:_test|\.(?:test|spec))\.[^.]+$/i, '')
+        .replace(/\.[^.]+$/, '')
+        .replace(/[-_]/g, '');
+      return (
+        normCand.includes(normSlug) ||
+        normSlug.includes(stripped) ||
+        stripped.includes(normSlug)
+      );
+    });
+
+    if (matchingSlug.length === 1) {
+      return {
+        targetPath: matchingSlug[0],
+        ambiguous: false,
+        candidates: testCandidates,
+        planFound: true,
+      };
+    }
+
+    return {
+      targetPath: null,
+      ambiguous: true,
+      candidates: testCandidates,
+      planFound: true,
+    };
+  }
+
+  return { targetPath: null, ambiguous: false, candidates: [], planFound: true };
+}
+
 module.exports = {
+  isTestFilePath,
   resolveSpecPath,
+  resolveAutoTestTarget,
 };
