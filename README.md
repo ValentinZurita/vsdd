@@ -33,14 +33,15 @@ irm https://raw.githubusercontent.com/ValentinZurita/vsdd/main/install.ps1 | iex
 
 | Comando | Acción |
 | :--- | :--- |
-| `vsdd` | Abre el panel de pendientes y retoma trabajo en curso |
+| `vsdd` | Abre el panel para retomar una funcionalidad o iniciar una nueva |
 | `vsdd update` | Actualiza VSDD a la última versión |
+| `vsdd help` | Muestra la ayuda y todos los comandos disponibles |
 
-Para cancelar una funcionalidad: `vsdd abort <id>`. Añade `--delete-branch` solo si también quieres eliminar su rama. Para ver todos los comandos: `vsdd --help`.
+Para cancelar una funcionalidad: `vsdd abort <id>`. Añade `--delete-branch` solo si también quieres eliminar su rama.
 
 ## Flujo de Trabajo
 
-El desarrollo avanza secuencialmente a través de 6 compuertas de calidad:
+Ejecuta `vsdd` para abrir el panel. Elige una funcionalidad existente para retomarla o inicia una nueva; el agente te guía secuencialmente por estas 6 compuertas de calidad:
 
 1. **Intake** — Captura el problema y dolor real del usuario.
 2. **Spec** — Define requisitos EARS, casos reales y límites (Non-Goals).
