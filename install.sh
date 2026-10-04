@@ -426,7 +426,7 @@ main() {
   cp -R "$source_dir/scripts/"* "$cli_dir/scripts/" 2>/dev/null || true
   rm -rf "$cli_dir/references" 2>/dev/null || true
   cp -R "$source_dir/references" "$cli_dir/references" 2>/dev/null || true
-  chmod +x "$cli_dir/scripts/cli.js" "$cli_dir/scripts/vsdd-status.js" "$cli_dir/scripts/vsdd-validate.js" "$cli_dir/scripts/vsdd-oracle.js" 2>/dev/null || true
+  chmod +x "$cli_dir/scripts/cli.js" "$cli_dir/scripts/vsdd-status.js" "$cli_dir/scripts/vsdd-validate.js" "$cli_dir/scripts/vsdd-oracle.js" "$cli_dir/scripts/vsdd-sonar.js" "$cli_dir/scripts/install-skill.js" 2>/dev/null || true
 
   mkdir -p "$bin_dir" 2>/dev/null || true
   ln -sf "$cli_dir/scripts/cli.js" "$bin_dir/vsdd"
