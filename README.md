@@ -17,16 +17,6 @@
 
 ---
 
-## ¿Qué es VSDD?
-
-VSDD es mi forma de trabajar ideas y features con IA sin aventarle un prompt de tres líneas y esperar un milagro.
-
-No intenta ser el framework definitivo, salvar el desarrollo de software ni organizar equipos de 200 personas.
-
-Sí, hace preguntas. Bastantes. Esa es la gracia: sacar la idea de tu cabeza, darle vueltas, descubrir cosas que no habías pensado y luego dejar que la IA haga su magia.
-
-**Si con un prompt sale, úsalo. Si la cosa merece pensarse un poquito más, para eso hice VSDD.**
-
 ---
 
 ## Instalación
