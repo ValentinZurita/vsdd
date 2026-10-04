@@ -18,6 +18,7 @@
 1. **Sin stack impuesto:** VSDD se adapta al repositorio; no asume ni exige tecnologías.
 2. **Vocabulario nativo:** se usan los nombres reales del proyecto, sin inventar sinónimos.
 3. **Persistencia portable:** aprovecha memoria externa si existe; si no, funciona con archivos locales.
+4. **Independencia de vendors y herramientas:** no legisla atado a marcas comerciales de modelos de IA ni a ejecutores de paquetes particulares. Las capacidades de IA se definen por su función cognitiva (tiers de cómputo) y los entornos por su contrato semántico (control de versiones, ejecutores del sistema).
 
 ---
 
@@ -52,5 +53,5 @@ Toda pregunta pasa por cinco filtros: dolor real, vocabulario nativo, experienci
 
 ## 7. Arquitectura de Doble Plano e Higiene de Memoria de Trabajo
 
-1. **Compute where it computes, Reason where it reasons:** el **Plano de Cómputo Determinista** (CLI, scripts) valida, cuenta y opera Git en 0 tokens; el **Plano Agéntico** (LLM) razona, diseña y conversa. Ninguno hace el trabajo del otro.
+1. **Compute where it computes, Reason where it reasons:** el **Plano de Cómputo Determinista** (CLI, scripts) valida, cuenta y opera el control de versiones en 0 tokens; el **Plano Agéntico** (LLM) razona, diseña y conversa. Ninguno hace el trabajo del otro.
 2. **No cargues en la memoria de trabajo nada que no se vaya a usar en el turno actual:** **Carga Just-In-Time (JIT)** por fase y **Subagentes Efímeros** para exploración y auditoría.

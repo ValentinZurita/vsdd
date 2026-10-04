@@ -36,14 +36,14 @@ Toda decisión arquitectónica y de proceso está regida por [`docs/CONSTITUTION
 
 ## 3. Higiene de Contexto y Gestión de Tokens (Artículo 7)
 
-* **Separación de Planos (Dual-Plane):** El cómputo determinista (ASTs, linters, conteo de tareas, estados de Git) se resuelve en scripts y CLI en 0 tokens (`vsdd status --json`, `vsdd validate`). El conductor no simula lógica de validación ni gasta memoria conversacional en estados del DAG.
+* **Separación de Planos (Dual-Plane):** El cómputo determinista (ASTs, linters, conteo de tareas, estados del control de versiones) se resuelve en scripts y CLI en 0 tokens (`vsdd status --json`, `vsdd validate`). El conductor no simula lógica de validación ni gasta memoria conversacional en estados del DAG.
 * **Carga Just-In-Time (JIT):** Nunca cargues todas las referencias juntas. Inspecciona `vsdd status --json` y lee **únicamente** la ruta absoluta provista en `referenceFile` para la fase activa.
-* **Aislamiento de Hilo Principal:** El conductor nunca realiza lecturas masivas de código en el chat. Las exploraciones se delegan a subagentes rápidos y económicos (`flash` o `haiku`) en hilos efímeros.
+* **Aislamiento de Hilo Principal:** El conductor nunca realiza lecturas masivas de código en el chat. Las exploraciones se delegan a subagentes de perfil rápido y bajo costo (tier de exploración) en hilos efímeros.
 * **Memos Destilados ($\le 12$ líneas):** Los subagentes solo devuelven un resumen ultracompacto con entidades detectadas, temas clave, 1 Rabbit Hole y 1 propuesta de No-Go.
 * **Persistencia Inmediata:** Toda respuesta de la entrevista y hallazgo de exploración se persiste de inmediato en `context.json` (o `.draft-intake.json`) para reanudar sesiones interrumpidas sin re-preguntar.
 * **Presentación Ejecutiva:** Los recapitulativos en chat priorizan lo sustantivo (objetivo, EARS, Example Mapping en tabla TUI, límites y criterios de aceptación). El artefacto completo vive en disco.
-* **Cero Terminal Spew:** Prohibido volcar texto masivo en el chat (`git diff` sin `--stat`, logs de tests sin filtrar). Usar banderas silenciosas (`--stat`, `-q`, `--silent`, `--json`) y reportar únicamente checkpoints de una línea (ej: `[✓ OK] 106/106 tests pasando`).
-* **Seguridad de Git en Shells No-Interactivos:** Prohibido pasar banderas destructivas (`--delete-branch`) de forma desatendida sin confirmación explícita previa del usuario en el chat.
+* **Cero Terminal Spew:** Prohibido volcar texto masivo en el chat (diffs sin resumir con `--stat`, logs de tests sin filtrar). Usar banderas silenciosas (`--stat`, `-q`, `--silent`, `--json`) y reportar únicamente checkpoints de una línea (ej: `[✓ OK] 106/106 tests pasando`).
+* **Seguridad de Control de Versiones en Shells No-Interactivos:** Prohibido pasar banderas destructivas (`--delete-branch`) de forma desatendida sin confirmación explícita previa del usuario en el chat.
 
 ---
 
