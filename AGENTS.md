@@ -15,6 +15,8 @@ Instrucciones para cualquier agente de IA (Google Antigravity, Claude Code, Curs
 
 ## 2. Marco Filosófico y Metodológico
 
+> **Alcance:** Solo `SKILL.md` y `references/` viajan a los proyectos instalados. `docs/CONSTITUTION.md` legisla principios inmutables para el desarrollo de VSDD; las referencias de fase (`references/*.md`) gobiernan la operativa en runtime. Todo cambio operativo debe realizarse en `references/` o `SKILL.md`.
+
 Toda decisión arquitectónica y de proceso está regida por [`docs/CONSTITUTION.md`](docs/CONSTITUTION.md). Consúltala como Fuente Única de Verdad para:
 * **Soberanía del usuario y YAGNI** (Art. 1).
 * **Agnosticismo tecnológico total** (Art. 2).

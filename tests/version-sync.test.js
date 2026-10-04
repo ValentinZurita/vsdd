@@ -7,10 +7,10 @@ const { getCanonicalVersion, compareSemver } = require('../scripts/lib/version')
 
 const repoRoot = path.resolve(__dirname, '..');
 
-test('version-sync: package.json define la versión canónica 0.44.0', () => {
+test('version-sync: package.json define la versión canónica 0.44.1', () => {
   const pkg = JSON.parse(fs.readFileSync(path.join(repoRoot, 'package.json'), 'utf8'));
-  assert.equal(pkg.version, '0.44.0');
-  assert.equal(getCanonicalVersion(), '0.44.0');
+  assert.equal(pkg.version, '0.44.1');
+  assert.equal(getCanonicalVersion(), '0.44.1');
 });
 
 test('version-sync: SKILL.md está sincronizado con package.json', () => {
