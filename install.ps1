@@ -115,48 +115,22 @@ function Prompt-Choice {
 }
 
 # ------------------------------------------------------------------------------
-# Origen de Archivos
+# Origen de Archivos (checkout local)
 # ------------------------------------------------------------------------------
 function Resolve-SourceDirectory {
     $currentDir = Get-Location
+    $gitMetadata = Join-Path $currentDir.Path ".git"
     $localSkill = Join-Path $currentDir "SKILL.md"
     $localRef = Join-Path $currentDir "references"
 
-    if ((Test-Path $localSkill) -and (Test-Path $localRef)) {
+    if ((Test-Path $gitMetadata) -and (Test-Path $localSkill) -and (Test-Path $localRef)) {
         $skillContent = Get-Content $localSkill -Raw -ErrorAction SilentlyContinue
         if ($skillContent -and $skillContent.Contains("name: vsdd")) {
             return $currentDir.Path
         }
     }
 
-    Write-Host "● Descargando VSDD v$VSDD_VERSION desde GitHub..." -ForegroundColor Cyan
-    $tempDir = Join-Path ([System.IO.Path]::GetTempPath()) ("vsdd-install-" + [System.Guid]::NewGuid().ToString())
-    New-Item -ItemType Directory -Path $tempDir -Force | Out-Null
-
-    $zipPath = Join-Path $tempDir "vsdd.zip"
-    $zipUrl = "https://github.com/ValentinZurita/vsdd/archive/refs/heads/main.zip"
-
-    try {
-        [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
-        Invoke-WebRequest -Uri $zipUrl -OutFile $zipPath -UseBasicParsing -TimeoutSec 15
-        Expand-Archive -Path $zipPath -DestinationPath $tempDir -Force
-        $extracted = Get-ChildItem -Path $tempDir -Directory -Filter "vsdd-*" | Select-Object -First 1
-        if ($extracted -and (Test-Path (Join-Path $extracted.FullName "SKILL.md"))) {
-            return $extracted.FullName
-        }
-    } catch {
-        # Fallo de descarga remota
-    }
-
-    Write-Host "`n✖ No se pudo descargar automáticamente el paquete desde GitHub." -ForegroundColor Red
-    Write-Host "Posibles causas:" -ForegroundColor Yellow
-    Write-Host "  1. El repositorio está actualmente configurado como privado en GitHub."
-    Write-Host "  2. No hay conexión a internet disponible en este momento.`n"
-    Write-Host "Solución: Clona el repositorio con tus credenciales e instálalo localmente:" -ForegroundColor White
-    Write-Host "  git clone https://github.com/ValentinZurita/vsdd.git" -ForegroundColor Cyan
-    Write-Host "  cd vsdd; .\install.ps1`n" -ForegroundColor Cyan
-    Read-Host "Presiona [Enter] para continuar..."
-    exit 1
+    throw "No se encontró un checkout local de VSDD. Este instalador interactivo solo acepta un checkout local; para instalar una release, usa el bootstrap verificado de README.md."
 }
 
 # ------------------------------------------------------------------------------

@@ -10,8 +10,6 @@ set -o pipefail
 # Configuración y Constantes
 # ------------------------------------------------------------------------------
 VSDD_VERSION="0.44.1"
-REPO_RAW_URL="https://raw.githubusercontent.com/ValentinZurita/vsdd/main"
-REPO_API_TAR="https://api.github.com/repos/ValentinZurita/vsdd/tarball/main"
 
 # Tabla de Agentes Soportados: "id|Nombre Visible|Ruta Global|Ruta Proyecto"
 # Para agregar soporte a nuevos editores, solo agrega una línea en este formato.
@@ -123,45 +121,19 @@ read_input() {
 }
 
 # ------------------------------------------------------------------------------
-# Detección del Origen de la Skill (Local vs Remoto)
+# Detección del Origen de la Skill (checkout local)
 # ------------------------------------------------------------------------------
 resolve_source_directory() {
-  # 1. Comprobar si estamos ejecutando localmente dentro del repositorio de VSDD
-  if [ -f "./SKILL.md" ] && [ -d "./references" ] && grep -q "name: vsdd" "./SKILL.md" 2>/dev/null; then
+  # Release archives are installed only through the verified README bootstrap.
+  # This interactive script intentionally accepts a local Git source checkout.
+  if [ -e "./.git" ] && [ -f "./SKILL.md" ] && [ -d "./references" ] && grep -q "name: vsdd" "./SKILL.md" 2>/dev/null; then
     echo "$(pwd)"
     return 0
   fi
 
-  # 2. Si no, estamos en ejecución remota (curl | bash). Descargamos la skill.
-  TMP_DIR="$(mktemp -d 2>/dev/null || mktemp -d -t 'vsdd-install')"
-  printf "%b● Descargando VSDD v%s desde GitHub...%b\n" "$CYAN" "$VSDD_VERSION" "$RESET" >&2
-
-  local archive_url="https://github.com/ValentinZurita/vsdd/archive/refs/heads/main.tar.gz"
-  local download_ok=0
-
-  if curl -fsSL --connect-timeout 10 "$archive_url" -o "$TMP_DIR/vsdd.tar.gz" 2>/dev/null; then
-    if tar -xzf "$TMP_DIR/vsdd.tar.gz" -C "$TMP_DIR" 2>/dev/null; then
-      local extracted_dir
-      extracted_dir=$(find "$TMP_DIR" -maxdepth 1 -type d -name "vsdd-*" | head -n 1)
-      if [ -n "$extracted_dir" ] && [ -f "$extracted_dir/SKILL.md" ]; then
-        download_ok=1
-        echo "$extracted_dir"
-        return 0
-      fi
-    fi
-  fi
-
-  if [ "$download_ok" -eq 0 ]; then
-    printf "\n%b✖ No se pudo descargar automáticamente el paquete desde GitHub.%b\n" "$RED" "$RESET" >&2
-    printf "%bPosibles causas:%b\n" "$YELLOW" "$RESET" >&2
-    printf "  1. El repositorio está actualmente configurado como privado en GitHub.\n" >&2
-    printf "  2. No hay conexión a internet disponible en este momento.\n\n" >&2
-    printf "%bSolución:%b Clona el repositorio con tus credenciales e instálalo localmente:\n" "$BOLD" "$RESET" >&2
-    printf "  %bgit clone https://github.com/ValentinZurita/vsdd.git%b\n" "$CYAN" "$RESET" >&2
-    printf "  %bcd vsdd && ./install.sh%b\n\n" "$CYAN" "$RESET" >&2
-    pause_before_exit
-    exit 1
-  fi
+  printf "\n%b✖ No se encontró un checkout local de VSDD.%b\n" "$RED" "$RESET" >&2
+  printf "Este instalador interactivo solo acepta un checkout local. Para instalar una release, usa el bootstrap verificado de README.md.\n\n" >&2
+  return 1
 }
 
 # ------------------------------------------------------------------------------
@@ -251,7 +223,9 @@ main() {
 
   print_banner
   local source_dir
-  source_dir=$(resolve_source_directory)
+  if ! source_dir=$(resolve_source_directory); then
+    exit 1
+  fi
 
   # 1. Detección de Agentes en la máquina
   printf "%b● Escaneando entornos de desarrollo en este equipo:%b\n" "$BOLD" "$RESET"
