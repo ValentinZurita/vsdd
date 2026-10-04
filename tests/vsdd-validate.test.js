@@ -314,6 +314,59 @@ test('CLI: ejecución de scripts/vsdd-validate.js con archivo temporal e invocac
   }
 });
 
+test('CLI: directorio vacío falla con JSON explícito y código 1', () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'vsdd-val-empty-test-'));
+  const emptyDir = path.join(tempDir, 'empty');
+  fs.mkdirSync(emptyDir);
+
+  try {
+    const scriptPath = path.resolve(__dirname, '../scripts/vsdd-validate.js');
+    let error;
+    try {
+      execSync(`node "${scriptPath}" "${emptyDir}" --json`, {
+        encoding: 'utf8',
+        stdio: 'pipe',
+      });
+    } catch (caught) {
+      error = caught;
+    }
+
+    assert.ok(error, 'Un directorio vacío debe producir una salida no exitosa');
+    assert.equal(error.status, 1);
+    const parsed = JSON.parse(error.stdout);
+    assert.equal(parsed.valid, false);
+    assert.deepEqual(parsed.results, []);
+    assert.match(parsed.message, /artefactos VSDD|archivos para validar/i);
+  } finally {
+    fs.rmSync(tempDir, { recursive: true, force: true });
+  }
+});
+
+test('CLI: layout sin artefactos informa el motivo en texto y falla con código 1', () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'vsdd-val-layout-test-'));
+  const featureDir = path.join(tempDir, 'features', '001-empty');
+  fs.mkdirSync(featureDir, { recursive: true });
+
+  try {
+    const scriptPath = path.resolve(__dirname, '../scripts/vsdd-validate.js');
+    let error;
+    try {
+      execSync(`node "${scriptPath}" "${path.join(tempDir, 'features')}"`, {
+        encoding: 'utf8',
+        stdio: 'pipe',
+      });
+    } catch (caught) {
+      error = caught;
+    }
+
+    assert.ok(error, 'Un layout sin artefactos VSDD debe producir una salida no exitosa');
+    assert.equal(error.status, 1);
+    assert.match(error.stdout, /No se encontraron artefactos VSDD/);
+  } finally {
+    fs.rmSync(tempDir, { recursive: true, force: true });
+  }
+});
+
 test('State Machine: maneja bloques anidados con 4 backticks sin cerrarse antes de tiempo', () => {
   const contentWith4Fences = VALID_SPEC.replace(
     'Ninguna.',
@@ -772,7 +825,6 @@ test('trazabilidad cruzada en disco: validateFeatureDir verifica automáticament
     fs.rmSync(tmpDir, { recursive: true, force: true });
   }
 });
-
 
 
 

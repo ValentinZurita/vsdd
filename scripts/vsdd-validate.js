@@ -88,12 +88,13 @@ if (require.main === module) {
   }
 
   if (results.length === 0) {
+    const message = `No se encontraron artefactos VSDD para validar en '${targetPath}'.`;
     if (isJson) {
-      console.log(JSON.stringify({ valid: true, message: 'No hay archivos para validar' }));
+      console.log(JSON.stringify({ valid: false, results: [], message }));
     } else {
-      console.log(`No se encontraron artefactos VSDD para validar en '${targetPath}'.`);
+      console.log(message);
     }
-    process.exit(0);
+    process.exit(1);
   }
 
   const hasErrors = results.some((r) => r.errors.length > 0);
