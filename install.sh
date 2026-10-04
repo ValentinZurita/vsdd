@@ -424,7 +424,7 @@ main() {
   mkdir -p "$cli_dir/scripts" 2>/dev/null || true
   cp -f "$source_dir/package.json" "$cli_dir/package.json" 2>/dev/null || true
   cp -R "$source_dir/scripts/"* "$cli_dir/scripts/" 2>/dev/null || true
-  chmod +x "$cli_dir/scripts/cli.js" "$cli_dir/scripts/vsdd-status.js" "$cli_dir/scripts/vsdd-validate.js" 2>/dev/null || true
+  chmod +x "$cli_dir/scripts/cli.js" "$cli_dir/scripts/vsdd-status.js" "$cli_dir/scripts/vsdd-validate.js" "$cli_dir/scripts/vsdd-oracle.js" 2>/dev/null || true
 
   mkdir -p "$bin_dir" 2>/dev/null || true
   ln -sf "$cli_dir/scripts/cli.js" "$bin_dir/vsdd"

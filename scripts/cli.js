@@ -24,12 +24,14 @@ Uso:
   vsdd validate <ruta> [--json]     Valida la estructura y formato de un artefacto VSDD
   vsdd status [--json|--catalog]    Inspecciona estado, drift y catálogo de funcionalidades
   vsdd abort <id> [--delete-branch] Cancela y excluye una funcionalidad en curso
+  vsdd oracle [id] [--target <r>]   Genera el oráculo de pruebas universal desde spec.md
   vsdd update [--json]              Actualiza VSDD a la última versión
   vsdd install [opciones]           Instala o actualiza la skill en tus agentes
   vsdd --version | -v               Muestra la versión instalada
   vsdd --help | -h                  Muestra esta ayuda
 
 Comandos directos del agente:
+  vsdd oracle <id> [--target <ruta>] [--dry-run|--json]
   vsdd validate docs/sdd/vsdd/<slug>/idea.md
   vsdd validate docs/sdd/vsdd/<slug>/spec.md
   vsdd validate docs/sdd/vsdd/<slug>/plan.md
@@ -87,6 +89,13 @@ function parseCliCommand(args, baseDir) {
   if (first === 'install') {
     return {
       script: path.join(baseDir, 'install-skill.js'),
+      args: args.slice(1),
+    };
+  }
+
+  if (first === 'oracle' || first === 'scaffold-tests' || first === 'scaffold') {
+    return {
+      script: path.join(baseDir, 'vsdd-oracle.js'),
       args: args.slice(1),
     };
   }

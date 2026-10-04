@@ -77,7 +77,7 @@ Listo para implementar tareas de tasks.md.
    - Anunciar en chat: `● [Subagente: Implementador] Ejecutando TASK-xx (<título>) con modelo: <modelo>...`
    - Invocar subagente implementador con los paths a `idea.md`, `spec.md`, `plan.md`, `tasks.md`, directrices del proyecto y el identificador `TASK-xx`.
    - **Directrices Innegociables de Calidad y Creación de Tests (TDD):**
-     * *El Norte del Test (Comportamiento Observable):* El test interactúa exclusivamente con la interfaz pública del módulo y valida que con los datos de entrada del Example Mapping de `spec.md`, se produzca exactamente la salida observable esperada. Escribir primero el test que falla (Red) y luego el código mínimo que lo hace pasar (Green).
+     * *El Norte del Test (Comportamiento Observable):* El test interactúa exclusivamente con la interfaz pública del módulo y valida que con los datos de entrada del Example Mapping de `spec.md`, se produzca exactamente la salida observable esperada (pudiendo apoyarse en `vsdd oracle <id> [--target <ruta>]` para generar el oráculo o esqueleto declarativo agnóstico). Escribir primero el test que falla (Red) y luego el código mínimo que lo hace pasar (Green).
      * *Las 4 Fronteras Negativas (Qué NO HACER jamás):*
        1. **Prohibido el test espejo:** No recalcular la lógica o fórmula dentro del test; usar los valores concretos esperados de la spec.
        2. **Prohibido espiar las entrañas (Cero White-Box):** No probar funciones privadas ni verificar llamadas a helpers auxiliares internos; evaluar únicamente entradas y salidas públicas.
