@@ -22,7 +22,7 @@ AGENTS_REGISTRY=(
 # ------------------------------------------------------------------------------
 # Colores y Estilos ANSI
 # ------------------------------------------------------------------------------
-if [ -t 1 ] || [ -c /dev/tty ]; then
+if [ -t 1 ]; then
   BOLD="\033[1m"
   DIM="\033[2m"
   RESET="\033[0m"
@@ -73,6 +73,9 @@ on_interrupt() {
 }
 
 pause_before_exit() {
+  if [ "$AUTO_CONFIRM" = "1" ]; then
+    return 0
+  fi
   if [ -e /dev/tty ]; then
     printf "%bPresiona [Enter] para continuar...%b" "$DIM" "$RESET" > /dev/tty
     read -r _ < /dev/tty 2>/dev/tty || true
@@ -450,8 +453,11 @@ main() {
   local cli_dir="$HOME/.vsdd/cli"
   local bin_dir="$HOME/.local/bin"
 
-  mkdir -p "$cli_dir/scripts" 2>/dev/null || true
+  mkdir -p "$cli_dir" 2>/dev/null || true
   cp -f "$source_dir/package.json" "$cli_dir/package.json" 2>/dev/null || true
+  cp -f "$source_dir/SKILL.md" "$cli_dir/SKILL.md" 2>/dev/null || true
+  rm -rf "$cli_dir/scripts" 2>/dev/null || true
+  mkdir -p "$cli_dir/scripts" 2>/dev/null || true
   cp -R "$source_dir/scripts/"* "$cli_dir/scripts/" 2>/dev/null || true
   rm -rf "$cli_dir/references" 2>/dev/null || true
   cp -R "$source_dir/references" "$cli_dir/references" 2>/dev/null || true

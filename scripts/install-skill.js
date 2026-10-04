@@ -30,13 +30,21 @@ function parseArgs(argv) {
     } else if (arg === '--uninstall') {
       options.uninstall = true;
     } else if (arg === '--scope') {
-      options.scope = argv[++i];
+      const val = argv[++i];
+      if (!val) throw new Error('Missing value for --scope');
+      options.scope = val;
     } else if (arg === '--hosts') {
-      options.hosts = argv[++i].split(',').map((host) => host.trim()).filter(Boolean);
+      const val = argv[++i];
+      if (!val) throw new Error('Missing value for --hosts');
+      options.hosts = val.split(',').map((host) => host.trim()).filter(Boolean);
     } else if (arg === '--project') {
-      options.projectRoot = argv[++i];
+      const val = argv[++i];
+      if (!val) throw new Error('Missing value for --project');
+      options.projectRoot = val;
     } else if (arg === '--source') {
-      options.sourceDir = argv[++i];
+      const val = argv[++i];
+      if (!val) throw new Error('Missing value for --source');
+      options.sourceDir = val;
     } else if (arg === '--help' || arg === '-h') {
       options.help = true;
     } else {

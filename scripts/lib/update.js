@@ -200,6 +200,7 @@ function performVsddUpdate(cwd = process.cwd(), options = {}) {
       if (fs.existsSync(cliDir)) {
         try {
           fs.copyFileSync(path.join(cwd, 'package.json'), path.join(cliDir, 'package.json'));
+          fs.copyFileSync(path.join(cwd, 'SKILL.md'), path.join(cliDir, 'SKILL.md'));
           const cliScripts = path.join(cliDir, 'scripts');
           if (fs.existsSync(cliScripts)) {
             fs.cpSync(path.join(cwd, 'scripts'), cliScripts, { recursive: true, force: true });
@@ -231,7 +232,7 @@ function performVsddUpdate(cwd = process.cwd(), options = {}) {
   try {
     const isWin = (options.platform || process.platform) === 'win32';
     const cmd = isWin
-      ? 'powershell -NoProfile -ExecutionPolicy Bypass -Command "irm https://raw.githubusercontent.com/ValentinZurita/vsdd/main/install.ps1 | iex"'
+      ? 'powershell -NoProfile -ExecutionPolicy Bypass -Command "& ([scriptblock]::Create((irm https://raw.githubusercontent.com/ValentinZurita/vsdd/main/install.ps1))) -Yes"'
       : 'curl -fsSL https://raw.githubusercontent.com/ValentinZurita/vsdd/main/install.sh | bash -s -- -y';
     const updateOut = runner(cmd, { encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] });
     return {

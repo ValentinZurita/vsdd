@@ -40,6 +40,13 @@ test('version-sync: README.md contiene el badge de versión canónica', () => {
   assert.ok(readme.includes(expectedBadge), `README.md debe contener el badge ${expectedBadge}`);
 });
 
+test('version-sync: scripts/lib/version.js fallback está sincronizado con package.json', () => {
+  const versionJs = fs.readFileSync(path.join(repoRoot, 'scripts', 'lib', 'version.js'), 'utf8');
+  const match = versionJs.match(/return\s*['"]([0-9.]+)['"];/);
+  assert.ok(match, 'scripts/lib/version.js debe contener un fallback de versión');
+  assert.equal(match[1], getCanonicalVersion());
+});
+
 test('version-sync: compareSemver maneja prefijos v y longitudes mixtas', () => {
   assert.equal(compareSemver('0.44.0', '0.44.0'), 0);
   assert.equal(compareSemver('v0.44.0', '0.44.0'), 0);

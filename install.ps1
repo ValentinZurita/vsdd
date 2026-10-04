@@ -10,6 +10,8 @@ param(
     [switch]$Help
 )
 
+$ErrorActionPreference = 'Stop'
+
 $VSDD_VERSION = "0.44.1"
 $USER_PROFILE = $env:USERPROFILE
 
@@ -334,8 +336,9 @@ if (-not (Test-Path $cliDir)) {
     New-Item -ItemType Directory -Path $cliDir -Force | Out-Null
 }
 
-# Copiar package.json
+# Copiar package.json y SKILL.md
 Copy-Item -Path (Join-Path $sourceDir "package.json") -Destination (Join-Path $cliDir "package.json") -Force
+Copy-Item -Path (Join-Path $sourceDir "SKILL.md") -Destination (Join-Path $cliDir "SKILL.md") -Force
 
 # Copiar scripts (limpiando destino previo para evitar anidamiento)
 $cliScripts = Join-Path $cliDir "scripts"
@@ -392,10 +395,12 @@ if (($userEnvPath -notlike "*$binDir*") -and ($currentEnvPath -notlike "*$binDir
     Write-Host ""
 }
 
-# Limpieza de temporales de descarga si existieron
-if ($global:VSDD_TMP_DIR -and (Test-Path $global:VSDD_TMP_DIR)) {
-    Remove-Item -Path $global:VSDD_TMP_DIR -Recurse -Force -ErrorAction SilentlyContinue
-}
 }
 
-Invoke-Main
+try {
+    Invoke-Main
+} finally {
+    if ($global:VSDD_TMP_DIR -and (Test-Path $global:VSDD_TMP_DIR)) {
+        Remove-Item -Path $global:VSDD_TMP_DIR -Recurse -Force -ErrorAction SilentlyContinue
+    }
+}

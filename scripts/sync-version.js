@@ -53,6 +53,17 @@ function syncVersion(repoRoot = path.resolve(__dirname, '..')) {
     }
   }
 
+  // 5. scripts/lib/version.js
+  const versionJsPath = path.join(repoRoot, 'scripts', 'lib', 'version.js');
+  if (fs.existsSync(versionJsPath)) {
+    let content = fs.readFileSync(versionJsPath, 'utf8');
+    const updated = content.replace(/return\s*['"][0-9.]+['"];/g, `return '${version}';`);
+    if (updated !== content) {
+      fs.writeFileSync(versionJsPath, updated, 'utf8');
+      results.push('scripts/lib/version.js');
+    }
+  }
+
   return { version, updatedFiles: results };
 }
 
@@ -104,6 +115,18 @@ function checkVersion(repoRoot = path.resolve(__dirname, '..')) {
     const content = fs.readFileSync(readmePath, 'utf8');
     if (!content.includes(`version-${version}-blue.svg`)) {
       outOfSync.push('README.md');
+    }
+  }
+
+  // 5. scripts/lib/version.js
+  const versionJsPath = path.join(repoRoot, 'scripts', 'lib', 'version.js');
+  if (!fs.existsSync(versionJsPath)) {
+    outOfSync.push('scripts/lib/version.js (no encontrado)');
+  } else {
+    const content = fs.readFileSync(versionJsPath, 'utf8');
+    const match = content.match(/return\s*['"]([0-9.]+)['"];/);
+    if (!match || match[1] !== version) {
+      outOfSync.push('scripts/lib/version.js');
     }
   }
 
