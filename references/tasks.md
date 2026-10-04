@@ -41,7 +41,7 @@ Leer plan aprobado → estructurar tareas autónomamente en fases lógicas bajo 
    - Especificar el test que falla primero para cada una.
    - Asignar casillas de commit de tarea y bloques de control de fase con el comando de calidad del proyecto.
 4. **Escritura Inicial y Compuerta de Formato:** Guardar `docs/sdd/vsdd/<nnn>-<slug>/tasks.md` en disco (`Estado: en-revision`).
-   - **Compuerta Determinista de Formato (Obligatoria):** Ejecutar inmediatamente `node scripts/vsdd-validate.js docs/sdd/vsdd/<nnn>-<slug>/tasks.md`. Si el validador emite algún error (campos TDD faltantes o controles de fase omitidos), el conductor debe corregirlos en disco de inmediato. Queda estrictamente prohibido despachar la auditoría de QA sobre un archivo que no pase `vsdd-validate` con código 0.
+   - **Compuerta Determinista de Formato (Obligatoria):** Ejecutar inmediatamente `vsdd validate docs/sdd/vsdd/<nnn>-<slug>/tasks.md`. Si el validador emite algún error (campos TDD faltantes o controles de fase omitidos), el conductor debe corregirlos en disco de inmediato. Queda estrictamente prohibido despachar la auditoría de QA sobre un archivo que no pase `vsdd-validate` con código 0.
 5. **Auditoría Independiente de QA (Subagente Obligatorio):**
    Despachar un subagente auditor independiente (modelo analítico de alto razonamiento, ej: `pro` o `sonnet`):
    Anunciar en chat: `● [Subagente: Auditoría QA de Tareas] Verificando dependencias, TDD y slicing vertical con modelo: <modelo>...`

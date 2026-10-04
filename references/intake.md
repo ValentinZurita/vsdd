@@ -6,7 +6,7 @@ Aterrizar la idea. No especificar, no planificar, no implementar, no crear ramas
 
 - **Rol y Tono:** Hereda el **Contrato Universal de Rol y Tono de SKILL.md** (Product Lead / Senior Developer empático y cercano, español neutro, trato cercano de tú, sin formalismos de usted, sin voseo ni rodeos innecesarios, y Regla de Oro de Ejemplos Didácticos). Habla como un compañero de equipo de alto nivel: breve, claro y al grano. Entiende que el usuario no necesariamente tiene claras todas las variables iniciales; guíalo con mente abierta, filtrando complejidades prematuras y preguntando **únicamente lo necesario** para definir el valor del producto.
 - **Una pregunta por turno:** Detenerse obligatoriamente tras cada pregunta (`STOP y esperar`). Preguntas breves, directas y claras.
-- **Motor de Entrevista y Formato Visual:** Sigue estrictamente la plantilla visual, la hipótesis sugerida por defecto y las 4 heurísticas de [`references/entrevista.md`](file:///Users/valentin/Documents/vsdd/references/entrevista.md) (cabecera con caja, progreso vivo `📌 En curso:`, micro-escenario de la vida real, opciones con Pro/Contra/Recomendada y salida ágil ante dudas). Las preguntas de Sí / No y los menús de navegación no llevan pro/contra. En Intake nunca mostrar contadores `k/N` ni `n/m`.
+- **Motor de Entrevista y Formato Visual:** Sigue estrictamente la plantilla visual, la hipótesis sugerida por defecto y las 4 heurísticas de [`references/entrevista.md`](references/entrevista.md) (cabecera con caja, progreso vivo `📌 En curso:`, micro-escenario de la vida real, opciones con Pro/Contra/Recomendada y salida ágil ante dudas). Las preguntas de Sí / No y los menús de navegación no llevan pro/contra. En Intake nunca mostrar contadores `k/N` ni `n/m`.
 - **"Listo cuando" como foto tangible del resultado:**
   La sección `Listo cuando` debe redactarse como **1 a 3 condiciones observables y verificables por una persona**:
   - Qué pantalla, vista o salida exacta verá el usuario.
@@ -36,7 +36,7 @@ La exploración tiene como único fin descubrir preguntas relevantes de producto
 Búsquedas masivas de código en el repositorio (`Grep`/`Glob` recursivos) o lecturas completas de código fuente durante Intake.
 
 **Ola 1 (Contexto del producto y Catálogo Histórico):**
-1. **Consulta del catálogo:** Antes de invocar al subagente, obtener el catálogo histórico ultracompacto ejecutando `node scripts/vsdd-status.js --catalog` (o `generateFeatureCatalog()`, ≤15 features completadas recientes, ~200 tokens).
+1. **Consulta del catálogo:** Antes de invocar al subagente, obtener el catálogo histórico ultracompacto ejecutando `vsdd status --catalog` (o `generateFeatureCatalog()`, ≤15 features completadas recientes, ~200 tokens).
 2. **Subagente de exploración rápido** (modelo liviano/económico: `flash`, `haiku`, etc.), **sin acceso web**.
    Anuncio visible obligatorio en chat:
    `● [Subagente: Contexto de Producto] Analizando catálogo histórico y alcance con modelo: flash...`
@@ -44,7 +44,7 @@ Búsquedas masivas de código en el repositorio (`Grep`/`Glob` recursivos) o lec
    ```text
    Rol: Explorador de contexto de producto (Ola 1).
    Idea del usuario: <texto de la idea>
-   Catálogo de features completadas: <JSON de scripts/vsdd-status.js --catalog>
+   Catálogo de features completadas: <JSON de vsdd status --catalog>
 
    Evalúa afinidad funcional y de rutas.
    Reglas:
@@ -104,7 +104,7 @@ Búsquedas masivas de código en el repositorio (`Grep`/`Glob` recursivos) o lec
        `2. Descartar borrador y comenzar nueva idea`
    - `idea.md` se escribe **únicamente después** de que el usuario responda **Sí** a la pregunta de satisfacción del recapitulativo.
 1. **Capturar la idea:** Si el usuario no ha expuesto su idea, la primera pregunta es solicitarla en lenguaje cotidiano. Si ya la expuso, comenzar con la exploración transparente (Ola 1) y persistir de inmediato en `.draft-intake.json`.
-2. **Formular Q1:** Basada en la decisión más importante de la idea, utilizando la plantilla visual de [`references/entrevista.md`](file:///Users/valentin/Documents/vsdd/references/entrevista.md) (cabecera con caja, micro-escenario de la vida real, hipótesis sugerida por defecto y opciones con Pro/Contra/Recomendada). Al recibir la respuesta del usuario, persistir de inmediato con `saveIntakeInterviewAnswer({ index: 1, question: '...', answer: '...' })`. Esperar respuesta.
+2. **Formular Q1:** Basada en la decisión más importante de la idea, utilizando la plantilla visual de [`references/entrevista.md`](references/entrevista.md) (cabecera con caja, micro-escenario de la vida real, hipótesis sugerida por defecto y opciones con Pro/Contra/Recomendada). Al recibir la respuesta del usuario, persistir de inmediato con `saveIntakeInterviewAnswer({ index: 1, question: '...', answer: '...' })`. Esperar respuesta.
 3. **Explorar temas complementarios y Benchmarking:** Tras Q1, si aplica Ola 2, incorporar el hallazgo de benchmarking en Q2 como una decisión de alcance (En alcance / Fuera de alcance) manteniendo la cabecera visual y la línea de progreso vivo `📌 En curso:`. Al consensuar cada decisión, persistir con `saveIntakeInterviewAnswer`. Abordar de 2 a 4 decisiones clave en total. Mantener un máximo estricto de 5 a 6 intercambios breves para no fatigar al usuario.
 4. **Respuestas abiertas o fuera de menú:** Si el usuario responde algo distinto a las opciones numeradas, tomar su respuesta como la decisión elegida y confirmar con una línea amable en el siguiente turno.
 5. **Generar la propuesta estructurada (Recapitulativo en Chat):**
@@ -133,7 +133,7 @@ Búsquedas masivas de código en el repositorio (`Grep`/`Glob` recursivos) o lec
     Únicamente en el turno donde el usuario responda **Sí**:
     - Crear el directorio `docs/sdd/vsdd/<nnn>-<slug>/` si no existe (`nnn` correlativo de 3 dígitos, ej: `001-mi-idea`).
     - Guardar `docs/sdd/vsdd/<nnn>-<slug>/idea.md` conteniendo los 4 encabezados más la línea final `Estado: listo-para-spec`.
-    - Ejecutar la **Compuerta de Formato**: `node scripts/vsdd-validate.js docs/sdd/vsdd/<nnn>-<slug>/idea.md`. Si reporta errores, corregirlos en disco de inmediato.
+    - Ejecutar la **Compuerta de Formato**: `vsdd validate docs/sdd/vsdd/<nnn>-<slug>/idea.md`. Si reporta errores, corregirlos en disco de inmediato.
     - Promover la exploración del borrador a `context.json`: `promoteIntakeDraft("docs/sdd/vsdd/<nnn>-<slug>")`.
     - Si Engram está disponible, persistir un resumen con `mem_save topic_key: vsdd-intake-<slug>`.
     - Confirmar en el chat que la idea ha quedado congelada con éxito e indicar que el siguiente paso natural es iniciar la especificación con `vsdd spec`.

@@ -39,17 +39,17 @@ Toda decisión arquitectónica y de proceso está regida por [`docs/CONSTITUTION
 
 * **Linter Determinista Obligatorio:** Inmediatamente tras escribir o editar cualquier artefacto Markdown (`idea.md`, `spec.md`, `plan.md`, `tasks.md`), ejecuta:
   ```bash
-  node scripts/vsdd-validate.js <ruta-al-archivo>
+  vsdd validate <ruta-al-archivo>
   ```
   Si emite código de salida 1, corrige los errores en disco antes de mostrar resúmenes en el chat o despachar auditores.
 * **Suite de Pruebas Unitarias:**
   ```bash
   npm test
   ```
-  Asegúrate de que los 106 tests pasen en verde tras cualquier cambio en scripts, referencias o validadores.
+  Asegúrate de que los tests pasen 100% en verde tras cualquier cambio en scripts, referencias o validadores.
 * **Inspección de Pendientes y Desfase (Drift):**
   ```bash
-  node scripts/vsdd-status.js --json
+  vsdd status --json
   ```
 * **Actualización e Instalación Global de la Skill:**
   ```bash

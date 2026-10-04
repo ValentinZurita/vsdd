@@ -11,7 +11,7 @@ Paso 4c (pregunta de cierre) → escribir `spec.md` inicial (`Estado: en-revisio
 
 - **Persona y Tono:** Líder de Producto / Desarrollador Senior. Hereda el **Contrato Universal de Rol y Tono de SKILL.md** (español neutro, trato cercano de tú, sin formalismos de usted, sin voseo ni rodeos, y Regla de Oro de Ejemplos Didácticos). Conversa como un compañero de equipo de alto nivel: claro, empático, breve y al grano. Prohibido mencionar código, rutas de archivos, nombres de librerías o detalles del stack tecnológico en la conversación con el usuario.
 - **Entrevista Consultiva Híbrida y Reducción de Carga Cognitiva:**
-  - Aplica estrictamente la plantilla visual en caja, las 4 heurísticas de elicitación y la salida ágil de [`references/entrevista.md`](file:///Users/valentin/Documents/vsdd/references/entrevista.md).
+  - Aplica estrictamente la plantilla visual en caja, las 4 heurísticas de elicitación y la salida ágil de [`references/entrevista.md`](references/entrevista.md).
   - **Técnica del Puente Reflectivo:** Inicia cada turno validando en una sola línea amable la respuesta previa y actualizando la línea `📌 En curso: ...` en la cabecera antes de plantear la siguiente arista.
   - **Preguntas con Hipótesis por Defecto:** Toda pregunta incluye la hipótesis recomendada más simple y segura (*Zero-Friction*) para que el usuario pueda avanzar con un simple *"1"*, *"ok"* o Enter.
   - **Micro-Escenarios Concretos:** Jamás asumir que el usuario domina conceptos abstractos (idempotencia, concurrencia, debounce, payload o rollbacks); contextualizar siempre con un ejemplo real observable (ej: pulsar dos veces seguidas el botón mientras procesa).
@@ -61,7 +61,7 @@ Paso 4c (pregunta de cierre) → escribir `spec.md` inicial (`Estado: en-revisio
 - **No re-preguntar hechos ya resueltos:** Respetar lo acordado en `idea.md`. Indagar únicamente vacíos que harían que la especificación sea incompleta o no comprobable según el tier correspondiente.
 - **Descubrimiento de Directrices del Proyecto:** Tras seleccionar la idea y antes de la primera pregunta, el conductor lee `idea.md` y revisa si el proyecto cuenta con guías de desarrollo o restricciones documentadas (ej. `CONSTITUTION.md`, `README.md`, `CONTRIBUTING.md`). Si existen, se respetan sus límites funcionales; si no existen, se continúa sin bloquearse. Prohibido pegar textualmente estas guías en el chat.
 - **Trazabilidad Total de `idea.md`:** El 100% de lo acordado en la idea (**Problema**, **Qué vamos a hacer**, **Fuera de alcance** y fundamentalmente el **"Listo cuando"**) debe integrarse en la especificación. Las 1 a 3 condiciones del "Listo cuando" se importan obligatoriamente en `## Criterios de finalización` como base del contrato de aceptación.
-- **Requisitos Funcionales (EARS Defensivo y Example Mapping):** El conductor redacta los criterios bajo la sintaxis EARS a partir de las respuestas del usuario. En comportamiento no deseado es obligatoria la salvaguarda observable (`no debe <daño>; debe <protección visible>`). En RFs con lógica o validación, se complementa con micro-ejemplos concretos (entrada $\to$ salida observable) presentados en chat mediante las tablas TUI de [`references/guia-visual.md`](file:///Users/valentin/Documents/vsdd/references/guia-visual.md).
+- **Requisitos Funcionales (EARS Defensivo y Example Mapping):** El conductor redacta los criterios bajo la sintaxis EARS a partir de las respuestas del usuario. En comportamiento no deseado es obligatoria la salvaguarda observable (`no debe <daño>; debe <protección visible>`). En RFs con lógica o validación, se complementa con micro-ejemplos concretos (entrada $\to$ salida observable) presentados en chat mediante las tablas TUI de [`references/guia-visual.md`](references/guia-visual.md).
 - **Transparencia Absoluta de Agentes y Modelos:**
   - Prohibido realizar tareas ocultas o silenciosas.
   - Al despachar cualquier subagente se anuncia visiblemente en el chat su rol y el modelo exacto asignado:
@@ -69,7 +69,7 @@ Paso 4c (pregunta de cierre) → escribir `spec.md` inicial (`Estado: en-revisio
   - Si el entorno no soporta subagentes o la herramienta falla, se notifica de inmediato:
     `▲ [Aviso] No fue posible despachar el subagente; el agente principal asume la tarea localmente.`
 - **Gestión de Dudas Abiertas (`[NECESITA ATENCIÓN]`):** Todo aspecto funcional que quede sin definir o que el usuario prefiera postergar se registra en la sección `## Dudas abiertas` bajo la etiqueta `[NECESITA ATENCIÓN]`. No inventar requisitos ni esconder vacíos.
-- **Diagramas y Representación Visual:** Para flujos con bifurcaciones, interfaces o casos límite, utilizar los diagramas de flujo y la tríada de estados observables (Empty/Happy/Error) de [`references/guia-visual.md`](file:///Users/valentin/Documents/vsdd/references/guia-visual.md). En el archivo físico `spec.md`, como máximo un diagrama conceptual en Mermaid solo si aclara un flujo acordado; de lo contrario, registrar `Ninguno.`.
+- **Diagramas y Representación Visual:** Para flujos con bifurcaciones, interfaces o casos límite, utilizar los diagramas de flujo y la tríada de estados observables (Empty/Happy/Error) de [`references/guia-visual.md`](references/guia-visual.md). En el archivo físico `spec.md`, como máximo un diagrama conceptual en Mermaid solo si aclara un flujo acordado; de lo contrario, registrar `Ninguno.`.
 
 ---
 
@@ -162,7 +162,7 @@ A lo sumo 2 consultas genéricas breves. Al recibir el reporte, persistir acumul
 ## Cierre, Auditoría y Ciclo de Satisfacción
 
 8. **Redacción Inicial del Artefacto y Compuerta de Formato:** En el turno posterior a la respuesta de 4c, redactar `docs/sdd/vsdd/<nnn>-<slug>/spec.md` siguiendo el Contrato Mínimo Viable de `spec-template.md`, con todas las instrucciones de plantilla eliminadas y `Estado: en-revision`.
-   - **Compuerta Determinista de Formato (Obligatoria):** Ejecutar inmediatamente `node scripts/vsdd-validate.js docs/sdd/vsdd/<nnn>-<slug>/spec.md`. Si el validador emite algún error (línea, prefijo de criterios de finalización, EARS o marcadores residuales), el conductor debe corregirlos en disco de inmediato. Queda estrictamente prohibido despachar la auditoría de QA sobre un archivo que no pase `vsdd-validate` con código 0.
+   - **Compuerta Determinista de Formato (Obligatoria):** Ejecutar inmediatamente `vsdd validate docs/sdd/vsdd/<nnn>-<slug>/spec.md`. Si el validador emite algún error (línea, prefijo de criterios de finalización, EARS o marcadores residuales), el conductor debe corregirlos en disco de inmediato. Queda estrictamente prohibido despachar la auditoría de QA sobre un archivo que no pase `vsdd-validate` con código 0.
 9. **Auditoría Independiente de QA (Obligatoria):**
    En el mismo turno, despachar un subagente de auditoría QA independiente (modelo analítico de alto razonamiento, ej: `pro` o `sonnet`):
    Anunciar en chat: `● [Subagente: Auditoría QA de Especificación] Verificando consistencia, casos límite, Premortem y límites con modelo: <modelo>...`
@@ -202,7 +202,7 @@ A lo sumo 2 consultas genéricas breves. Al recibir el reporte, persistir acumul
 
     **Presentación en Terminal y Pregunta de Satisfacción:**
     Con todos los puntos resueltos o consensuados:
-    - **Presentación Ejecutiva de Decisión en Terminal (Componente 7 de [`references/guia-visual.md`](file:///Users/valentin/Documents/vsdd/references/guia-visual.md)):** Imprimir en el chat la síntesis de decisión estructurada y completa, eliminando metadatos crudos de archivo (`Estado:`, frontmatter, comentarios de plantilla) pero preservando íntegramente la sustancia que permite al usuario evaluar y decidir con criterio y jerarquía visual:
+    - **Presentación Ejecutiva de Decisión en Terminal (Componente 7 de [`references/guia-visual.md`](references/guia-visual.md)):** Imprimir en el chat la síntesis de decisión estructurada y completa, eliminando metadatos crudos de archivo (`Estado:`, frontmatter, comentarios de plantilla) pero preservando íntegramente la sustancia que permite al usuario evaluar y decidir con criterio y jerarquía visual:
       1) *Objetivo central y alcance:* Qué dolor resuelve y qué valor entrega hoy.
       2) *Requisitos Funcionales EARS:* Comportamientos clave ante cada estímulo.
       3) *Example Mapping:* Tabla TUI redondeada (`╭─┬─╮`) con Escenario, Entrada y Salida esperada.

@@ -4,7 +4,7 @@
   "description": "Valentin-Driven Development: Conductor VSDD portable para agentes de IA",
   "main": "scripts/install-skill.js",
   "bin": {
-    "vsdd": "./scripts/vsdd-status.js",
+    "vsdd": "./scripts/cli.js",
     "vsdd-status": "./scripts/vsdd-status.js",
     "vsdd-validate": "./scripts/vsdd-validate.js",
     "vsdd-install": "./scripts/install-skill.js"

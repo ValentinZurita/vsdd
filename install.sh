@@ -203,6 +203,20 @@ run_uninstall() {
     fi
   done
 
+  # Limpieza de CLI global
+  if [ -f "$HOME/.local/bin/vsdd" ]; then
+    printf "Eliminando binario CLI: %s... " "$HOME/.local/bin/vsdd"
+    rm -f "$HOME/.local/bin/vsdd"
+    printf "%b✔ Removido%b\n" "$GREEN" "$RESET"
+    removed_count=$((removed_count + 1))
+  fi
+  if [ -d "$HOME/.vsdd" ]; then
+    printf "Eliminando runtime CLI: %s... " "$HOME/.vsdd"
+    rm -rf "$HOME/.vsdd"
+    printf "%b✔ Removido%b\n" "$GREEN" "$RESET"
+    removed_count=$((removed_count + 1))
+  fi
+
   if [ "$removed_count" -eq 0 ]; then
     printf "%bNo se encontraron instalaciones previas de VSDD en este equipo.%b\n\n" "$DIM" "$RESET"
   else
@@ -402,6 +416,21 @@ main() {
     count=$((count + 1))
   done
 
+  # 6.1 Instalación del CLI permanente en ~/.vsdd/cli
+  printf "\n%b● Configurando ejecutable CLI de VSDD...%b\n" "$BOLD$CYAN" "$RESET"
+  local cli_dir="$HOME/.vsdd/cli"
+  local bin_dir="$HOME/.local/bin"
+
+  mkdir -p "$cli_dir/scripts" 2>/dev/null || true
+  cp -f "$source_dir/package.json" "$cli_dir/package.json" 2>/dev/null || true
+  cp -R "$source_dir/scripts/"* "$cli_dir/scripts/" 2>/dev/null || true
+  chmod +x "$cli_dir/scripts/cli.js" "$cli_dir/scripts/vsdd-status.js" "$cli_dir/scripts/vsdd-validate.js" 2>/dev/null || true
+
+  mkdir -p "$bin_dir" 2>/dev/null || true
+  ln -sf "$cli_dir/scripts/cli.js" "$bin_dir/vsdd"
+  chmod +x "$bin_dir/vsdd" 2>/dev/null || true
+  printf "  %b✔%b %-20s %b→ %s%b\n" "$GREEN" "$RESET" "Comando 'vsdd' CLI" "$DIM" "$bin_dir/vsdd" "$RESET"
+
   # 7. Resumen de Éxito
   printf "\n"
   printf "%b╭────────────────────────────────────────────────────────╮%b\n" "$GREEN" "$RESET"
@@ -410,6 +439,12 @@ main() {
   printf "%b│%b  VSDD v%-5s ya está lista para usar en tus agentes.   %b│%b\n" "$GREEN" "$RESET" "$VSDD_VERSION" "$GREEN" "$RESET"
   printf "%b│%b  Puedes activarla llamando a 'vsdd' en cualquier chat. %b│%b\n" "$GREEN" "$RESET" "$GREEN" "$RESET"
   printf "%b╰────────────────────────────────────────────────────────╯%b\n\n" "$GREEN" "$RESET"
+
+  if [[ ":$PATH:" != *":$bin_dir:"* ]]; then
+    printf "%b⚠️  Aviso:%b %s no está en tu \$PATH actual.\n" "$YELLOW$BOLD" "$RESET" "$bin_dir"
+    printf "   Para usar el comando 'vsdd' en cualquier terminal, agrega esto a tu ~/.zshrc o ~/.bashrc:\n"
+    printf "   %bexport PATH=\"%s:\$PATH\"%b\n\n" "$CYAN" "$bin_dir" "$RESET"
+  fi
 }
 
 main "$@"

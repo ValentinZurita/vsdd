@@ -18,7 +18,7 @@ Paso 4c (pregunta de cierre técnico) → escribir `plan.md` inicial (`Estado: e
   1. *¿Por qué se aplica de esta forma?* (Alineación con buenas prácticas y estándares modernos).
   2. *¿Por qué es la mejor opción actual?* (Beneficios tangibles de rendimiento, mantenibilidad o simplicidad).
   3. *¿Por qué no de otra forma?* (Alternativas descartadas analizadas con argumentos técnicos rigurosos).
-- **Interacción Uno a Uno y Motor de Entrevista:** Una sola pregunta por turno. **DETENERSE (STOP) y esperar respuesta.** Aplica la plantilla visual en caja, las heurísticas de elicitación y los dilemas de trade-offs visibles de [`references/entrevista.md`](file:///Users/valentin/Documents/vsdd/references/entrevista.md). Toda consulta arquitectónica incluye hipótesis por defecto (*Zero-Friction*) y opciones numeradas con `• Pro:`, `• Contra:` y `• Por qué elegirla:`. Las preguntas de confirmación simple (Sí / No) no llevan análisis de pros y contras.
+- **Interacción Uno a Uno y Motor de Entrevista:** Una sola pregunta por turno. **DETENERSE (STOP) y esperar respuesta.** Aplica la plantilla visual en caja, las heurísticas de elicitación y los dilemas de trade-offs visibles de [`references/entrevista.md`](references/entrevista.md). Toda consulta arquitectónica incluye hipótesis por defecto (*Zero-Friction*) y opciones numeradas con `• Pro:`, `• Contra:` y `• Por qué elegirla:`. Las preguntas de confirmación simple (Sí / No) no llevan análisis de pros y contras.
 - **Estimación y Presupuesto de Preguntas:** Cada pregunta técnica se encabeza amigablemente con: `Pregunta k de como máximo N.` Donde $N$ es el tope estimado según la complejidad ($5$, $10$ o $15$). Se anuncia $N$ en el primer turno:
   `● Estimación de diálogo técnico: como máximo N preguntas breves (una por turno). Al final podrás agregar o aclarar cualquier aspecto.`
 - **No re-preguntar hechos de producto ya resueltos:** Respetar lo acordado en `spec.md` e `idea.md`. Indagar únicamente el **cómo**: dónde se aloja la lógica, contratos, estructura de datos y cómo se prueba.
@@ -30,7 +30,7 @@ Paso 4c (pregunta de cierre técnico) → escribir `plan.md` inicial (`Estado: e
   - Si el entorno no soporta subagentes o la herramienta falla, se notifica de inmediato:
     `▲ [Aviso] No fue posible despachar el subagente; el agente principal asume la tarea localmente.`
 - **Doble Nivel de Presentación (Terminal vs. Archivo en Disco):**
-  - **En el chat de la terminal:** Versión ejecutiva de alto impacto para evitar fatiga cognitiva y sobrecarga de tokens. Presenta los módulos tocados mediante la matriz TUI de [`references/guia-visual.md`](file:///Users/valentin/Documents/vsdd/references/guia-visual.md), Decisiones Técnicas sintetizadas (`<Título corto> -> <Decisión en 1 línea>`), el árbol de cambios estructurado y la estrategia de tests. Los diagramas arquitectónicos en terminal se presentan usando el catálogo de componentes TUI de `guia-visual.md` (nodos redondeados conectados de 40 columnas), indicando que el diagrama completo vive en el archivo físico.
+  - **En el chat de la terminal:** Versión ejecutiva de alto impacto para evitar fatiga cognitiva y sobrecarga de tokens. Presenta los módulos tocados mediante la matriz TUI de [`references/guia-visual.md`](references/guia-visual.md), Decisiones Técnicas sintetizadas (`<Título corto> -> <Decisión en 1 línea>`), el árbol de cambios estructurado y la estrategia de tests. Los diagramas arquitectónicos en terminal se presentan usando el catálogo de componentes TUI de `guia-visual.md` (nodos redondeados conectados de 40 columnas), indicando que el diagrama completo vive en el archivo físico.
   - **En el archivo físico (`plan.md`):** Documento pormenorizado, pulcro y completo con todas las secciones de `plan-template.md`, diagramas Mermaid nativos, justificaciones profundas de cada DT y tabla exhaustiva de cobertura.
 - **Blueprint para Tareas (`tasks.md`):** El plan técnico debe dejar definidos de forma determinista los módulos, el árbol de cambios con prefijos (`+`, `~`, `-`) y la estrategia TDD, sirviendo como la guía exacta para la descomposición atómica de tareas.
 - **Frontera de Prerrequisitos y Spikes Previos:** Toda incertidumbre técnica, prueba de concepto descartable (spike ≤ 30 min), prueba manual exploratoria o configuración de entorno (.env, accesos) DEBE identificarse y quedar resuelta en esta fase de Plan. Queda prohibido postergar tareas manuales hacia `tasks.md`: la fase de tareas está reservada para código 100% puro y automatizable bajo TDD.
@@ -48,14 +48,14 @@ El conductor no realiza lecturas masivas ni tours completos del código en esta 
 **Ola 1 (Exploración de Módulos, Contratos Previos y Arquitectura Existente):**
 1. **Comprobación de Herencia de Intake y Catálogo:**
    - Si `context.json` ya cuenta con `matchedIds` determinados en Intake (`phases.intake`), heredarlos directamente (cero tokens de re-evaluación y cero riesgo de contradicciones arquitectónicas).
-   - Si no provienen de Intake (ej: especificación creada manualmente), consultar el catálogo (`node scripts/vsdd-status.js --catalog`). Si el catálogo está vacío (0 completadas), aplicar *short-circuit* asumiendo `MATCHED_IDS: NONE`.
+   - Si no provienen de Intake (ej: especificación creada manualmente), consultar el catálogo (`vsdd status --catalog`). Si el catálogo está vacío (0 completadas), aplicar *short-circuit* asumiendo `MATCHED_IDS: NONE`.
 2. **Subagente de exploración arquitectónica** (modelo rápido y económico: `flash`, `haiku`, etc.):
    Anunciar en chat: `● [Subagente: Exploración Arquitectónica] Analizando estructura del repositorio, antecedentes y módulos con modelo: <modelo>...`
    Prompt breve (≤14 líneas):
    ```text
    Rol: Explorador de Arquitectura y Módulos (Ola 1).
    Especificación: <resumen de spec.md>
-   Antecedentes heredados o Catálogo: <MATCHED_IDS heredados o JSON de scripts/vsdd-status.js --catalog>
+   Antecedentes heredados o Catálogo: <MATCHED_IDS heredados o JSON de vsdd status --catalog>
 
    Evalúa módulos existentes y coherencia con antecedentes.
    Devolver estrictamente este formato (≤12 líneas):
@@ -113,7 +113,7 @@ Máximo 2 búsquedas web breves. Al recibir el reporte, persistir acumulativamen
 ## Cierre, Auditoría y Ciclo de Satisfacción
 
 8. **Redacción Inicial del Artefacto y Compuerta de Formato:** En el turno posterior a la respuesta de 4c, redactar `docs/sdd/vsdd/<nnn>-<slug>/plan.md` siguiendo el Contrato Mínimo Viable de `plan-template.md`, con todas las instrucciones de plantilla eliminadas y `Estado: en-revision`.
-   - **Compuerta Determinista de Formato (Obligatoria):** Ejecutar inmediatamente `node scripts/vsdd-validate.js docs/sdd/vsdd/<nnn>-<slug>/plan.md`. Si el validador emite algún error (línea, prefijos `+ `, `~ `, `- ` en el árbol, alternativas descartadas faltantes en DTs o tabla de cobertura), el conductor debe corregirlos en disco de inmediato. Queda estrictamente prohibido despachar la auditoría de QA sobre un archivo que no pase `vsdd-validate` con código 0.
+   - **Compuerta Determinista de Formato (Obligatoria):** Ejecutar inmediatamente `vsdd validate docs/sdd/vsdd/<nnn>-<slug>/plan.md`. Si el validador emite algún error (línea, prefijos `+ `, `~ `, `- ` en el árbol, alternativas descartadas faltantes en DTs o tabla de cobertura), el conductor debe corregirlos en disco de inmediato. Queda estrictamente prohibido despachar la auditoría de QA sobre un archivo que no pase `vsdd-validate` con código 0.
 9. **Auditoría Independiente de QA (Obligatoria):**
    En el mismo turno, despachar un subagente de auditoría QA independiente (modelo analítico de alto razonamiento, ej: `pro` o `sonnet`):
    Anunciar en chat: `● [Subagente: Auditoría QA del Plan] Verificando cobertura de requisitos, decisiones técnicas y arquitectura con modelo: <modelo>...`
@@ -127,7 +127,7 @@ Máximo 2 búsquedas web breves. Al recibir el reporte, persistir acumulativamen
 10. **Procesamiento de Hallazgos y Presentación Ejecutiva en Terminal:**
     - Ajustes técnicos menores de redacción o rutas: se aplican directamente en `plan.md` en disco.
     - Disyuntivas que requieren decisión del usuario: se formula una pregunta puntual antes de cerrar.
-    - **Presentación Ejecutiva en Terminal (Componente 8 de [`references/guia-visual.md`](file:///Users/valentin/Documents/vsdd/references/guia-visual.md)):** Imprimir en el chat la síntesis ejecutiva del plan estructurada con jerarquía visual y criterio arquitectónico (Alineación, Decisiones Técnicas sintetizadas, Árbol determinista con `+`/`~`/`-`, Estrategia de tests DFT y Verificación Golden Path). Incluir enlace al archivo `docs/sdd/vsdd/<nnn>-<slug>/plan.md`.
+    - **Presentación Ejecutiva en Terminal (Componente 8 de [`references/guia-visual.md`](references/guia-visual.md)):** Imprimir en el chat la síntesis ejecutiva del plan estructurada con jerarquía visual y criterio arquitectónico (Alineación, Decisiones Técnicas sintetizadas, Árbol determinista con `+`/`~`/`-`, Estrategia de tests DFT y Verificación Golden Path). Incluir enlace al archivo `docs/sdd/vsdd/<nnn>-<slug>/plan.md`.
     - **Pregunta de Satisfacción (Reunión con Arquitecto Senior):**
       En el mismo mensaje del recapitulativo, formular con calidez y profesionalismo:
       `¿Estás satisfecho con este plan técnico o deseas ajustar algún aspecto? (Sí / No, deseo realizar ajustes)`

@@ -15,7 +15,7 @@ El usuario a menudo **no sabe de antemano exactamente qué quiere**, ni por qué
 
 ## 2. Formato Visual Estandarizado en el Chat
 
-Cada pregunta se presenta siguiendo el estándar y catálogo de componentes de [`references/guia-visual.md`](file:///Users/valentin/Documents/vsdd/references/guia-visual.md) (ancho seguro de 40 columnas, bordes redondeados y pregunta destacada con líneas de acento):
+Cada pregunta se presenta siguiendo el estándar y catálogo de componentes de [`references/guia-visual.md`](references/guia-visual.md) (ancho seguro de 40 columnas, bordes redondeados y pregunta destacada con líneas de acento):
 
 ```text
 ╭── ⚡ [PREGUNTA [k/N]] · [TEMA] ──────╮
