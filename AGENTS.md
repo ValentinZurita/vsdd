@@ -13,9 +13,15 @@ Instrucciones para cualquier agente de IA (Google Antigravity, Claude Code, Curs
 
 ---
 
-## 2. Marco Filosófico y Metodológico
+## 2. Marco Filosófico y Tríada Arquitectónica
 
-> **Alcance:** Solo `SKILL.md` y `references/` viajan a los proyectos instalados. `docs/CONSTITUTION.md` legisla principios inmutables para el desarrollo de VSDD; las referencias de fase (`references/*.md`) gobiernan la operativa en runtime. Todo cambio operativo debe realizarse en `references/` o `SKILL.md`.
+Para mantener la autonomía del runtime y evitar Attention Dilution, VSDD divide sus responsabilidades en tres capas estrictas:
+
+| Capa | Archivos | Rol | ¿Viaja al usuario? | ¿Cuándo modificarlo? |
+| :--- | :--- | :--- | :---: | :--- |
+| **1. Legislación (Plano Dev)** | `docs/CONSTITUTION.md`<br>`AGENTS.md` | Principios inmutables y reglas para quienes desarrollamos VSDD en este repositorio. | ❌ No | Solo si cambia la filosofía o las leyes fundacionales del framework. |
+| **2. Prompt Maestro (Runtime)** | `SKILL.md` | **System Prompt del Conductor** en el entorno del usuario. Define rol, los 7 principios condensados y el loop de 4 pasos ($\le 4500$ bytes). | ✅ Sí | Si cambia la identidad del conductor, el loop de ejecución o los comandos CLI. |
+| **3. Operativa JIT (Fases)** | `references/<fase>.md` | Partituras tácticas que el conductor carga bajo demanda (Just-In-Time). Contiene preguntas, formatos y checklists de auditor. | ✅ Sí | Todo cambio en cómo se conduce una fase o cómo se audita se hace **exclusivamente aquí**. |
 
 Toda decisión arquitectónica y de proceso está regida por [`docs/CONSTITUTION.md`](docs/CONSTITUTION.md). Consúltala como Fuente Única de Verdad para:
 * **Soberanía del usuario y YAGNI** (Art. 1).
