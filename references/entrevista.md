@@ -50,7 +50,7 @@ Acción: Escribe 1 (o pulsa Enter para la sugerida), o indica tu idea.
 
 ---
 
-## 3. Las 4 Heurísticas de Elicitación (Sin Camisas de Fuerza)
+## 3. Las 5 Heurísticas de Elicitación (Sin Camisas de Fuerza)
 
 El modelo aplica estas heurísticas con flexibilidad táctica según la necesidad de la conversación:
 
@@ -66,6 +66,9 @@ El modelo aplica estas heurísticas con flexibilidad táctica según la necesida
 
 4. **Dilemas de Compensación Visibles (*Trade-offs*):**
    Cuando el usuario considere una funcionalidad compleja, visibiliza el costo oculto de forma transparente (tiempo, mantenimiento, puntos de fallo) antes de incluirla en el alcance.
+
+5. **Aterrizaje Pragmático de Términos Ambiguos (*Pragmatic Grounding*):**
+   Cuando el usuario use términos paraguas o adjetivos subjetivos (*rápido, seguro, automático, intuitivo, robusto*) en aspectos donde la intención técnica o de producto no quede clara en el contexto del proyecto, orienta la conversación usando la técnica del reflejo rápido con dos alternativas observables (ej: *«Mencionaste 'seguro', ¿te imaginas validación por token o solo verificar la sesión activa?»*). Si por el contrario la convención existente del repositorio o la arquitectura ya deja sobreentendido qué significa (por ejemplo, ya existe un middleware de autenticación estándar o un helper de sanitización consagrado), no inventes preguntas obvias ni frenes el flujo: adopta el estándar natural del proyecto y continúa.
 
 ---
 
