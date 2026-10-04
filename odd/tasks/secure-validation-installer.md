@@ -28,9 +28,9 @@ An empty or incorrectly selected directory currently exits successfully, which c
 - Estimated authored diff: approximately 400 lines, excluding generated output; delivery strategy: `ask-on-risk`, monitor committed authored lines before each work-unit commit.
 
 ## Tasks and progress
-- [x] **TASK-01 — Fail validation when no artifacts exist.** Route: delegated; trigger: behavior and CLI tests span multiple non-trivial files. Added empty/artifact-free directory cases before implementation; JSON now returns `valid: false`, `results: []`, and a clear message with exit 1. Evidence: RED — `node --test tests/vsdd-validate.test.js tests/cli.test.js` exited 1 (65 passed, 2 new failures); GREEN — same command exited 0 (67 passed); missing-path smoke check exited 2. Full `npm test` deferred until TASK-02 isolates the existing updater test's remote `git pull`. Commit: pending.
+- [x] **TASK-01 — Fail validation when no artifacts exist.** Route: delegated; trigger: behavior and CLI tests span multiple non-trivial files. Added empty/artifact-free directory cases before implementation; JSON now returns `valid: false`, `results: []`, and a clear message with exit 1. Evidence: RED — `node --test tests/vsdd-validate.test.js tests/cli.test.js` exited 1 (65 passed, 2 new failures); GREEN — same command exited 0 (67 passed); missing-path smoke check exited 2. Full `npm test` deferred until TASK-02 isolates the existing updater test's remote `git pull`. Commit: `eec2846` (`fix(validate): fail when no artifacts are found`).
 - [ ] **TASK-02 — Publish and consume attested releases.** Route: delegated; trigger: integration spans release workflow, README, Bash/PowerShell installers, updater, and tests. Add fail-closed tests first, create versioned release assets and attestations, verify before extraction/execution, run focused and full checks, commit. Evidence: pending.
 
 ## Current state and next step
 - Progress: TASK-01 implemented and focused checks pass; full suite deferred as instructed because the current updater test can perform an unauthorized remote pull.
-- Next: record TASK-01 commit identity after commit, then implement TASK-02; update this document and its Engram mirror after each task with verification and commit evidence.
+- Next: implement TASK-02; update this document and its Engram mirror after the task with verification and commit evidence.
