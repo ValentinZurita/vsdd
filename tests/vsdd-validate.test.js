@@ -695,6 +695,85 @@ test('tasks.md: detecta ausencia de sección obligatoria Fuera de este corte o D
   assert.ok(err.message.includes('Dudas abiertas'));
 });
 
+// ============================================================================
+// Pruebas de Trazabilidad Cruzada Determinista (Cross-Artifact Linker)
+// ============================================================================
+
+test('trazabilidad cruzada: detecta requisito huérfano de spec.md cuando tasks está en listo-para-aplicar', () => {
+  // spec define RF-01 y RF-02
+  const specWithTwoRFs = VALID_SPEC + '\n### RF-02 Manejo de errores de conexión\n- Si la red falla, el sistema debe reintentar.\n- **Ejemplo concreto:** Error 500 -> Reintento automático.\n';
+  
+  // tasks solo cubre RF-01
+  const res = validateContent(VALID_TASKS, 'tasks.md', { specContent: specWithTwoRFs });
+  assert.equal(res.valid, false, 'Debe fallar porque falta cubrir RF-02 en estado listo-para-aplicar');
+  const err = res.errors.find((e) => e.rule === 'trazabilidad-rf-huerfano');
+  assert.ok(err, 'Debe emitir error trazabilidad-rf-huerfano');
+  assert.ok(err.message.includes('RF-02'), 'El mensaje debe mencionar RF-02');
+});
+
+test('trazabilidad cruzada: requisito huérfano en estado en-revision emite advertencia no bloqueante', () => {
+  const specWithTwoRFs = VALID_SPEC + '\n### RF-02 Manejo de errores de conexión\n- Si la red falla, el sistema debe reintentar.\n';
+  const tasksEnRevision = VALID_TASKS.replace('Estado: listo-para-aplicar', 'Estado: en-revision');
+
+  const res = validateContent(tasksEnRevision, 'tasks.md', { specContent: specWithTwoRFs });
+  assert.equal(res.valid, true, 'No debe bloquear con error si está en revisión');
+  const warn = res.warnings.find((w) => w.rule === 'trazabilidad-rf-huerfano');
+  assert.ok(warn, 'Debe emitir advertencia trazabilidad-rf-huerfano');
+  assert.ok(warn.message.includes('RF-02'));
+});
+
+test('trazabilidad cruzada: detecta requisito fantasma citado en tasks que no existe en spec.md', () => {
+  // tasks cita RF-01 y RF-99
+  const tasksWithPhantom = VALID_TASKS.replace('**Cubre:** RF-01, DT-01', '**Cubre:** RF-01, RF-99, DT-01');
+
+  const res = validateContent(tasksWithPhantom, 'tasks.md', { specContent: VALID_SPEC });
+  assert.equal(res.valid, false, 'Debe fallar ante un requisito inexistente');
+  const err = res.errors.find((e) => e.rule === 'trazabilidad-rf-inexistente');
+  assert.ok(err, 'Debe emitir error trazabilidad-rf-inexistente');
+  assert.ok(err.message.includes('RF-99'), 'Debe mencionar RF-99');
+});
+
+test('trazabilidad cruzada: cobertura 100% entre spec.md y tasks.md aprueba sin errores', () => {
+  const res = validateContent(VALID_TASKS, 'tasks.md', { specContent: VALID_SPEC });
+  assert.equal(res.valid, true);
+  assert.equal(res.errors.length, 0);
+  const huerfanos = res.errors.filter((e) => e.rule.startsWith('trazabilidad'));
+  assert.equal(huerfanos.length, 0);
+});
+
+test('trazabilidad cruzada: detecta archivo no declarado en el árbol de cambios de plan.md', () => {
+  // tasks cita un archivo no existente en plan
+  const tasksWithAlienFile = VALID_TASKS.replace(
+    '`+ src/auth/oauth-client.js`',
+    '`+ src/auth/oauth-client.js`, `src/inventado/foo.js`'
+  );
+
+  const res = validateContent(tasksWithAlienFile, 'tasks.md', { planContent: VALID_PLAN });
+  const warn = res.warnings.find((w) => w.rule === 'trazabilidad-archivo-no-en-plan');
+  assert.ok(warn, 'Debe advertir sobre archivo no contemplado en el plan');
+  assert.ok(warn.message.includes('src/inventado/foo.js'));
+});
+
+test('trazabilidad cruzada en disco: validateFeatureDir verifica automáticamente la trazabilidad entre archivos', () => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'vsdd-trace-test-'));
+  try {
+    const specWithTwoRFs = VALID_SPEC + '\n### RF-02 Manejo de errores de conexión\n- Si la red falla, el sistema debe reintentar.\n';
+    fs.writeFileSync(path.join(tmpDir, 'spec.md'), specWithTwoRFs, 'utf8');
+    fs.writeFileSync(path.join(tmpDir, 'plan.md'), VALID_PLAN, 'utf8');
+    fs.writeFileSync(path.join(tmpDir, 'tasks.md'), VALID_TASKS, 'utf8'); // solo cubre RF-01
+
+    const results = validateFeatureDir(tmpDir);
+    const tasksRes = results.find((r) => r.type === 'tasks');
+    assert.ok(tasksRes, 'Debe validar tasks.md en el directorio');
+    assert.equal(tasksRes.valid, false, 'tasks.md debe fallar por trazabilidad cruzada en disco');
+    const err = tasksRes.errors.find((e) => e.rule === 'trazabilidad-rf-huerfano');
+    assert.ok(err, 'Debe cazar el requisito huérfano automáticamente desde disco sin comandos extra');
+  } finally {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  }
+});
+
+
 
 
 
