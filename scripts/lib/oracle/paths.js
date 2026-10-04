@@ -46,7 +46,11 @@ function resolveSpecPath(featureArg, cwd = process.cwd()) {
   if (fs.existsSync(baseDir)) {
     const entries = fs.readdirSync(baseDir).filter((e) => {
       const full = path.join(baseDir, e);
-      return fs.statSync(full).isDirectory() && !e.startsWith('.');
+      try {
+        return fs.statSync(full).isDirectory() && !e.startsWith('.');
+      } catch (_) {
+        return false;
+      }
     });
     if (entries.length === 1) {
       const candidate = path.join(baseDir, entries[0], 'spec.md');

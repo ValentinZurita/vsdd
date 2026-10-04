@@ -22,11 +22,12 @@ test('install.sh: ciclo de vida completo (instalación, verificación CLI y desi
     HOME: tmpHome,
   };
 
-  // 1. Ejecución de instalación local no interactiva (-y)
+  // 1. Ejecución de instalación local no interactiva (-y) con stdio silenciado
   const installOutput = execSync(`bash "${path.join(repoRoot, 'install.sh')}" -y`, {
     cwd: repoRoot,
     env,
     encoding: 'utf8',
+    stdio: 'pipe',
   });
 
   assert.match(installOutput, /¡Instalación completada con éxito!/i);
@@ -43,6 +44,10 @@ test('install.sh: ciclo de vida completo (instalación, verificación CLI y desi
   assert.ok(fs.existsSync(path.join(cliDir, 'scripts', 'lib', 'oracle', 'sanitizers.js')), 'scripts/lib/oracle/sanitizers.js debe existir');
   assert.ok(fs.existsSync(path.join(cliDir, 'references')), 'references/ debe existir');
 
+  // Verificar bit ejecutable en scripts clave instalados
+  assert.ok((fs.statSync(path.join(cliDir, 'scripts', 'vsdd-sonar.js')).mode & 0o111) !== 0, 'vsdd-sonar.js debe tener permisos de ejecución');
+  assert.ok((fs.statSync(path.join(cliDir, 'scripts', 'install-skill.js')).mode & 0o111) !== 0, 'install-skill.js debe tener permisos de ejecución');
+
   // 3. Verificar ejecutable symlink en ~/.local/bin/vsdd
   const binVsdd = path.join(tmpHome, '.local', 'bin', 'vsdd');
   assert.ok(fs.existsSync(binVsdd), '~/.local/bin/vsdd debe existir');
@@ -50,12 +55,14 @@ test('install.sh: ciclo de vida completo (instalación, verificación CLI y desi
   const versionOutput = execSync(`"${binVsdd}" -v`, {
     env,
     encoding: 'utf8',
+    stdio: 'pipe',
   }).trim();
   assert.match(versionOutput, new RegExp(pkg.version), `vsdd -v debe contener ${pkg.version}`);
 
   const helpOutput = execSync(`"${binVsdd}" --help`, {
     env,
     encoding: 'utf8',
+    stdio: 'pipe',
   });
   assert.match(helpOutput, /Valentin Spec-Driven Development/i);
 
@@ -64,6 +71,7 @@ test('install.sh: ciclo de vida completo (instalación, verificación CLI y desi
     cwd: repoRoot,
     env,
     encoding: 'utf8',
+    stdio: 'pipe',
   });
 
   assert.match(uninstallOutput, /Desinstalación completada/i);
@@ -92,11 +100,14 @@ test('install.ps1: análisis estático de paridad e integridad (multiplataforma)
   assert.match(ps1Content, /%ERRORLEVEL%/);
   assert.match(ps1Content, /node\s+-v/);
 
-  // Verificar balance estricto de llaves de control
+  // Verificar balance estricto de llaves de control sin anidamientos negativos
   let braceCount = 0;
   for (const char of ps1Content) {
     if (char === '{') braceCount++;
-    if (char === '}') braceCount--;
+    if (char === '}') {
+      braceCount--;
+      assert.ok(braceCount >= 0, 'No puede haber llaves de cierre huérfanas en install.ps1');
+    }
   }
   assert.equal(braceCount, 0, 'Las llaves { } en install.ps1 deben estar perfectamente balanceadas');
 });
@@ -120,6 +131,7 @@ test('install.ps1: ejecución funcional en Windows nativo', { skip: process.plat
     cwd: repoRoot,
     env,
     encoding: 'utf8',
+    stdio: 'pipe',
   });
 
   assert.match(output, /Instalación completada con éxito/i);
@@ -130,6 +142,17 @@ test('install.ps1: ejecución funcional en Windows nativo', { skip: process.plat
   const versionOutput = execSync(`"${binCmd}" -v`, {
     env,
     encoding: 'utf8',
+    stdio: 'pipe',
   }).trim();
   assert.match(versionOutput, new RegExp(pkg.version));
+
+  // Desinstalación funcional en Windows
+  const uninstallOutput = execSync(`powershell -NoProfile -ExecutionPolicy Bypass -File "${ps1Path}" -Uninstall`, {
+    cwd: repoRoot,
+    env,
+    encoding: 'utf8',
+    stdio: 'pipe',
+  });
+  assert.match(uninstallOutput, /Desinstalación completada/i);
+  assert.ok(!fs.existsSync(binCmd), 'vsdd.cmd debe haber sido eliminado en desinstalación');
 });

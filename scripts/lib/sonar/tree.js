@@ -18,11 +18,11 @@ function summarizeTree(files, options = {}) {
   const rootFiles = [];
   const extCounts = {};
   const dirMap = new Map();
+  const normalizedScope = scope !== '.' ? path.normalize(scope).replace(/\\/g, '/') : '.';
 
   for (const rawFile of files) {
     let rel = path.normalize(rawFile).replace(/\\/g, '/');
-    if (scope !== '.') {
-      const normalizedScope = path.normalize(scope).replace(/\\/g, '/');
+    if (normalizedScope !== '.') {
       if (rel.startsWith(normalizedScope + '/')) {
         rel = rel.slice(normalizedScope.length + 1);
       } else if (rel === normalizedScope) {
