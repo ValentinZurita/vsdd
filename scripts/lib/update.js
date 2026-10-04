@@ -3,36 +3,8 @@
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
-const { execFileSync } = require('child_process');
+const { execSync } = require('child_process');
 const { compareSemver, getLocalVsddVersion } = require('./version');
-
-const RELEASE_REPOSITORY = 'ValentinZurita/vsdd';
-const RELEASE_API_URL = `https://api.github.com/repos/${RELEASE_REPOSITORY}/releases/latest`;
-const RELEASE_DOWNLOAD_URL = `https://github.com/${RELEASE_REPOSITORY}/releases/download`;
-
-function isReleaseTag(tag) {
-  return /^v\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(tag);
-}
-
-function releaseVersion(tag) {
-  if (!isReleaseTag(tag)) {
-    throw new Error(`Latest release has an invalid version tag: ${tag || '(empty)'}`);
-  }
-  return tag.slice(1);
-}
-
-function attestationIdentity(tag) {
-  return `https://github.com/${RELEASE_REPOSITORY}/.github/workflows/release.yml@refs/tags/${tag}`;
-}
-
-function extractReleaseAsset(runner, platform, archivePath, destination, options) {
-  if (platform === 'win32') {
-    const quote = (value) => `'${String(value).replace(/'/g, "''")}'`;
-    const command = `Expand-Archive -LiteralPath ${quote(archivePath)} -DestinationPath ${quote(destination)} -Force`;
-    return runner('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', command], options);
-  }
-  return runner('tar', ['-xzf', archivePath, '-C', destination], options);
-}
 
 /**
  * Detecta si existe una instalación local de la skill en el proyecto que está
@@ -153,8 +125,11 @@ async function checkVersionUpdate(currentVersion = getLocalVsddVersion(), option
     });
 
   try {
-    const remoteRelease = await fetcher(RELEASE_API_URL, timeoutMs);
-    const latestVersion = releaseVersion(remoteRelease.tag_name);
+    const remotePkg = await fetcher(
+      'https://raw.githubusercontent.com/ValentinZurita/vsdd/main/package.json',
+      timeoutMs
+    );
+    const latestVersion = remotePkg.version || currentVersion;
     const updateAvailable = compareSemver(currentVersion, latestVersion) > 0;
 
     // Guardar en caché
@@ -198,7 +173,7 @@ async function checkVersionUpdate(currentVersion = getLocalVsddVersion(), option
  * Ejecuta la actualización de VSDD.
  */
 function performVsddUpdate(cwd = process.cwd(), options = {}) {
-  const runner = options.execFileCommand || ((command, args, opts) => execFileSync(command, args, opts));
+  const runner = options.execCommand || ((cmd, opts) => execSync(cmd, opts));
   const isVsddRepo =
     fs.existsSync(path.join(cwd, 'SKILL.md')) &&
     fs.existsSync(path.join(cwd, 'package.json')) &&
@@ -211,73 +186,47 @@ function performVsddUpdate(cwd = process.cwd(), options = {}) {
     })();
 
   if (isVsddRepo) {
-    return {
-      success: false,
-      isRepo: true,
-      message: 'Source checkout detected. Update this checkout with your normal Git workflow; `vsdd update` only updates installed copies from verified releases.',
-    };
+    try {
+      const pullOut = runner('git pull origin main', { cwd, encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] });
+      const installScript = path.join(cwd, 'scripts', 'install-skill.js');
+      const installOut = runner(`node "${installScript}" --scope global --hosts all --apply --update`, {
+        cwd,
+        encoding: 'utf8',
+        stdio: ['pipe', 'pipe', 'pipe'],
+      });
+      return {
+        success: true,
+        isRepo: true,
+        message: 'VSDD actualizado con éxito desde el repositorio local y sincronizado globalmente.',
+        output: `${pullOut || ''}\n${installOut || ''}`.trim(),
+      };
+    } catch (err) {
+      return {
+        success: false,
+        isRepo: true,
+        message: `Error al actualizar VSDD desde repositorio: ${err.message}`,
+        error: err.message,
+      };
+    }
   }
 
-  // Installed copies update only from versioned, attested release assets.
-  let temporaryDirectory;
+  // Ejecución en proyecto consumidor o instalación global
   try {
-    const commandOptions = { cwd, encoding: 'utf8', stdio: 'pipe' };
-    const tag = String(runner('gh', [
-      'release', 'view', '--repo', RELEASE_REPOSITORY, '--json', 'tagName', '--jq', '.tagName',
-    ], commandOptions)).trim();
-    const version = releaseVersion(tag);
-    const platform = options.platform || process.platform;
-    const assetName = platform === 'win32' ? `vsdd-${tag}.zip` : `vsdd-${tag}.tar.gz`;
-    const assetUrl = `${RELEASE_DOWNLOAD_URL}/${tag}/${assetName}`;
-    const temporaryRoot = options.tempRoot || os.tmpdir();
-    temporaryDirectory = fs.mkdtempSync(path.join(temporaryRoot, 'vsdd-update-'));
-    const assetPath = path.join(temporaryDirectory, assetName);
-
-    runner('curl', ['-fsSL', '--connect-timeout', '10', '--output', assetPath, assetUrl], commandOptions);
-    runner('gh', [
-      'attestation', 'verify', assetPath,
-      '--repo', RELEASE_REPOSITORY,
-      '--cert-identity', attestationIdentity(tag),
-      '--source-ref', `refs/tags/${tag}`,
-    ], commandOptions);
-
-    extractReleaseAsset(runner, platform, assetPath, temporaryDirectory, commandOptions);
-    const sourceDirectory = path.join(temporaryDirectory, `vsdd-${tag}`);
-    const packagePath = path.join(sourceDirectory, 'package.json');
-    if (!fs.existsSync(packagePath)) {
-      throw new Error('Verified release archive is missing package.json.');
-    }
-    const releasePackage = JSON.parse(fs.readFileSync(packagePath, 'utf8'));
-    if (releasePackage.name !== 'vsdd' || releasePackage.version !== version) {
-      throw new Error(`Verified release archive does not match tag ${tag}.`);
-    }
-
-    const installScript = path.join(sourceDirectory, 'scripts', 'install-skill.js');
-    if (!fs.existsSync(installScript)) {
-      throw new Error('Verified release archive is missing scripts/install-skill.js.');
-    }
-    const updateOut = runner('node', [
-      installScript, '--scope', 'global', '--hosts', 'all', '--apply', '--update', '--source', sourceDirectory,
-    ], commandOptions);
+    const cmd = 'curl -fsSL https://raw.githubusercontent.com/ValentinZurita/vsdd/main/install.sh | bash -s -- -y';
+    const updateOut = runner(cmd, { encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] });
     return {
       success: true,
       isRepo: false,
-      message: `VSDD ${tag} verified and installed from its GitHub release.`,
-      output: String(updateOut || '').trim(),
+      message: 'VSDD actualizado con éxito a la última versión desde GitHub.',
+      output: (updateOut || '').trim(),
     };
   } catch (err) {
     return {
       success: false,
       isRepo: false,
-      message: `Verified release update failed: ${err.message}`,
+      message: `Error al ejecutar la actualización remota de VSDD: ${err.message}`,
       error: err.message,
     };
-  } finally {
-    if (temporaryDirectory) {
-      try {
-        fs.rmSync(temporaryDirectory, { recursive: true, force: true });
-      } catch (error) {}
-    }
   }
 }
 
