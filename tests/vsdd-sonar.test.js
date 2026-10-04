@@ -200,7 +200,7 @@ test('confinamiento de seguridad: rechaza rutas que escapan de la raíz del repo
 
   // Ruta válida dentro del repo
   const safe = resolveSafePath(repoRoot, 'apps/api');
-  assert.equal(safe, path.join(repoRoot, 'apps/api'));
+  assert.equal(safe, path.resolve(repoRoot, 'apps/api'));
 });
 
 test('profundidad: depth mayor a 4 se limita a 4 y menor a 1 se ajusta a 1', () => {

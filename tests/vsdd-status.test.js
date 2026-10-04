@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
-const { execSync } = require('child_process');
+const { execSync, execFileSync } = require('child_process');
 const {
   scanFeatures,
   formatHubMenu,
@@ -720,22 +720,40 @@ test('CLI soporta --save-exploration, --get-exploration e --intake-draft', () =>
     const cliPath = path.resolve(__dirname, '..', 'scripts', 'vsdd-status.js');
 
     // 1. Guardar exploración vía CLI
-    const saveCmd = `node "${cliPath}" --save-exploration "${featDir}" --phase spec --data '{"model":"flash","ola1":{"tested":true}}'`;
-    execSync(saveCmd, { cwd: tempDir, stdio: 'pipe' });
+    execFileSync(process.execPath, [
+      cliPath,
+      '--save-exploration',
+      featDir,
+      '--phase',
+      'spec',
+      '--data',
+      JSON.stringify({ model: 'flash', ola1: { tested: true } }),
+    ], { cwd: tempDir, stdio: 'pipe' });
 
     // 2. Consultar exploración vía CLI
-    const getCmd = `node "${cliPath}" --get-exploration "${featDir}" --phase spec`;
-    const getOut = execSync(getCmd, { cwd: tempDir, encoding: 'utf8' });
+    const getOut = execFileSync(process.execPath, [
+      cliPath,
+      '--get-exploration',
+      featDir,
+      '--phase',
+      'spec',
+    ], { cwd: tempDir, encoding: 'utf8' });
     const parsed = JSON.parse(getOut);
     assert.equal(parsed.model, 'flash');
     assert.equal(parsed.ola1.tested, true);
 
     // 3. Guardar intake draft vía CLI
-    const draftCmd = `node "${cliPath}" --save-intake-draft --data '{"ideaSummary":"cli test draft"}'`;
-    execSync(draftCmd, { cwd: tempDir, stdio: 'pipe' });
+    execFileSync(process.execPath, [
+      cliPath,
+      '--save-intake-draft',
+      '--data',
+      JSON.stringify({ ideaSummary: 'cli test draft' }),
+    ], { cwd: tempDir, stdio: 'pipe' });
 
-    const checkDraftCmd = `node "${cliPath}" --intake-draft`;
-    const draftOut = execSync(checkDraftCmd, { cwd: tempDir, encoding: 'utf8' });
+    const draftOut = execFileSync(process.execPath, [
+      cliPath,
+      '--intake-draft',
+    ], { cwd: tempDir, encoding: 'utf8' });
     const draftParsed = JSON.parse(draftOut);
     assert.equal(draftParsed.ideaSummary, 'cli test draft');
   } finally {
@@ -866,21 +884,44 @@ test('CLI soporta --save-interview, --get-interview y --clear-interview', () => 
     const cliPath = path.resolve(__dirname, '..', 'scripts', 'vsdd-status.js');
 
     // 1. Guardar respuesta vía CLI
-    const saveCmd = `node "${cliPath}" --save-interview "${featDir}" --phase spec --data '{"index":1,"question":"q1","answer":"ans1"}'`;
-    execSync(saveCmd, { cwd: tempDir, stdio: 'pipe' });
+    execFileSync(process.execPath, [
+      cliPath,
+      '--save-interview',
+      featDir,
+      '--phase',
+      'spec',
+      '--data',
+      JSON.stringify({ index: 1, question: 'q1', answer: 'ans1' }),
+    ], { cwd: tempDir, stdio: 'pipe' });
 
     // 2. Obtener progreso vía CLI
-    const getCmd = `node "${cliPath}" --get-interview "${featDir}" --phase spec`;
-    const getOut = execSync(getCmd, { cwd: tempDir, encoding: 'utf8' });
+    const getOut = execFileSync(process.execPath, [
+      cliPath,
+      '--get-interview',
+      featDir,
+      '--phase',
+      'spec',
+    ], { cwd: tempDir, encoding: 'utf8' });
     const parsed = JSON.parse(getOut);
     assert.equal(parsed.questions.length, 1);
     assert.equal(parsed.questions[0].answer, 'ans1');
 
     // 3. Limpiar vía CLI
-    const clearCmd = `node "${cliPath}" --clear-interview "${featDir}" --phase spec`;
-    execSync(clearCmd, { cwd: tempDir, stdio: 'pipe' });
+    execFileSync(process.execPath, [
+      cliPath,
+      '--clear-interview',
+      featDir,
+      '--phase',
+      'spec',
+    ], { cwd: tempDir, stdio: 'pipe' });
 
-    const clearCheckOut = execSync(getCmd, { cwd: tempDir, encoding: 'utf8' });
+    const clearCheckOut = execFileSync(process.execPath, [
+      cliPath,
+      '--get-interview',
+      featDir,
+      '--phase',
+      'spec',
+    ], { cwd: tempDir, encoding: 'utf8' });
     const clearParsed = JSON.parse(clearCheckOut);
     assert.deepEqual(clearParsed.questions, []);
   } finally {

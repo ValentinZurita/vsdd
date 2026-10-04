@@ -41,6 +41,31 @@ jobs:
       - name: Verify Canonical Version Synchronization
         run: node scripts/sync-version.js --check
 
+      - name: Validate Bash Installer Syntax
+        run: bash -n install.sh
+
+      - name: Validate PowerShell Installer Syntax (PowerShell Core)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $parseErrors = $null
+          [System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path 'install.ps1'), [ref]$null, [ref]$parseErrors)
+          if ($parseErrors.Count -gt 0) {
+            $parseErrors | ForEach-Object { Write-Error $_ }
+            exit 1
+          }
+
+      - name: Validate PowerShell Installer Syntax (Windows PowerShell)
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: |
+          $parseErrors = $null
+          [System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path 'install.ps1'), [ref]$null, [ref]$parseErrors)
+          if ($parseErrors.Count -gt 0) {
+            $parseErrors | ForEach-Object { Write-Error $_ }
+            exit 1
+          }
+
       - name: Run Test Suite
         run: npm test
 
@@ -51,18 +76,4 @@ jobs:
         run: |
           node scripts/cli.js --version --json
           node scripts/cli.js status --json
-
-      - name: Validate Bash Installer Syntax
-        run: bash -n install.sh
-
-      - name: Validate PowerShell Installer Syntax
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          $parseErrors = $null
-          [System.Management.Automation.Language.Parser]::ParseFile('install.ps1', [ref]$null, [ref]$parseErrors)
-          if ($parseErrors.Count -gt 0) {
-            $parseErrors | ForEach-Object { Write-Error $_ }
-            exit 1
-          }
 
