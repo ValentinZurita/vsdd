@@ -24,17 +24,19 @@ Para mantener la autonomía del runtime y evitar Attention Dilution, VSDD divide
 | **3. Operativa JIT (Fases)** | `references/<fase>.md` | Partituras tácticas que el conductor carga bajo demanda (Just-In-Time). Contiene preguntas, formatos y checklists de auditor. | ✅ Sí | Todo cambio en cómo se conduce una fase o cómo se audita se hace **exclusivamente aquí**. |
 
 Toda decisión arquitectónica y de proceso está regida por [`docs/CONSTITUTION.md`](docs/CONSTITUTION.md). Consúltala como Fuente Única de Verdad para:
-* **Soberanía del usuario y YAGNI** (Art. 1).
-* **Agnosticismo tecnológico total** (Art. 2).
-* **Fronteras negativas:** Non-Goals y Anti-Goals (Art. 3).
-* **Elicitación adaptativa por tiers:** $N \le 5$, $10$, $15$ preguntas ancladas en el contexto real (Art. 4).
-* **Rúbrica de los 5 lentes del conductor** (Art. 5).
-* **Diseño para Testabilidad (DFT), Slicing Vertical y Oráculo Independiente** (Art. 6).
-* **Arquitectura de Doble Plano e Higiene de Memoria de Trabajo** (Art. 7): *Compute where it computes, Reason where it reasons* y *No cargues en la memoria de trabajo nada que no se vaya a usar en el turno actual*.
+1. **Soberanía del usuario y anti-sobreingeniería** (Principio 1 y 2).
+2. **Guiar antes que prohibir y comunicación clara** (Principio 3).
+3. **Agnosticismo tecnológico absoluto: cero colonización o sesgos de stack** (Principio 4).
+4. **Fronteras negativas: Non-Goals y Anti-Goals con salvaguardas observables** (Principio 5).
+5. **Slicing vertical y entrega atómica de comportamiento** (Principio 6).
+6. **Tests robustos, útiles y diseño para testabilidad (DFT)** (Principio 7).
+7. **Memoria con evidencia y ancla física verificable** (Principio 8).
+8. **Arquitectura de Doble Plano (*Compute where it computes, Reason where it reasons*)** (Principio 9).
+9. **Higiene de atención (*No cargues en la memoria de trabajo nada ajeno al turno actual*)** (Principio 10).
 
 ---
 
-## 3. Higiene de Contexto y Gestión de Tokens (Artículo 7)
+## 3. Higiene de Contexto y Gestión de Tokens (Principios 9 y 10)
 
 * **Separación de Planos (Dual-Plane):** El cómputo determinista (ASTs, linters, conteo de tareas, estados del control de versiones) se resuelve en scripts y CLI en 0 tokens (`vsdd status --json`, `vsdd validate`). El conductor no simula lógica de validación ni gasta memoria conversacional en estados del DAG.
 * **Carga Just-In-Time (JIT):** Nunca cargues todas las referencias juntas. Inspecciona `vsdd status --json` y lee **únicamente** la ruta absoluta provista en `referenceFile` para la fase activa.

@@ -35,10 +35,10 @@ test('slender-skill: SKILL.md contiene el ciclo de ejecución de 4 pasos (The 4-
   assert.match(content, /vsdd sonar/i, 'Debe incluir vsdd sonar en los comandos del conductor');
 });
 
-test('slender-skill: SKILL.md formaliza el Artículo 7 y la seguridad Git no-interactiva', () => {
+test('slender-skill: SKILL.md formaliza los Principios 9 y 10 y la seguridad de ramas', () => {
   const content = fs.readFileSync(skillPath, 'utf8');
 
-  // Principios del Artículo 7
+  // Principios 9 y 10 (Separación de Planos e Higiene de Contexto)
   assert.match(content, /Compute where it computes, Reason where it reasons/i);
   assert.match(content, /No cargues en la memoria de trabajo nada que no se vaya a usar en el turno actual/i);
 

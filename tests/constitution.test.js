@@ -12,44 +12,47 @@ test('constitution: docs/CONSTITUTION.md existe y es legible', () => {
   assert.ok(content.length > 500, 'CONSTITUTION.md no debe estar vacío');
 });
 
-test('constitution: contiene los 7 artículos fundamentales estructurados', () => {
+test('constitution: consagra los 10 principios fundamentales del manifiesto', () => {
   const content = fs.readFileSync(constitutionPath, 'utf8');
   
-  // Verificación estructural de encabezados H2 de artículos
-  assert.match(content, /^## 1\. Soberanía del Usuario y Anti-Sobreingeniería/m);
-  assert.match(content, /^## 2\. Agnosticismo Tecnológico Absoluto/m);
-  assert.match(content, /^## 3\. La Ciencia del "QUÉ NO HACER"/m);
-  assert.match(content, /^## 4\. Elicitación Adaptativa por Tiers/m);
-  assert.match(content, /^## 5\. Rúbrica de los 5 Lentes del Conductor/m);
-  assert.match(content, /^## 6\. Diseño para Testabilidad \(DFT\) y Oráculo Independiente/m);
-  assert.match(content, /^## 7\. Arquitectura de Doble Plano e Higiene de Memoria de Trabajo/m);
+  // Verificación estructural de los 10 principios numerados
+  assert.match(content, /^1\.\s+\*\*Soberanía del Usuario:\*\*/m);
+  assert.match(content, /^2\.\s+\*\*Anti-Sobreingeniería Radical \(YAGNI\):\*\*/m);
+  assert.match(content, /^3\.\s+\*\*Guiar antes que Prohibir:\*\*/m);
+  assert.match(content, /^4\.\s+\*\*Agnosticismo Tecnológico Absoluto:\*\*/m);
+  assert.match(content, /^5\.\s+\*\*La Ciencia del "Qué NO Hacer":\*\*/m);
+  assert.match(content, /^6\.\s+\*\*Slicing Vertical:\*\*/m);
+  assert.match(content, /^7\.\s+\*\*Tests Robustos y Útiles \(DFT\):\*\*/m);
+  assert.match(content, /^8\.\s+\*\*Memoria con Evidencia:\*\*/m);
+  assert.match(content, /^9\.\s+\*\*Separación de Planos:\*\*/m);
+  assert.match(content, /^10\.\s+\*\*Higiene de Atención:\*\*/m);
 });
 
-test('constitution: Artículo 7 formaliza la Separación de Planos e Higiene de Contexto', () => {
+test('constitution: Principios 9 y 10 formalizan la Separación de Planos e Higiene de Contexto', () => {
   const content = fs.readFileSync(constitutionPath, 'utf8');
   
-  // Cláusula 1: Compute where it computes, Reason where it reasons
+  // Principio 9: Compute where it computes, Reason where it reasons
   assert.match(
     content,
     /Compute where it computes, Reason where it reasons/i,
-    'El Artículo 7 debe incluir el principio de Compute where it computes, Reason where it reasons'
+    'El Principio 9 debe incluir el principio de Compute where it computes, Reason where it reasons'
   );
   assert.match(
     content,
     /Plano de Cómputo Determinista/i,
-    'Debe definir el Plano de Cómputo Determinista (0 tokens)'
+    'Debe definir el Plano de Cómputo Determinista'
   );
   assert.match(
     content,
     /Plano Agéntico/i,
-    'Debe definir el Plano Agéntico (LLM / Conductor)'
+    'Debe definir el Plano Agéntico'
   );
 
-  // Cláusula 2: Progressive disclosure y memoria de trabajo
+  // Principio 10: Progressive disclosure y memoria de trabajo
   assert.match(
     content,
     /No cargues en la memoria de trabajo nada que no se vaya a usar en el turno actual/i,
-    'El Artículo 7 debe incluir el mandato de no cargar en memoria de trabajo nada ajeno al turno actual'
+    'El Principio 10 debe incluir el mandato de no cargar en memoria de trabajo nada ajeno al turno actual'
   );
   assert.match(
     content,
@@ -63,11 +66,11 @@ test('constitution: Artículo 7 formaliza la Separación de Planos e Higiene de 
   );
 });
 
-test('constitution: Artículo 6.4 formaliza la memoria verificable con ancla física', () => {
+test('constitution: Principio 8 formaliza la memoria verificable con ancla física', () => {
   const content = fs.readFileSync(constitutionPath, 'utf8');
   assert.match(
     content,
     /ancla física verificable/i,
-    'El Artículo 6.4 debe exigir ancla física verificable para los aprendizajes transversales'
+    'El Principio 8 debe exigir ancla física verificable para los aprendizajes técnicos'
   );
 });
