@@ -1734,3 +1734,30 @@ test('formatHubMenu incluye formatMismatchBanner cuando mismatchInfo.mismatch es
   assert.match(menu, /Local: v0\.38\.0/);
   assert.match(menu, /Global: v0\.43\.0/);
 });
+
+test('resolveReferenceFile y resolveTargetFile entregan rutas absolutas canónicas para JIT context', () => {
+  const { resolveReferenceFile, resolveTargetFile } = require('../scripts/vsdd-status.js');
+  
+  // Referencias canónicas de fases
+  const specRef = resolveReferenceFile('spec');
+  assert.ok(path.isAbsolute(specRef), 'La ruta de referencia spec debe ser absoluta');
+  assert.ok(fs.existsSync(specRef), 'El archivo de referencia spec.md debe existir');
+
+  const planRef = resolveReferenceFile('plan');
+  assert.ok(path.isAbsolute(planRef), 'La ruta de referencia plan debe ser absoluta');
+  assert.ok(fs.existsSync(planRef), 'El archivo de referencia plan.md debe existir');
+
+  // Cancelado o completado no tienen referencia activa
+  assert.equal(resolveReferenceFile('cancelado'), '');
+  assert.equal(resolveReferenceFile('completado'), '');
+
+  // Artefactos objetivos
+  const dummyDir = '/tmp/dummy-feature';
+  assert.equal(resolveTargetFile(dummyDir, 'intake'), path.join(dummyDir, 'idea.md'));
+  assert.equal(resolveTargetFile(dummyDir, 'spec'), path.join(dummyDir, 'spec.md'));
+  assert.equal(resolveTargetFile(dummyDir, 'plan'), path.join(dummyDir, 'plan.md'));
+  assert.equal(resolveTargetFile(dummyDir, 'tasks'), path.join(dummyDir, 'tasks.md'));
+  assert.equal(resolveTargetFile(dummyDir, 'apply'), path.join(dummyDir, 'tasks.md'));
+  assert.equal(resolveTargetFile(dummyDir, 'verify'), path.join(dummyDir, 'resumen.md'));
+});
+

@@ -5,6 +5,58 @@ const os = require('os');
 const { execFileSync, execSync } = require('child_process');
 
 /**
+ * Resuelve la ruta absoluta del archivo de referencia de una fase para JIT context.
+ * @param {string} phase Nombre de la fase
+ * @param {string} cwd Directorio de trabajo
+ * @returns {string} Ruta absoluta al archivo de referencia o cadena vacía
+ */
+function resolveReferenceFile(phase, cwd = process.cwd()) {
+  if (!phase || phase === 'cancelado' || phase === 'completado') {
+    return '';
+  }
+
+  const phaseFile = `${phase}.md`;
+  const candidates = [
+    path.resolve(__dirname, '..', 'references', phaseFile),
+    path.join(cwd, '.agents', 'skills', 'vsdd', 'references', phaseFile),
+    path.join(os.homedir(), '.gemini', 'config', 'skills', 'vsdd', 'references', phaseFile),
+  ];
+
+  for (const candidate of candidates) {
+    if (fs.existsSync(candidate)) {
+      return path.resolve(candidate);
+    }
+  }
+
+  return '';
+}
+
+/**
+ * Resuelve la ruta absoluta del artefacto objetivo según la fase.
+ * @param {string} featureDir Directorio de la funcionalidad
+ * @param {string} phase Fase actual
+ * @returns {string} Ruta absoluta al artefacto
+ */
+function resolveTargetFile(featureDir, phase) {
+  if (!featureDir) return '';
+  switch (phase) {
+    case 'intake':
+      return path.join(featureDir, 'idea.md');
+    case 'spec':
+      return path.join(featureDir, 'spec.md');
+    case 'plan':
+      return path.join(featureDir, 'plan.md');
+    case 'tasks':
+    case 'apply':
+      return path.join(featureDir, 'tasks.md');
+    case 'verify':
+      return path.join(featureDir, 'resumen.md');
+    default:
+      return '';
+  }
+}
+
+/**
  * Escanea el directorio docs/sdd/vsdd en busca de funcionalidades y su estado.
  * @param {string} cwd Directorio raíz del proyecto
  * @returns {Array<Object>} Lista de funcionalidades con su metadata y estado
@@ -28,6 +80,8 @@ function scanFeatures(cwd = process.cwd()) {
       phase: 'intake',
       phaseDescription: 'Intake (borrador en progreso)',
       nextCommand: 'vsdd intake',
+      referenceFile: resolveReferenceFile('intake', cwd),
+      targetFile: getIntakeDraftPath(cwd),
       isCompleted: false,
       objective: intakeDraft.ideaSummary || 'Idea en proceso de exploración',
       totalTasks: 0,
@@ -205,6 +259,8 @@ function parseFeatureDirectory(dirName, dirPath, cwd = process.cwd()) {
     phase,
     phaseDescription,
     nextCommand,
+    referenceFile: resolveReferenceFile(phase, cwd),
+    targetFile: resolveTargetFile(dirPath, phase),
     isCompleted,
     isCancelled,
     objective,
@@ -1869,6 +1925,8 @@ if (require.main === module) {
 module.exports = {
   scanFeatures,
   parseFeatureDirectory,
+  resolveReferenceFile,
+  resolveTargetFile,
   formatHubMenu,
   calculateFeatureDrift,
   extractTrackedFiles,

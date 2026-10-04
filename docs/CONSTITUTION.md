@@ -74,3 +74,17 @@ Filtro mental previo a formular cada pregunta:
    - Prohibido mockear la memoria (mocks solo para frontera I/O externa).
    - Prohibido el test cosmético (`toBeDefined` sin validar valor de negocio).
 4. **Memoria de Aprendizajes:** `resumen.md` captura en `## 4. Aprendizajes del repositorio` gotchas reales para que futuras funcionalidades no tropiecen con la misma piedra.
+
+---
+
+## 7. Arquitectura de Doble Plano e Higiene de Memoria de Trabajo
+
+1. **Separación Estricta de Planos (*Compute where it computes, Reason where it reasons*):**
+   - *Plano de Cómputo Determinista (Scripts / CLI / AST):* Es el oráculo y el músculo operativo. Resuelve validaciones de esquemas, linters, conteos de tareas, estado del DAG y operaciones de Git en 0 tokens, tiempo constante y determinismo absoluto.
+   - *Plano Agéntico (LLM / Conductor):* Es el cerebro heurístico. Se reserva exclusivamente para el razonamiento semántico, diseño de arquitectura, elicitación socrática empática con el usuario y síntesis conceptual.
+   - *Invariante Prohibida:* Queda terminantemente prohibido pedirle al LLM que simule validaciones sintácticas o gestione máquinas de estado en su memoria conversacional, así como forzar a un script a interpretar intenciones de negocio ambiguas.
+
+2. **Carga Quirúrgica en Memoria de Trabajo (*Progressive Disclosure*):**
+   - *"No cargues en la memoria de trabajo nada que no se vaya a usar en el turno actual."*
+   - *Carga Just-In-Time (JIT):* La ventana de contexto activo solo debe recibir la referencia y plantilla de la fase en curso (`intake`, `spec`, `plan`, `tasks`, `apply` o `verify`). Queda prohibido inyectar referencias de fases futuras o pasadas.
+   - *Aislamiento en Subagentes Efímeros:* Toda lectura masiva de código (exploración) o auditoría adversarial se delega a subagentes efímeros cuyo contexto se destruye al concluir su tarea, retornando al hilo principal un memo destilado ($\le 12$ líneas). El hilo del usuario se mantiene puro, ágil y libre de fatiga visual o compactación prematura.
