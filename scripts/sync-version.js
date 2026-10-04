@@ -62,7 +62,9 @@ function checkVersion(repoRoot = path.resolve(__dirname, '..')) {
 
   // 1. SKILL.md
   const skillPath = path.join(repoRoot, 'SKILL.md');
-  if (fs.existsSync(skillPath)) {
+  if (!fs.existsSync(skillPath)) {
+    outOfSync.push('SKILL.md (no encontrado)');
+  } else {
     const content = fs.readFileSync(skillPath, 'utf8');
     const match = content.match(/version:\s*['"]?([0-9.]+)['"]?/);
     if (!match || match[1] !== version) {
@@ -72,7 +74,9 @@ function checkVersion(repoRoot = path.resolve(__dirname, '..')) {
 
   // 2. install.sh
   const installShPath = path.join(repoRoot, 'install.sh');
-  if (fs.existsSync(installShPath)) {
+  if (!fs.existsSync(installShPath)) {
+    outOfSync.push('install.sh (no encontrado)');
+  } else {
     const content = fs.readFileSync(installShPath, 'utf8');
     const match = content.match(/VSDD_VERSION=["']([0-9.]+)["']/);
     if (!match || match[1] !== version) {
@@ -82,7 +86,9 @@ function checkVersion(repoRoot = path.resolve(__dirname, '..')) {
 
   // 3. install.ps1
   const installPs1Path = path.join(repoRoot, 'install.ps1');
-  if (fs.existsSync(installPs1Path)) {
+  if (!fs.existsSync(installPs1Path)) {
+    outOfSync.push('install.ps1 (no encontrado)');
+  } else {
     const content = fs.readFileSync(installPs1Path, 'utf8');
     const match = content.match(/\$VSDD_VERSION\s*=\s*["']([0-9.]+)["']/);
     if (!match || match[1] !== version) {
@@ -92,7 +98,9 @@ function checkVersion(repoRoot = path.resolve(__dirname, '..')) {
 
   // 4. README.md
   const readmePath = path.join(repoRoot, 'README.md');
-  if (fs.existsSync(readmePath)) {
+  if (!fs.existsSync(readmePath)) {
+    outOfSync.push('README.md (no encontrado)');
+  } else {
     const content = fs.readFileSync(readmePath, 'utf8');
     if (!content.includes(`version-${version}-blue.svg`)) {
       outOfSync.push('README.md');

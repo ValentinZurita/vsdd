@@ -62,3 +62,37 @@ test('version-sync: scripts/sync-version.js --check valida sincronización con c
   assert.ok(out.includes('Todos los archivos están perfectamente sincronizados'));
 });
 
+test('install.ps1: sintaxis de llaves balanceadas y funciones a nivel raíz', () => {
+  const content = fs.readFileSync(path.join(repoRoot, 'install.ps1'), 'utf8');
+  let depth = 0;
+  for (const ch of content) {
+    if (ch === '{') depth++;
+    if (ch === '}') depth--;
+    assert.ok(depth >= 0, 'Llave de cierre huérfana en install.ps1');
+  }
+  assert.equal(depth, 0, 'install.ps1 debe tener llaves perfectamente balanceadas');
+
+  assert.match(content, /function\s+Show-Banner/);
+  assert.match(content, /function\s+Run-Uninstall/);
+  assert.match(content, /function\s+Prompt-Choice/);
+  assert.match(content, /function\s+Resolve-SourceDirectory/);
+  assert.match(content, /function\s+Invoke-Main/);
+});
+
+test('version-sync: scripts/sync-version.js checkVersion reporta discrepancias correctamente', (t) => {
+  const os = require('node:os');
+  const tmpRepo = fs.mkdtempSync(path.join(os.tmpdir(), 'vsdd-sync-fail-'));
+  if (t && typeof t.after === 'function') {
+    t.after(() => fs.rmSync(tmpRepo, { recursive: true, force: true }));
+  }
+
+  fs.writeFileSync(path.join(tmpRepo, 'package.json'), JSON.stringify({ version: '0.44.0' }));
+  fs.writeFileSync(path.join(tmpRepo, 'SKILL.md'), 'version: "0.0.1"');
+
+  const { checkVersion } = require('../scripts/sync-version');
+  const res = checkVersion(tmpRepo);
+  assert.equal(res.inSync, false);
+  assert.ok(res.outOfSyncFiles.includes('SKILL.md'));
+});
+
+

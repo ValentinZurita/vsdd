@@ -58,6 +58,8 @@ function Run-Uninstall {
             Write-Host "✔ Removido" -ForegroundColor Green
             $removedCount++
         }
+    }
+
     # Limpieza de CLI global en Windows
     $binDir = Join-Path $USER_PROFILE ".local\bin"
     $cmdShim = Join-Path $binDir "vsdd.cmd"
@@ -355,7 +357,11 @@ $cmdContent = "@echo off`r`nnode `"%USERPROFILE%\.vsdd\cli\scripts\cli.js`" %*`r
 
 # vsdd: script de shell para Git Bash / MSYS2 en Windows
 $shPath = Join-Path $binDir "vsdd"
-$shContent = "#!/usr/bin/env sh`nnode `"`${USERPROFILE:-\$HOME}/.vsdd/cli/scripts/cli.js`" `"\$@`"`n"
+$shLines = @(
+    '#!/usr/bin/env sh',
+    'node "${USERPROFILE:-$HOME}/.vsdd/cli/scripts/cli.js" "$@"'
+)
+$shContent = ($shLines -join "`n") + "`n"
 [System.IO.File]::WriteAllText($shPath, $shContent, [System.Text.Encoding]::ASCII)
 
 Write-Host ("  ✔ {0,-20} → {1}" -f "Comando 'vsdd' CLI", $cmdPath) -ForegroundColor Green

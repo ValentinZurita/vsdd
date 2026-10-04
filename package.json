@@ -20,10 +20,10 @@
   ],
   "scripts": {
     "test": "node --test",
-    "status": "./scripts/vsdd-status.js",
-    "validate": "./scripts/vsdd-validate.js",
-    "oracle": "./scripts/vsdd-oracle.js",
-    "sonar": "./scripts/vsdd-sonar.js",
+    "status": "node ./scripts/vsdd-status.js",
+    "validate": "node ./scripts/vsdd-validate.js",
+    "oracle": "node ./scripts/vsdd-oracle.js",
+    "sonar": "node ./scripts/vsdd-sonar.js",
     "install:skill": "node scripts/install-skill.js --scope global --hosts all --apply",
     "uninstall:skill": "node scripts/install-skill.js --scope global --hosts all --apply --uninstall"
   },

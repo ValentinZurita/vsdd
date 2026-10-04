@@ -51,3 +51,18 @@ jobs:
         run: |
           node scripts/cli.js --version --json
           node scripts/cli.js status --json
+
+      - name: Validate Bash Installer Syntax
+        run: bash -n install.sh
+
+      - name: Validate PowerShell Installer Syntax
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $parseErrors = $null
+          [System.Management.Automation.Language.Parser]::ParseFile('install.ps1', [ref]$null, [ref]$parseErrors)
+          if ($parseErrors.Count -gt 0) {
+            $parseErrors | ForEach-Object { Write-Error $_ }
+            exit 1
+          }
+

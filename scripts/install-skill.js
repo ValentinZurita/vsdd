@@ -248,18 +248,29 @@ function copyTree(sourceDir, destination, entries, { update = false } = {}) {
   }
 }
 
+function isVsddSkillDir(dir) {
+  const skillFile = path.join(dir, 'SKILL.md');
+  if (!fs.existsSync(skillFile)) return false;
+  try {
+    const content = fs.readFileSync(skillFile, 'utf8');
+    return /name:\s*['"]?vsdd['"]?/i.test(content);
+  } catch (_) {
+    return false;
+  }
+}
+
 function resolveSourceDir(projectRoot, customSource) {
   if (customSource) return path.resolve(customSource);
   const root = path.resolve(projectRoot);
-  if (fs.existsSync(path.join(root, 'SKILL.md'))) {
+  if (isVsddSkillDir(root)) {
     return root;
   }
   const agentsPath = path.join(root, '.agents', 'skills', 'vsdd');
-  if (fs.existsSync(path.join(agentsPath, 'SKILL.md'))) {
+  if (isVsddSkillDir(agentsPath)) {
     return agentsPath;
   }
   const pkgRoot = path.resolve(__dirname, '..');
-  if (fs.existsSync(path.join(pkgRoot, 'SKILL.md'))) {
+  if (isVsddSkillDir(pkgRoot)) {
     return pkgRoot;
   }
   return root;
