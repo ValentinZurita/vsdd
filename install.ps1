@@ -132,6 +132,7 @@ function Resolve-SourceDirectory {
     Write-Host "● Descargando VSDD v$VSDD_VERSION desde GitHub..." -ForegroundColor Cyan
     $tempDir = Join-Path ([System.IO.Path]::GetTempPath()) ("vsdd-install-" + [System.Guid]::NewGuid().ToString())
     New-Item -ItemType Directory -Path $tempDir -Force | Out-Null
+    $global:VSDD_TMP_DIR = $tempDir
 
     $zipPath = Join-Path $tempDir "vsdd.zip"
     $zipUrl = "https://github.com/ValentinZurita/vsdd/archive/refs/heads/main.zip"
@@ -140,6 +141,7 @@ function Resolve-SourceDirectory {
         [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
         Invoke-WebRequest -Uri $zipUrl -OutFile $zipPath -UseBasicParsing -TimeoutSec 15
         Expand-Archive -Path $zipPath -DestinationPath $tempDir -Force
+        Remove-Item -Path $zipPath -Force -ErrorAction SilentlyContinue
         $extracted = Get-ChildItem -Path $tempDir -Directory -Filter "vsdd-*" | Select-Object -First 1
         if ($extracted -and (Test-Path (Join-Path $extracted.FullName "SKILL.md"))) {
             return $extracted.FullName
@@ -155,7 +157,9 @@ function Resolve-SourceDirectory {
     Write-Host "Solución: Clona el repositorio con tus credenciales e instálalo localmente:" -ForegroundColor White
     Write-Host "  git clone https://github.com/ValentinZurita/vsdd.git" -ForegroundColor Cyan
     Write-Host "  cd vsdd; .\install.ps1`n" -ForegroundColor Cyan
-    Read-Host "Presiona [Enter] para continuar..."
+    if (-not $Yes) {
+        Read-Host "Presiona [Enter] para continuar..."
+    }
     exit 1
 }
 
@@ -314,7 +318,9 @@ foreach ($dest in $destinations) {
         Write-Host ("  ✔ {0,-20} → {1}" -f $dest.Name, $dest.Path) -ForegroundColor Green
     } catch {
         Write-Host ("`n✖ Error copiando a {0}: {1}" -f $dest.Path, $_.Exception.Message) -ForegroundColor Red
-        Read-Host "Presiona [Enter] para continuar..."
+        if (-not $Yes) {
+            Read-Host "Presiona [Enter] para continuar..."
+        }
         exit 1
     }
 }
@@ -331,11 +337,12 @@ if (-not (Test-Path $cliDir)) {
 # Copiar package.json
 Copy-Item -Path (Join-Path $sourceDir "package.json") -Destination (Join-Path $cliDir "package.json") -Force
 
-# Copiar scripts
+# Copiar scripts (limpiando destino previo para evitar anidamiento)
 $cliScripts = Join-Path $cliDir "scripts"
-if (-not (Test-Path $cliScripts)) {
-    New-Item -ItemType Directory -Path $cliScripts -Force | Out-Null
+if (Test-Path $cliScripts) {
+    Remove-Item -Path $cliScripts -Recurse -Force -ErrorAction SilentlyContinue
 }
+New-Item -ItemType Directory -Path $cliScripts -Force | Out-Null
 Copy-Item -Path (Join-Path $sourceDir "scripts\*") -Destination $cliScripts -Recurse -Force
 
 # Copiar references (limpiando destino previo para evitar anidamiento en PowerShell)
@@ -383,6 +390,11 @@ if (($userEnvPath -notlike "*$binDir*") -and ($currentEnvPath -notlike "*$binDir
     Write-Host "   Para ejecutar 'vsdd' directamente en cualquier terminal, agrega la carpeta a tu PATH de usuario:" -ForegroundColor Yellow
     Write-Host ("   [Environment]::SetEnvironmentVariable('Path', `"`$([Environment]::GetEnvironmentVariable('Path', 'User'));{0}`", 'User')" -f $binDir) -ForegroundColor Cyan
     Write-Host ""
+}
+
+# Limpieza de temporales de descarga si existieron
+if ($global:VSDD_TMP_DIR -and (Test-Path $global:VSDD_TMP_DIR)) {
+    Remove-Item -Path $global:VSDD_TMP_DIR -Recurse -Force -ErrorAction SilentlyContinue
 }
 }
 

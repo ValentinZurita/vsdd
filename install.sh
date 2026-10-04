@@ -10,8 +10,6 @@ set -o pipefail
 # Configuración y Constantes
 # ------------------------------------------------------------------------------
 VSDD_VERSION="0.44.1"
-REPO_RAW_URL="https://raw.githubusercontent.com/ValentinZurita/vsdd/main"
-REPO_API_TAR="https://api.github.com/repos/ValentinZurita/vsdd/tarball/main"
 
 # Tabla de Agentes Soportados: "id|Nombre Visible|Ruta Global|Ruta Proyecto"
 # Para agregar soporte a nuevos editores, solo agrega una línea en este formato.
@@ -133,16 +131,20 @@ resolve_source_directory() {
   fi
 
   # 2. Si no, estamos en ejecución remota (curl | bash). Descargamos la skill.
-  TMP_DIR="$(mktemp -d 2>/dev/null || mktemp -d -t 'vsdd-install')"
+  local download_dir="${1:-}"
+  if [ -z "$download_dir" ]; then
+    download_dir="$(mktemp -d 2>/dev/null || mktemp -d -t 'vsdd-install')"
+    TMP_DIR="$download_dir"
+  fi
   printf "%b● Descargando VSDD v%s desde GitHub...%b\n" "$CYAN" "$VSDD_VERSION" "$RESET" >&2
 
   local archive_url="https://github.com/ValentinZurita/vsdd/archive/refs/heads/main.tar.gz"
   local download_ok=0
 
-  if curl -fsSL --connect-timeout 10 "$archive_url" -o "$TMP_DIR/vsdd.tar.gz" 2>/dev/null; then
-    if tar -xzf "$TMP_DIR/vsdd.tar.gz" -C "$TMP_DIR" 2>/dev/null; then
+  if curl -fsSL --connect-timeout 10 "$archive_url" -o "$download_dir/vsdd.tar.gz" 2>/dev/null; then
+    if tar -xzf "$download_dir/vsdd.tar.gz" -C "$download_dir" 2>/dev/null; then
       local extracted_dir
-      extracted_dir=$(find "$TMP_DIR" -maxdepth 1 -type d -name "vsdd-*" | head -n 1)
+      extracted_dir=$(find "$download_dir" -maxdepth 1 -type d -name "vsdd-*" | head -n 1)
       if [ -n "$extracted_dir" ] && [ -f "$extracted_dir/SKILL.md" ]; then
         download_ok=1
         echo "$extracted_dir"
@@ -204,7 +206,7 @@ run_uninstall() {
   done
 
   # Limpieza de CLI global
-  if [ -f "$HOME/.local/bin/vsdd" ]; then
+  if [ -e "$HOME/.local/bin/vsdd" ] || [ -L "$HOME/.local/bin/vsdd" ]; then
     printf "Eliminando binario CLI: %s... " "$HOME/.local/bin/vsdd"
     rm -f "$HOME/.local/bin/vsdd"
     printf "%b✔ Removido%b\n" "$GREEN" "$RESET"
@@ -246,12 +248,39 @@ main() {
         printf "  -h, --help         Mostrar esta ayuda\n\n"
         exit 0
         ;;
+      *)
+        printf "%b✖ Opción desconocida: %s%b\n" "$RED" "$arg" "$RESET" >&2
+        printf "Usa ./install.sh --help para ver las opciones disponibles.\n\n" >&2
+        exit 1
+        ;;
     esac
   done
 
   print_banner
+
+  # Validación preventiva de Node.js (v18+)
+  if ! command -v node >/dev/null 2>&1; then
+    printf "%b✖ Error:%b Node.js no está instalado o no se encuentra en el PATH.\n" "$RED" "$RESET" >&2
+    printf "%bVSDD requiere Node.js (v18+) para su motor determinista.%b\n" "$YELLOW" "$RESET" >&2
+    printf "%bPor favor instala Node.js desde https://nodejs.org y vuelve a intentar.%b\n\n" "$YELLOW" "$RESET" >&2
+    pause_before_exit
+    exit 1
+  fi
+
+  local node_ver
+  node_ver=$(node -v 2>/dev/null | tr -d 'v' || echo "0")
+  local major_ver
+  major_ver=$(echo "$node_ver" | cut -d. -f1)
+  if [ "${major_ver:-0}" -lt 18 ]; then
+    printf "%b✖ Error:%b Se detectó Node.js v%s pero VSDD requiere Node.js v18.0.0 o superior.\n" "$RED" "$RESET" "$node_ver" >&2
+    printf "%bPor favor actualiza Node.js desde https://nodejs.org e intenta nuevamente.%b\n\n" "$YELLOW" "$RESET" >&2
+    pause_before_exit
+    exit 1
+  fi
+
+  TMP_DIR="$(mktemp -d 2>/dev/null || mktemp -d -t 'vsdd-install')"
   local source_dir
-  source_dir=$(resolve_source_directory)
+  source_dir=$(resolve_source_directory "$TMP_DIR")
 
   # 1. Detección de Agentes en la máquina
   printf "%b● Escaneando entornos de desarrollo en este equipo:%b\n" "$BOLD" "$RESET"
