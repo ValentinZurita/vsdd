@@ -1,6 +1,6 @@
 # Motor de Entrevista Consultiva y Elicitación Ágil
 
-Fuente Única de Verdad (SSOT) para la dinámica de preguntas, formato visual y facilitación de decisiones en VSDD (Intake, Spec y Plan).
+Referencia canónica interna para la dinámica de preguntas, formato visual y facilitación de decisiones en VSDD (Intake, Spec y Plan).
 
 ---
 

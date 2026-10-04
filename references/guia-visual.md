@@ -1,6 +1,6 @@
 # Guía de Estilo Visual y Componentes TUI (VSDD)
 
-Fuente Única de Verdad (SSOT) para la presentación gráfica, diagramas, tablas y maquetas en terminal dentro de VSDD. Diseñada para garantizar máxima legibilidad, estética moderna y cero roturas de pantalla en cualquier cliente o agente (Cursor, Claude Code, Antigravity, Codex).
+Referencia canónica interna para la presentación gráfica, diagramas, tablas y maquetas en terminal dentro de VSDD. Diseñada para mantener legibilidad, una estética consistente y evitar roturas de pantalla en distintos clientes o agentes (Cursor, Claude Code, Antigravity, Codex).
 
 ---
 

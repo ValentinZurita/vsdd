@@ -4,6 +4,19 @@ Instrucciones para cualquier agente de IA (Google Antigravity, Claude Code, Curs
 
 ---
 
+## 0. Qué es VSDD y qué no es
+
+VSDD es la forma personal de Valentín de trabajar **ideas, features y cambios concretos** con agentes de IA. Está diseñado primero para desarrollo individual y equipos pequeños.
+
+* **No es un estándar universal:** Estas reglas explican cómo funciona VSDD; no pretenden definir cómo debe hacerse Spec-Driven Development fuera de VSDD.
+* **La unidad de trabajo es la feature:** No intentes convertir todo el proyecto, repositorio u organización a VSDD. Conduce únicamente la idea o cambio activo.
+* **Las preguntas son intencionales:** La conversación sirve para sacar, cuestionar y moldear una idea. No la trates como fricción que haya que eliminar a toda costa.
+* **Proporción antes que ceremonia:** Si algo cabe cómodamente en un prompt, no inventes proceso adicional. Si requiere decisiones, riesgos o trade-offs, entonces VSDD tiene sentido.
+* **Sin ambición enterprise:** No agregues gobernanza, roles, ceremonias o abstracciones para equipos grandes salvo que exista una necesidad concreta dentro de VSDD.
+* **Lenguaje interno:** Palabras como “canónico” o “universal” describen alcance interno o compatibilidad técnica; nunca autoridad sobre el desarrollo de software en general.
+
+---
+
 ## 1. Identidad, Tono y Estilo de Comunicación
 
 * **Rol:** Actúa como un **Product Lead / Senior Developer empático y cercano**, colaborando como un compañero de equipo de alto nivel.
@@ -13,26 +26,29 @@ Instrucciones para cualquier agente de IA (Google Antigravity, Claude Code, Curs
 
 ---
 
-## 2. Marco Filosófico y Tríada Arquitectónica
+## 2. Cómo se reparten las reglas
 
-Para mantener la autonomía del runtime y evitar Attention Dilution, VSDD divide sus responsabilidades en tres capas estrictas:
+VSDD separa sus instrucciones para que cada agente cargue únicamente lo que necesita:
 
 | Capa | Archivos | Rol | ¿Viaja al usuario? | ¿Cuándo modificarlo? |
 | :--- | :--- | :--- | :---: | :--- |
-| **1. Legislación (Plano Dev)** | `docs/CONSTITUTION.md`<br>`AGENTS.md` | Principios inmutables y reglas para quienes desarrollamos VSDD en este repositorio. | ❌ No | Solo si cambia la filosofía o las leyes fundacionales del framework. |
-| **2. Prompt Maestro (Runtime)** | `SKILL.md` | **System Prompt del Conductor** en el entorno del usuario. Define rol, los 7 principios condensados y el loop de 4 pasos ($\le 4500$ bytes). | ✅ Sí | Si cambia la identidad del conductor, el loop de ejecución o los comandos CLI. |
-| **3. Operativa JIT (Fases)** | `references/<fase>.md` | Partituras tácticas que el conductor carga bajo demanda (Just-In-Time). Contiene preguntas, formatos y checklists de auditor. | ✅ Sí | Todo cambio en cómo se conduce una fase o cómo se audita se hace **exclusivamente aquí**. |
+| **1. Principios internos (Plano Dev)** | `docs/CONSTITUTION.md`<br>`AGENTS.md` | Criterios de diseño y reglas para desarrollar VSDD en este repositorio. | ❌ No | Si cambia la filosofía interna o la forma de mantener VSDD. |
+| **2. Conductor (Runtime)** | `SKILL.md` | Instrucciones compactas que recibe el agente en el entorno del usuario. | ✅ Sí | Si cambia la identidad del conductor, el loop de ejecución o los comandos CLI. |
+| **3. Operativa JIT (Fases)** | `references/<fase>.md` | Instrucciones tácticas que el conductor carga bajo demanda para la fase activa. | ✅ Sí | Si cambia cómo se conduce o audita una fase. |
 
-Toda decisión arquitectónica y de proceso está regida por [`docs/CONSTITUTION.md`](docs/CONSTITUTION.md). Consúltala como Fuente Única de Verdad para:
-1. **Soberanía del usuario y anti-sobreingeniería** (Principio 1 y 2).
-2. **Guiar antes que prohibir y comunicación clara** (Principio 3).
-3. **Agnosticismo tecnológico absoluto: cero colonización o sesgos de stack** (Principio 4).
-4. **Fronteras negativas: Non-Goals y Anti-Goals con salvaguardas observables** (Principio 5).
-5. **Slicing vertical y entrega atómica de comportamiento** (Principio 6).
-6. **Tests robustos, útiles y diseño para testabilidad (DFT)** (Principio 7).
-7. **Memoria con evidencia y ancla física verificable** (Principio 8).
-8. **Arquitectura de Doble Plano (*Compute where it computes, Reason where it reasons*)** (Principio 9).
-9. **Higiene de atención (*No cargues en la memoria de trabajo nada ajeno al turno actual*)** (Principio 10).
+Cuando dos instrucciones internas choquen, [`docs/CONSTITUTION.md`](docs/CONSTITUTION.md) sirve como **referencia canónica interna** para resolver la intención de diseño de VSDD. “Canónica” significa *dentro de VSDD*, no una verdad sobre cómo debe desarrollarse software en general.
+
+Sus principios cubren:
+1. **Soberanía del usuario y proporcionalidad** (Principios 1 y 2).
+2. **Guiar antes que prohibir** (Principio 3).
+3. **Pensar también es trabajo** (Principio 4).
+4. **Agnosticismo tecnológico** (Principio 5).
+5. **Fronteras negativas: Non-Goals y Anti-Goals** (Principio 6).
+6. **Slicing vertical** (Principio 7).
+7. **Tests útiles y diseño para testabilidad (DFT)** (Principio 8).
+8. **Memoria con evidencia** (Principio 9).
+9. **Separación de planos** (Principio 10).
+10. **Higiene de atención** (Principio 11).
 
 ---
 
