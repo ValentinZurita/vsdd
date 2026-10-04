@@ -9,7 +9,7 @@ set -o pipefail
 # ------------------------------------------------------------------------------
 # Configuración y Constantes
 # ------------------------------------------------------------------------------
-VSDD_VERSION="0.43"
+VSDD_VERSION="0.44.0"
 REPO_RAW_URL="https://raw.githubusercontent.com/ValentinZurita/vsdd/main"
 REPO_API_TAR="https://api.github.com/repos/ValentinZurita/vsdd/tarball/main"
 
@@ -424,6 +424,8 @@ main() {
   mkdir -p "$cli_dir/scripts" 2>/dev/null || true
   cp -f "$source_dir/package.json" "$cli_dir/package.json" 2>/dev/null || true
   cp -R "$source_dir/scripts/"* "$cli_dir/scripts/" 2>/dev/null || true
+  rm -rf "$cli_dir/references" 2>/dev/null || true
+  cp -R "$source_dir/references" "$cli_dir/references" 2>/dev/null || true
   chmod +x "$cli_dir/scripts/cli.js" "$cli_dir/scripts/vsdd-status.js" "$cli_dir/scripts/vsdd-validate.js" "$cli_dir/scripts/vsdd-oracle.js" 2>/dev/null || true
 
   mkdir -p "$bin_dir" 2>/dev/null || true

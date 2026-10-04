@@ -10,7 +10,7 @@ param(
     [switch]$Help
 )
 
-$VSDD_VERSION = "0.42"
+$VSDD_VERSION = "0.44.0"
 $USER_PROFILE = $env:USERPROFILE
 
 # Configuración de Agentes: Id, Nombre, Ruta Global, Ruta Local

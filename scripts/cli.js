@@ -3,15 +3,10 @@ const fs = require('fs');
 const path = require('path');
 const { spawnSync } = require('child_process');
 
+const { getLocalVsddVersion } = require('./lib/version');
+
 function getVersion(baseDir) {
-  try {
-    const pkgPath = path.join(baseDir, '..', 'package.json');
-    if (fs.existsSync(pkgPath)) {
-      const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
-      return pkg.version || '0.43.0';
-    }
-  } catch (_) {}
-  return '0.43.0';
+  return getLocalVsddVersion(baseDir);
 }
 
 function printHelp(version) {
