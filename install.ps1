@@ -58,12 +58,35 @@ function Run-Uninstall {
             Write-Host "✔ Removido" -ForegroundColor Green
             $removedCount++
         }
+    # Limpieza de CLI global en Windows
+    $binDir = Join-Path $USER_PROFILE ".local\bin"
+    $cmdShim = Join-Path $binDir "vsdd.cmd"
+    $shShim = Join-Path $binDir "vsdd"
+    $cliDir = Join-Path $USER_PROFILE ".vsdd"
+
+    if (Test-Path $cmdShim) {
+        Write-Host ("Eliminando ejecutable CLI: {0}... " -f $cmdShim) -NoNewline
+        Remove-Item -Path $cmdShim -Force -ErrorAction SilentlyContinue
+        Write-Host "✔ Removido" -ForegroundColor Green
+        $removedCount++
+    }
+    if (Test-Path $shShim) {
+        Write-Host ("Eliminando script bash CLI: {0}... " -f $shShim) -NoNewline
+        Remove-Item -Path $shShim -Force -ErrorAction SilentlyContinue
+        Write-Host "✔ Removido" -ForegroundColor Green
+        $removedCount++
+    }
+    if (Test-Path $cliDir) {
+        Write-Host ("Eliminando runtime CLI: {0}... " -f $cliDir) -NoNewline
+        Remove-Item -Path $cliDir -Recurse -Force -ErrorAction SilentlyContinue
+        Write-Host "✔ Removido" -ForegroundColor Green
+        $removedCount++
     }
 
     if ($removedCount -eq 0) {
         Write-Host "No se encontraron instalaciones previas de VSDD en este equipo.`n" -ForegroundColor DarkGray
     } else {
-        Write-Host ("`n✔ Desinstalación completada ({0} directorios limpiados).`n" -f $removedCount) -ForegroundColor Green
+        Write-Host ("`n✔ Desinstalación completada ({0} elementos limpiados).`n" -f $removedCount) -ForegroundColor Green
     }
     exit 0
 }
@@ -153,6 +176,29 @@ function Invoke-Main {
     }
 
     Show-Banner
+
+    # Validación preventiva de Node.js
+    if (-not (Get-Command node -ErrorAction SilentlyContinue)) {
+        Write-Host "✖ Error: Node.js no está instalado o no se encuentra en el PATH." -ForegroundColor Red
+        Write-Host "VSDD requiere Node.js (v18+) para su motor determinista." -ForegroundColor Yellow
+        Write-Host "Por favor instala Node.js desde https://nodejs.org y vuelve a intentar.`n" -ForegroundColor Yellow
+        if (-not $Yes) { Read-Host "Presiona [Enter] para salir..." }
+        exit 1
+    }
+
+    try {
+        $nodeVerRaw = (node -v).Trim().TrimStart('v')
+        $majorVer = [int]($nodeVerRaw.Split('.')[0])
+        if ($majorVer -lt 18) {
+            Write-Host "✖ Error: Se detectó Node.js v$nodeVerRaw pero VSDD requiere Node.js v18.0.0 o superior." -ForegroundColor Red
+            Write-Host "Por favor actualiza Node.js desde https://nodejs.org e intenta nuevamente.`n" -ForegroundColor Yellow
+            if (-not $Yes) { Read-Host "Presiona [Enter] para salir..." }
+            exit 1
+        }
+    } catch {
+        # Continuar si la versión no se pudo parsear como entero
+    }
+
     $sourceDir = Resolve-SourceDirectory
 
 # 1. Detección de Agentes
@@ -271,6 +317,49 @@ foreach ($dest in $destinations) {
     }
 }
 
+# 6.1 Instalación del CLI permanente en ~/.vsdd/cli
+Write-Host "`n● Configurando ejecutable CLI de VSDD..." -ForegroundColor Cyan
+$cliDir = Join-Path $USER_PROFILE ".vsdd\cli"
+$binDir = Join-Path $USER_PROFILE ".local\bin"
+
+if (-not (Test-Path $cliDir)) {
+    New-Item -ItemType Directory -Path $cliDir -Force | Out-Null
+}
+
+# Copiar package.json
+Copy-Item -Path (Join-Path $sourceDir "package.json") -Destination (Join-Path $cliDir "package.json") -Force
+
+# Copiar scripts
+$cliScripts = Join-Path $cliDir "scripts"
+if (-not (Test-Path $cliScripts)) {
+    New-Item -ItemType Directory -Path $cliScripts -Force | Out-Null
+}
+Copy-Item -Path (Join-Path $sourceDir "scripts\*") -Destination $cliScripts -Recurse -Force
+
+# Copiar references (limpiando destino previo para evitar anidamiento en PowerShell)
+$cliRef = Join-Path $cliDir "references"
+if (Test-Path $cliRef) {
+    Remove-Item -Path $cliRef -Recurse -Force -ErrorAction SilentlyContinue
+}
+Copy-Item -Path (Join-Path $sourceDir "references") -Destination $cliDir -Recurse -Force
+
+# Generar shims en ~/.local/bin
+if (-not (Test-Path $binDir)) {
+    New-Item -ItemType Directory -Path $binDir -Force | Out-Null
+}
+
+# vsdd.cmd: ejecutable universal para CMD y PowerShell (inmune a ExecutionPolicy Restricted)
+$cmdPath = Join-Path $binDir "vsdd.cmd"
+$cmdContent = "@echo off`r`nnode `"%USERPROFILE%\.vsdd\cli\scripts\cli.js`" %*`r`nexit /b %ERRORLEVEL%`r`n"
+[System.IO.File]::WriteAllText($cmdPath, $cmdContent, [System.Text.Encoding]::ASCII)
+
+# vsdd: script de shell para Git Bash / MSYS2 en Windows
+$shPath = Join-Path $binDir "vsdd"
+$shContent = "#!/usr/bin/env sh`nnode `"`${USERPROFILE:-\$HOME}/.vsdd/cli/scripts/cli.js`" `"\$@`"`n"
+[System.IO.File]::WriteAllText($shPath, $shContent, [System.Text.Encoding]::ASCII)
+
+Write-Host ("  ✔ {0,-20} → {1}" -f "Comando 'vsdd' CLI", $cmdPath) -ForegroundColor Green
+
 # 7. Resumen de Éxito
 Write-Host ""
 Write-Host "╭────────────────────────────────────────────────────────╮" -ForegroundColor Green
@@ -279,6 +368,16 @@ Write-Host "│                                                        │" -For
 Write-Host ("│  VSDD v{0,-5} ya está lista para usar en tus agentes.   │" -f $VSDD_VERSION) -ForegroundColor Green
 Write-Host "│  Puedes activarla llamando a 'vsdd' en cualquier chat. │" -ForegroundColor Green
 Write-Host "╰────────────────────────────────────────────────────────╯`n" -ForegroundColor Green
+
+# Verificación de PATH
+$userEnvPath = [Environment]::GetEnvironmentVariable("Path", [EnvironmentVariableTarget]::User)
+$currentEnvPath = $env:PATH
+if (($userEnvPath -notlike "*$binDir*") -and ($currentEnvPath -notlike "*$binDir*")) {
+    Write-Host "⚠️  Aviso: $binDir no está en tu PATH actual." -ForegroundColor Yellow
+    Write-Host "   Para ejecutar 'vsdd' directamente en cualquier terminal, agrega la carpeta a tu PATH de usuario:" -ForegroundColor Yellow
+    Write-Host ("   [Environment]::SetEnvironmentVariable('Path', `"`$([Environment]::GetEnvironmentVariable('Path', 'User'));{0}`", 'User')" -f $binDir) -ForegroundColor Cyan
+    Write-Host ""
+}
 }
 
 Invoke-Main

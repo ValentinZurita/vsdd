@@ -8,7 +8,7 @@ const path = require('node:path');
 const HOSTS = ['claude-code', 'codex', 'cursor', 'antigravity'];
 
 function usage() {
-  return `Usage: node scripts/install-skill.js --scope project|global --hosts claude-code,codex,cursor,antigravity|all [--project PATH] [--source PATH] [--apply] [--update]\n\nDefaults to dry-run. Writes only when --apply is present.\nUse --update to safely overwrite / upgrade an existing installation.`;
+  return `Usage: node scripts/install-skill.js --scope project|global --hosts claude-code,codex,cursor,antigravity|all [--project PATH] [--source PATH] [--apply] [--update] [--uninstall]\n\nDefaults to dry-run. Writes only when --apply is present.\nUse --update to safely overwrite / upgrade an existing installation.\nUse --uninstall to remove existing installations for the selected scope and hosts.`;
 }
 
 function parseArgs(argv) {
@@ -17,6 +17,7 @@ function parseArgs(argv) {
     homeDir: os.homedir(),
     apply: false,
     update: false,
+    uninstall: false,
     sourceDir: null,
   };
 
@@ -26,6 +27,8 @@ function parseArgs(argv) {
       options.apply = true;
     } else if (arg === '--update') {
       options.update = true;
+    } else if (arg === '--uninstall') {
+      options.uninstall = true;
     } else if (arg === '--scope') {
       options.scope = argv[++i];
     } else if (arg === '--hosts') {
@@ -255,10 +258,46 @@ function resolveSourceDir(projectRoot, customSource) {
   if (fs.existsSync(path.join(agentsPath, 'SKILL.md'))) {
     return agentsPath;
   }
+  const pkgRoot = path.resolve(__dirname, '..');
+  if (fs.existsSync(path.join(pkgRoot, 'SKILL.md'))) {
+    return pkgRoot;
+  }
   return root;
 }
 
-function installSkill({ scope, hosts, projectRoot = process.cwd(), homeDir = os.homedir(), sourceDir, apply = false, update = false }) {
+function uninstallSkill({ scope, hosts, projectRoot = process.cwd(), homeDir = os.homedir(), apply = false }) {
+  const project = path.resolve(projectRoot);
+  const targets = calculateTargets({ hosts, scope, projectRoot: project, homeDir });
+  const operations = targets.map((target) => {
+    const exists = fs.existsSync(target.destination);
+    let status;
+    if (!exists) {
+      status = 'not-found';
+    } else {
+      status = apply ? 'removed' : 'would-remove';
+    }
+    return {
+      ...target,
+      status,
+    };
+  });
+
+  if (apply) {
+    for (const operation of operations) {
+      if (operation.status === 'removed') {
+        fs.rmSync(operation.destination, { recursive: true, force: true });
+      }
+    }
+  }
+
+  return { applied: Boolean(apply), uninstalled: true, operations };
+}
+
+function installSkill({ scope, hosts, projectRoot = process.cwd(), homeDir = os.homedir(), sourceDir, apply = false, update = false, uninstall = false }) {
+  if (uninstall) {
+    return uninstallSkill({ scope, hosts, projectRoot, homeDir, apply });
+  }
+
   const project = path.resolve(projectRoot);
   if (scope === 'project') {
     let projectStat;
@@ -316,6 +355,13 @@ function installSkill({ scope, hosts, projectRoot = process.cwd(), homeDir = os.
 }
 
 function printResult(result) {
+  if (result.uninstalled) {
+    console.log(result.applied ? 'Apply mode: removing skill files.' : 'Dry run: no files were removed. Use --apply to remove.');
+    for (const operation of result.operations) {
+      console.log(`${operation.status}: ${operation.destination} (${operation.hosts.join(',')})`);
+    }
+    return;
+  }
   console.log(result.applied ? 'Apply mode: copying skill files.' : 'Dry run: no files were written. Use --apply to copy.');
   console.log(`Source: ${result.source}`);
   for (const operation of result.operations) {
@@ -346,6 +392,7 @@ module.exports = {
   HOSTS,
   calculateTargets,
   installSkill,
+  uninstallSkill,
   parseArgs,
   walkSource,
   resolveSourceDir,

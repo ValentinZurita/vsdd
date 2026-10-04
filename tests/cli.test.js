@@ -89,16 +89,16 @@ test('cli: parseCliCommand detecta comando desconocido', () => {
 // -----------------------------------------------------------------------------
 
 test('cli integración: ejecución de vsdd -v y --version emite versión válida', () => {
-  const stdout = execSync(`node ${path.join(scriptsDir, 'cli.js')} -v`, { encoding: 'utf8', cwd: repoRoot });
+  const stdout = execSync(`node "${path.join(scriptsDir, 'cli.js')}" -v`, { encoding: 'utf8', cwd: repoRoot });
   assert.match(stdout, /⚡ VSDD v\d+\.\d+/);
 
-  const jsonOut = execSync(`node ${path.join(scriptsDir, 'cli.js')} --version --json`, { encoding: 'utf8', cwd: repoRoot });
+  const jsonOut = execSync(`node "${path.join(scriptsDir, 'cli.js')}" --version --json`, { encoding: 'utf8', cwd: repoRoot });
   const parsed = JSON.parse(jsonOut);
   assert.ok(parsed.version);
 });
 
 test('cli integración: ejecución de vsdd --help emite banner de ayuda', () => {
-  const stdout = execSync(`node ${path.join(scriptsDir, 'cli.js')} --help`, { encoding: 'utf8', cwd: repoRoot });
+  const stdout = execSync(`node "${path.join(scriptsDir, 'cli.js')}" --help`, { encoding: 'utf8', cwd: repoRoot });
   assert.match(stdout, /⚡ VSDD/);
   assert.match(stdout, /vsdd validate/);
   assert.match(stdout, /vsdd status/);
@@ -106,7 +106,7 @@ test('cli integración: ejecución de vsdd --help emite banner de ayuda', () => 
 
 test('cli integración: subcomando desconocido sale con código 1', () => {
   assert.throws(() => {
-    execSync(`node ${path.join(scriptsDir, 'cli.js')} comando-inexistente`, { stdio: 'pipe', cwd: repoRoot });
+    execSync(`node "${path.join(scriptsDir, 'cli.js')}" comando-inexistente`, { stdio: 'pipe', cwd: repoRoot });
   }, /Command failed/);
 });
 
@@ -117,7 +117,7 @@ test('cli integración: vsdd validate propaga código 1 ante archivo con errores
     fs.writeFileSync(invalidFile, '# Idea sin secciones válidas\n');
 
     assert.throws(() => {
-      execSync(`node ${path.join(scriptsDir, 'cli.js')} validate "${invalidFile}" --json`, {
+      execSync(`node "${path.join(scriptsDir, 'cli.js')}" validate "${invalidFile}" --json`, {
         stdio: 'pipe',
         cwd: repoRoot,
       });
@@ -131,7 +131,7 @@ test('cli integración: vsdd validate propaga código 1 ante archivo con errores
 });
 
 test('cli integración: vsdd sonar --json emite mapa de exploración válido', () => {
-  const stdout = execSync(`node ${path.join(scriptsDir, 'cli.js')} sonar --json`, {
+  const stdout = execSync(`node "${path.join(scriptsDir, 'cli.js')}" sonar --json`, {
     encoding: 'utf8',
     cwd: repoRoot,
   });

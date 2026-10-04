@@ -49,9 +49,16 @@ test('version-sync: compareSemver maneja prefijos v y longitudes mixtas', () => 
 });
 
 test('version-sync: scripts/cli.js reporta la versión canónica', () => {
-  const out = execSync(`node ${path.join(repoRoot, 'scripts', 'cli.js')} --version --json`, {
+  const out = execSync(`node "${path.join(repoRoot, 'scripts', 'cli.js')}" --version --json`, {
     encoding: 'utf8',
   });
   const parsed = JSON.parse(out);
   assert.equal(parsed.version, getCanonicalVersion());
 });
+
+test('version-sync: scripts/sync-version.js --check valida sincronización con código 0', () => {
+  const syncScript = path.join(repoRoot, 'scripts', 'sync-version.js');
+  const out = execSync(`node "${syncScript}" --check`, { encoding: 'utf8' });
+  assert.ok(out.includes('Todos los archivos están perfectamente sincronizados'));
+});
+

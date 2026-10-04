@@ -1,0 +1,53 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    name: Test (${{ matrix.os }} - Node ${{ matrix.node-version }})
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        node-version: [18.x, 20.x, 22.x]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - name: Configure Git Identity for tests
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Check Environment
+        run: |
+          node -v
+          npm -v
+
+      - name: Verify Canonical Version Synchronization
+        run: node scripts/sync-version.js --check
+
+      - name: Run Test Suite
+        run: npm test
+
+      - name: Verify Packaging Hygiene
+        run: npm pack --dry-run
+
+      - name: Verify Deterministic CLI Sanity
+        run: |
+          node scripts/cli.js --version --json
+          node scripts/cli.js status --json

@@ -11,14 +11,21 @@
     "vsdd-sonar": "./scripts/vsdd-sonar.js",
     "vsdd-install": "./scripts/install-skill.js"
   },
+  "files": [
+    "scripts",
+    "references",
+    "SKILL.md",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
-    "test": "node --test tests/*.test.js",
+    "test": "node --test",
     "status": "./scripts/vsdd-status.js",
     "validate": "./scripts/vsdd-validate.js",
     "oracle": "./scripts/vsdd-oracle.js",
     "sonar": "./scripts/vsdd-sonar.js",
-    "install:skill": "./install.sh",
-    "uninstall:skill": "./install.sh --uninstall"
+    "install:skill": "node scripts/install-skill.js --scope global --hosts all --apply",
+    "uninstall:skill": "node scripts/install-skill.js --scope global --hosts all --apply --uninstall"
   },
   "keywords": [
     "vsdd",

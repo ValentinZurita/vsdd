@@ -103,6 +103,7 @@ test('runSonarMap: ejecuta en repo git temporal e incluye archivos sin commitear
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'vsdd-sonar-test-'));
   try {
     execSync('git init', { cwd: tmpDir, stdio: 'ignore' });
+    execSync('git config user.name "Test User" && git config user.email "test@example.com"', { cwd: tmpDir, stdio: 'ignore' });
     fs.writeFileSync(path.join(tmpDir, 'README.md'), '# Test Project');
     fs.writeFileSync(path.join(tmpDir, 'go.mod'), 'module example.com/test\ngo 1.22');
     fs.mkdirSync(path.join(tmpDir, 'cmd', 'api'), { recursive: true });

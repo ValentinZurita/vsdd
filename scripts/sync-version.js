@@ -53,21 +53,77 @@ function syncVersion(repoRoot = path.resolve(__dirname, '..')) {
     }
   }
 
-  // 5. scripts/vsdd-validate.js banner
-  const validatePath = path.join(repoRoot, 'scripts', 'vsdd-validate.js');
-  if (fs.existsSync(validatePath)) {
-    let content = fs.readFileSync(validatePath, 'utf8');
-    const updated = content.replace(/VSDD Format Validator \(v[0-9.]+\)/g, `VSDD Format Validator (v${version})`);
-    if (updated !== content) {
-      fs.writeFileSync(validatePath, updated, 'utf8');
-      results.push('scripts/vsdd-validate.js');
-    }
-  }
-
   return { version, updatedFiles: results };
 }
 
+function checkVersion(repoRoot = path.resolve(__dirname, '..')) {
+  const version = getCanonicalVersion();
+  const outOfSync = [];
+
+  // 1. SKILL.md
+  const skillPath = path.join(repoRoot, 'SKILL.md');
+  if (fs.existsSync(skillPath)) {
+    const content = fs.readFileSync(skillPath, 'utf8');
+    const match = content.match(/version:\s*['"]?([0-9.]+)['"]?/);
+    if (!match || match[1] !== version) {
+      outOfSync.push('SKILL.md');
+    }
+  }
+
+  // 2. install.sh
+  const installShPath = path.join(repoRoot, 'install.sh');
+  if (fs.existsSync(installShPath)) {
+    const content = fs.readFileSync(installShPath, 'utf8');
+    const match = content.match(/VSDD_VERSION=["']([0-9.]+)["']/);
+    if (!match || match[1] !== version) {
+      outOfSync.push('install.sh');
+    }
+  }
+
+  // 3. install.ps1
+  const installPs1Path = path.join(repoRoot, 'install.ps1');
+  if (fs.existsSync(installPs1Path)) {
+    const content = fs.readFileSync(installPs1Path, 'utf8');
+    const match = content.match(/\$VSDD_VERSION\s*=\s*["']([0-9.]+)["']/);
+    if (!match || match[1] !== version) {
+      outOfSync.push('install.ps1');
+    }
+  }
+
+  // 4. README.md
+  const readmePath = path.join(repoRoot, 'README.md');
+  if (fs.existsSync(readmePath)) {
+    const content = fs.readFileSync(readmePath, 'utf8');
+    if (!content.includes(`version-${version}-blue.svg`)) {
+      outOfSync.push('README.md');
+    }
+  }
+
+  return {
+    version,
+    inSync: outOfSync.length === 0,
+    outOfSyncFiles: outOfSync,
+  };
+}
+
 if (require.main === module) {
+  const isCheckMode = process.argv.includes('--check');
+
+  if (isCheckMode) {
+    const res = checkVersion();
+    console.log(`[VSDD SSOT] Verificando versión canónica: ${res.version}`);
+    if (!res.inSync) {
+      console.error(`[VSDD SSOT] ERROR: Los siguientes archivos no coinciden con la versión canónica ${res.version}:`);
+      for (const file of res.outOfSyncFiles) {
+        console.error(`  ✖ ${file}`);
+      }
+      console.error(`[VSDD SSOT] Ejecuta 'node scripts/sync-version.js' para sincronizarlos automáticamente.`);
+      process.exit(1);
+    }
+    console.log('[VSDD SSOT] ✔ Todos los archivos están perfectamente sincronizados.');
+    process.exit(0);
+  }
+
   const res = syncVersion();
   console.log(`[VSDD SSOT] Versión canónica: ${res.version}`);
   if (res.updatedFiles.length > 0) {
@@ -77,4 +133,5 @@ if (require.main === module) {
   }
 }
 
-module.exports = { syncVersion };
+module.exports = { syncVersion, checkVersion };
+

@@ -287,4 +287,49 @@ test('parses command line arguments correctly and rejects invalid flags', () => 
   // Bandera de ayuda
   const helpParsed = installer.parseArgs(['-h']);
   assert.equal(helpParsed.help, true);
+
+  // Bandera de desinstalación
+  const uninstallParsed = installer.parseArgs(['--uninstall', '--scope', 'global', '--hosts', 'all']);
+  assert.equal(uninstallParsed.uninstall, true);
 });
+
+test('uninstalls skill destinations when apply is true', (t) => {
+  const project = tmpProject(t);
+  const source = writeSkill(project);
+  const destination = path.join(project, '.claude', 'skills', 'vsdd');
+
+  // Primero instalar
+  installer.installSkill({
+    scope: 'project',
+    hosts: ['claude-code'],
+    projectRoot: project,
+    sourceDir: source,
+    apply: true,
+  });
+  assert.equal(exists(destination), true);
+
+  // Dry run de desinstalación
+  const dryRun = installer.installSkill({
+    scope: 'project',
+    hosts: ['claude-code'],
+    projectRoot: project,
+    uninstall: true,
+    apply: false,
+  });
+  assert.equal(dryRun.uninstalled, true);
+  assert.equal(dryRun.operations[0].status, 'would-remove');
+  assert.equal(exists(destination), true);
+
+  // Desinstalación con apply
+  const applied = installer.installSkill({
+    scope: 'project',
+    hosts: ['claude-code'],
+    projectRoot: project,
+    uninstall: true,
+    apply: true,
+  });
+  assert.equal(applied.uninstalled, true);
+  assert.equal(applied.operations[0].status, 'removed');
+  assert.equal(exists(destination), false);
+});
+
