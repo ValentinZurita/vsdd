@@ -1,4 +1,4 @@
-# ==============================================================================
+﻿# ==============================================================================
 # VSDD (Valentin-Driven Development) - Instalador para Windows (PowerShell)
 # Compatible con Windows PowerShell 5.1 y PowerShell 7+
 # ==============================================================================
@@ -332,7 +332,7 @@ foreach ($dest in $destinations) {
         }
         Copy-Item -Path (Join-Path $sourceDir "references") -Destination $dest.Path -Recurse -Force
 
-        Write-Host ("  ✔ {0,-20} → {1}" -f $dest.Name, $dest.Path) -ForegroundColor Green
+        Write-Host ("  ✔ {0,-20} -> {1}" -f $dest.Name, $dest.Path) -ForegroundColor Green
     } catch {
         Write-Host ("`n✖ Error copiando a {0}: {1}" -f $dest.Path, $_.Exception.Message) -ForegroundColor Red
         if ($Yes) {
@@ -390,7 +390,7 @@ $shLines = @(
 $shContent = ($shLines -join "`n") + "`n"
 [System.IO.File]::WriteAllText($shPath, $shContent, [System.Text.Encoding]::ASCII)
 
-Write-Host ("  ✔ {0,-20} → {1}" -f "Comando 'vsdd' CLI", $cmdPath) -ForegroundColor Green
+Write-Host ("  ✔ {0,-20} -> {1}" -f "Comando 'vsdd' CLI", $cmdPath) -ForegroundColor Green
 
 # 7. Resumen de Éxito
 Write-Host ""
@@ -407,7 +407,7 @@ $currentEnvPath = $env:PATH
 if (($userEnvPath -notlike "*$binDir*") -and ($currentEnvPath -notlike "*$binDir*")) {
     Write-Host "⚠️  Aviso: $binDir no está en tu PATH actual." -ForegroundColor Yellow
     Write-Host "   Para ejecutar 'vsdd' directamente en cualquier terminal, agrega la carpeta a tu PATH de usuario:" -ForegroundColor Yellow
-    Write-Host ("   [Environment]::SetEnvironmentVariable('Path', `"`$([Environment]::GetEnvironmentVariable('Path', 'User'));{0}`", 'User')" -f $binDir) -ForegroundColor Cyan
+    Write-Host ('   [Environment]::SetEnvironmentVariable(''Path'', "$([Environment]::GetEnvironmentVariable(''Path'', ''User''));{0}", ''User'')' -f $binDir) -ForegroundColor Cyan
     Write-Host ""
 }
 
