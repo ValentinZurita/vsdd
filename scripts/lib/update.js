@@ -239,9 +239,24 @@ function performVsddUpdate(cwd = process.cwd(), options = {}) {
   try {
     const isWin = (options.platform || process.platform) === 'win32';
     const cmd = isWin
-      ? 'powershell -NoProfile -ExecutionPolicy Bypass -Command "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; & ([scriptblock]::Create((irm https://raw.githubusercontent.com/ValentinZurita/vsdd/main/install.ps1))) -Yes"'
+      ? 'powershell -NoProfile -ExecutionPolicy Bypass -Command "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; & ([scriptblock]::Create((irm -UseBasicParsing https://raw.githubusercontent.com/ValentinZurita/vsdd/main/install.ps1))) -Yes"'
       : 'bash -c "set -o pipefail; curl -fsSL --connect-timeout 10 -m 30 https://raw.githubusercontent.com/ValentinZurita/vsdd/main/install.sh | bash -s -- -y"';
     const updateOut = runner(cmd, { encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] });
+
+    // Si el proyecto actual tiene una copia local de la skill, sincronizarla también
+    try {
+      const cliInstaller = path.join(os.homedir(), '.vsdd', 'cli', 'scripts', 'install-skill.js');
+      const hasLocalSkill =
+        fs.existsSync(path.join(cwd, '.agents', 'skills', 'vsdd')) ||
+        fs.existsSync(path.join(cwd, '.claude', 'skills', 'vsdd'));
+      if (hasLocalSkill && fs.existsSync(cliInstaller)) {
+        runner(`node "${cliInstaller}" --scope project --hosts all --apply --update`, {
+          cwd,
+          encoding: 'utf8',
+          stdio: ['pipe', 'pipe', 'pipe'],
+        });
+      }
+    } catch (_) {}
 
     // Invalidar caché de versión tras actualización remota
     try {

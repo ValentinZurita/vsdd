@@ -4,7 +4,7 @@
 # Compatible con Bash 3.2+ (macOS y Linux) - Cero dependencias externas
 # ==============================================================================
 
-set -o pipefail
+set -E -o pipefail
 
 # ------------------------------------------------------------------------------
 # Configuración y Constantes
@@ -127,8 +127,14 @@ read_input() {
 # Detección del Origen de la Skill (Local vs Remoto)
 # ------------------------------------------------------------------------------
 resolve_source_directory() {
-  # 1. Comprobar si estamos ejecutando localmente dentro del repositorio de VSDD
-  if [ -f "./SKILL.md" ] && [ -d "./references" ] && grep -q "name: vsdd" "./SKILL.md" 2>/dev/null; then
+  # 1. Comprobar si estamos ejecutando desde el repo local (directorio del script o actual)
+  local script_dir
+  script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" 2>/dev/null && pwd)"
+  if [ -f "$script_dir/SKILL.md" ] && [ -d "$script_dir/references" ] && grep -qE "name:\s*['\"]?vsdd['\"]?" "$script_dir/SKILL.md" 2>/dev/null; then
+    echo "$script_dir"
+    return 0
+  fi
+  if [ -f "./SKILL.md" ] && [ -d "./references" ] && grep -qE "name:\s*['\"]?vsdd['\"]?" "./SKILL.md" 2>/dev/null; then
     echo "$(pwd)"
     return 0
   fi
@@ -434,7 +440,12 @@ main() {
     local target_dir="${destinations[$i]}"
     local target_agent="${dest_names[$i]}"
 
-    # Validar o crear directorio padre
+    # Limpiar symlink roto o previo si existe
+    if [ -L "$target_dir" ]; then
+      rm -rf "$target_dir" 2>/dev/null || true
+    fi
+
+    # Validar o crear directorio
     if ! mkdir -p "$target_dir" 2>/dev/null; then
       printf "%b✖ Error:%b No tienes permisos de escritura en: %s\n" "$RED" "$RESET" "$target_dir"
       printf "%bVerifica los permisos de la carpeta antes de reintentar.%b\n\n" "$DIM" "$RESET"

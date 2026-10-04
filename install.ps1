@@ -120,13 +120,20 @@ function Prompt-Choice {
 # Origen de Archivos
 # ------------------------------------------------------------------------------
 function Resolve-SourceDirectory {
+    if ($PSScriptRoot -and (Test-Path (Join-Path $PSScriptRoot "SKILL.md")) -and (Test-Path (Join-Path $PSScriptRoot "references"))) {
+        $skillContent = Get-Content (Join-Path $PSScriptRoot "SKILL.md") -Raw -ErrorAction SilentlyContinue
+        if ($skillContent -and $skillContent -match "name:\s*['`"]?vsdd['`"]?") {
+            return $PSScriptRoot
+        }
+    }
+
     $currentDir = Get-Location
     $localSkill = Join-Path $currentDir "SKILL.md"
     $localRef = Join-Path $currentDir "references"
 
     if ((Test-Path $localSkill) -and (Test-Path $localRef)) {
         $skillContent = Get-Content $localSkill -Raw -ErrorAction SilentlyContinue
-        if ($skillContent -and $skillContent.Contains("name: vsdd")) {
+        if ($skillContent -and $skillContent -match "name:\s*['`"]?vsdd['`"]?") {
             return $currentDir.Path
         }
     }
@@ -159,9 +166,10 @@ function Resolve-SourceDirectory {
     Write-Host "Solución: Clona el repositorio con tus credenciales e instálalo localmente:" -ForegroundColor White
     Write-Host "  git clone https://github.com/ValentinZurita/vsdd.git" -ForegroundColor Cyan
     Write-Host "  cd vsdd; .\install.ps1`n" -ForegroundColor Cyan
-    if (-not $Yes) {
-        Read-Host "Presiona [Enter] para continuar..."
+    if ($Yes) {
+        exit 1
     }
+    Read-Host "Presiona [Enter] para continuar..."
     return $null
 }
 
@@ -191,7 +199,8 @@ function Invoke-Main {
         Write-Host "✖ Error: Node.js no está instalado o no se encuentra en el PATH." -ForegroundColor Red
         Write-Host "VSDD requiere Node.js (v18+) para su motor determinista." -ForegroundColor Yellow
         Write-Host "Por favor instala Node.js desde https://nodejs.org y vuelve a intentar.`n" -ForegroundColor Yellow
-        if (-not $Yes) { Read-Host "Presiona [Enter] para salir..." }
+        if ($Yes) { exit 1 }
+        Read-Host "Presiona [Enter] para salir..."
         return
     }
 
@@ -201,7 +210,8 @@ function Invoke-Main {
         if ($majorVer -lt 18) {
             Write-Host "✖ Error: Se detectó Node.js v$nodeVerRaw pero VSDD requiere Node.js v18.0.0 o superior." -ForegroundColor Red
             Write-Host "Por favor actualiza Node.js desde https://nodejs.org e intenta nuevamente.`n" -ForegroundColor Yellow
-            if (-not $Yes) { Read-Host "Presiona [Enter] para salir..." }
+            if ($Yes) { exit 1 }
+            Read-Host "Presiona [Enter] para salir..."
             return
         }
     } catch {
@@ -210,6 +220,7 @@ function Invoke-Main {
 
     $sourceDir = Resolve-SourceDirectory
     if (-not $sourceDir -or -not (Test-Path $sourceDir)) {
+        if ($Yes) { exit 1 }
         return
     }
 
@@ -324,9 +335,10 @@ foreach ($dest in $destinations) {
         Write-Host ("  ✔ {0,-20} → {1}" -f $dest.Name, $dest.Path) -ForegroundColor Green
     } catch {
         Write-Host ("`n✖ Error copiando a {0}: {1}" -f $dest.Path, $_.Exception.Message) -ForegroundColor Red
-        if (-not $Yes) {
-            Read-Host "Presiona [Enter] para continuar..."
+        if ($Yes) {
+            exit 1
         }
+        Read-Host "Presiona [Enter] para continuar..."
         return
     }
 }

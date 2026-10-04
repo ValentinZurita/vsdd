@@ -120,16 +120,21 @@ function walkSource(sourceDir) {
   const isRepoRoot = fs.existsSync(path.join(root, '.git')) || fs.existsSync(path.join(root, 'scripts', 'install-skill.js'));
 
   function visit(current) {
-    const stat = fs.lstatSync(current);
     const relative = path.relative(root, current);
-    if (stat.isSymbolicLink() || (!stat.isDirectory() && !stat.isFile())) {
-      throw new Error(`Unsupported source entry: ${relative || current}`);
+
+    if (relative && (relative.startsWith('.') || relative.includes(`${path.sep}.`))) {
+      return;
     }
 
     if (isRepoRoot) {
       if (relative && relative !== 'SKILL.md' && relative !== 'references' && !relative.startsWith(`references${path.sep}`)) {
         return;
       }
+    }
+
+    const stat = fs.lstatSync(current);
+    if (stat.isSymbolicLink() || (!stat.isDirectory() && !stat.isFile())) {
+      throw new Error(`Unsupported source entry: ${relative || current}`);
     }
 
     if (stat.isDirectory()) {
@@ -146,8 +151,12 @@ function walkSource(sourceDir) {
 }
 
 function destinationState(sourceDir, destination, entries) {
-  if (!fs.existsSync(destination)) return 'missing';
-  const stat = fs.lstatSync(destination);
+  let stat;
+  try {
+    stat = fs.lstatSync(destination);
+  } catch (e) {
+    return 'missing';
+  }
   if (!stat.isDirectory()) return 'conflict';
 
   const expected = new Map(entries.map((entry) => [entry.relative, entry.type]));
@@ -182,7 +191,21 @@ function destinationState(sourceDir, destination, entries) {
   }
 
   scan(destination);
-  return conflict ? 'conflict' : 'identical';
+  if (conflict) return 'conflict';
+
+  for (const entry of entries) {
+    const targetPath = path.join(destination, entry.relative);
+    let targetStat;
+    try {
+      targetStat = fs.lstatSync(targetPath);
+    } catch (e) {
+      return 'conflict';
+    }
+    if (entry.type === 'dir' && !targetStat.isDirectory()) return 'conflict';
+    if (entry.type === 'file' && !targetStat.isFile()) return 'conflict';
+  }
+
+  return 'identical';
 }
 
 function copyTree(sourceDir, destination, entries, { update = false } = {}) {
@@ -288,7 +311,11 @@ function uninstallSkill({ scope, hosts, projectRoot = process.cwd(), homeDir = o
   const project = path.resolve(projectRoot);
   const targets = calculateTargets({ hosts, scope, projectRoot: project, homeDir });
   const operations = targets.map((target) => {
-    const exists = fs.existsSync(target.destination);
+    let exists = false;
+    try {
+      fs.lstatSync(target.destination);
+      exists = true;
+    } catch (_) {}
     let status;
     if (!exists) {
       status = 'not-found';
