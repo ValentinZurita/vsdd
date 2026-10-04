@@ -145,8 +145,14 @@ function summarizeTree(files, options = {}) {
   const tree = allDirs.slice(0, maxNodes);
   const omittedDirs = Math.max(0, allDirs.length - maxNodes);
 
+  rootFiles.sort();
+  const maxRootFiles = Number(options.maxRootFiles) || 15;
+  const cappedRootFiles = rootFiles.slice(0, maxRootFiles);
+  const omittedRootFiles = Math.max(0, rootFiles.length - maxRootFiles);
+
   return {
-    rootFiles: rootFiles.sort(),
+    rootFiles: cappedRootFiles,
+    omittedRootFiles,
     extensions: topExtensions,
     tree,
     omittedDirs,
@@ -301,6 +307,25 @@ function resolveSafePath(repoRoot, targetPath) {
     );
   }
 
+  // Comprobación de symlinks físicos si existen en disco
+  try {
+    let realRoot = absRoot;
+    if (fs.existsSync(absRoot)) {
+      realRoot = fs.realpathSync(absRoot);
+    }
+    if (fs.existsSync(resolved)) {
+      const realResolved = fs.realpathSync(resolved);
+      const relReal = path.relative(realRoot, realResolved);
+      if (relReal.startsWith('..') || path.isAbsolute(relReal)) {
+        throw new Error(
+          `Acceso denegado: el symlink '${targetPath}' apunta fuera de la raíz del repositorio.`
+        );
+      }
+    }
+  } catch (err) {
+    if (err.message && err.message.startsWith('Acceso denegado:')) throw err;
+  }
+
   return resolved;
 }
 
@@ -373,11 +398,23 @@ function evaluateMemoryEntry(entry, root) {
 function loadRawMemory(root) {
   const memPath = getMemoryPath(root);
   if (!fs.existsSync(memPath)) return [];
+  const rawContent = fs.readFileSync(memPath, 'utf8');
+  if (!rawContent.trim()) return [];
   try {
-    const parsed = JSON.parse(fs.readFileSync(memPath, 'utf8'));
-    return Array.isArray(parsed) ? parsed : [];
-  } catch (_) {
-    return [];
+    const parsed = JSON.parse(rawContent);
+    if (!Array.isArray(parsed)) {
+      throw new Error(
+        `Error de integridad: el archivo de memoria '${memPath}' no contiene un arreglo JSON válido.`
+      );
+    }
+    return parsed;
+  } catch (err) {
+    if (err.name === 'SyntaxError') {
+      throw new Error(
+        `Error de integridad: el archivo de memoria '${memPath}' está corrupto o tiene formato JSON inválido. Corrige o elimina el archivo antes de continuar.`
+      );
+    }
+    throw err;
   }
 }
 
@@ -500,7 +537,20 @@ function runSonarMap(cwd = process.cwd(), options = {}) {
   });
 
   const tests = detectTestLayout(listResult.files);
-  const memory = loadMemory(root);
+  let memory = [];
+  try {
+    memory = loadMemory(root);
+  } catch (err) {
+    memory = [
+      {
+        id: 'corrupt',
+        hypothesis: err.message,
+        anchor: 'docs/sdd/vsdd/repo-memory.json',
+        status: 'rota',
+        reason: 'archivo corrupto o JSON inválido',
+      },
+    ];
+  }
 
   return {
     root,
@@ -511,6 +561,7 @@ function runSonarMap(cwd = process.cwd(), options = {}) {
     elapsedMs: listResult.elapsedMs,
     files: listResult.files.length,
     rootFiles: summary.rootFiles,
+    omittedRootFiles: summary.omittedRootFiles || 0,
     extensions: summary.extensions,
     tree: summary.tree,
     omittedDirs: summary.omittedDirs,
@@ -601,7 +652,9 @@ function findReferences(root, target, allFiles, options = {}) {
   } catch (_) {
     // Fallback a escaneo simple sobre allFiles si no hay git
     if (Array.isArray(allFiles)) {
+      const fallbackStart = Date.now();
       for (const f of allFiles) {
+        if (Date.now() - fallbackStart > timeoutMs) break;
         if (f === normalizedTarget) continue;
         try {
           const content = fs.readFileSync(path.join(root, f), 'utf8');
@@ -627,7 +680,8 @@ function findReferences(root, target, allFiles, options = {}) {
 /**
  * Encuentra candidatos de test relacionados con el archivo target.
  */
-function findTestCandidates(allFiles, target) {
+function findTestCandidates(allFiles, target, options = {}) {
+  const maxCandidates = options.maxCandidates || 10;
   const baseName = path.basename(target);
   const ext = path.extname(baseName);
   const stem = ext ? baseName.slice(0, -ext.length) : baseName;
@@ -640,7 +694,7 @@ function findTestCandidates(allFiles, target) {
       results.push(f);
     }
   }
-  return results.sort();
+  return results.sort().slice(0, maxCandidates);
 }
 
 /**
@@ -707,7 +761,8 @@ function printSonarMapText(map) {
     console.log(`Ámbito (--path): ${map.scope}`);
   }
   if (map.rootFiles.length > 0) {
-    console.log(`Archivos raíz: ${map.rootFiles.join(', ')}`);
+    const omittedStr = map.omittedRootFiles > 0 ? ` (+${map.omittedRootFiles} más)` : '';
+    console.log(`Archivos raíz: ${map.rootFiles.join(', ')}${omittedStr}`);
   }
   const extList = Object.entries(map.extensions)
     .map(([e, c]) => `${e} (${c})`)

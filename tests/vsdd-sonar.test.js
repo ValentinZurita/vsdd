@@ -407,6 +407,91 @@ test('degradación por timeout: responde partial true y no arroja excepción', (
   }
 });
 
+test('presupuesto de payload: 500 archivos en raíz se truncan a 15 y el JSON no supera 2.5 KB', () => {
+  const rootFilesList = Array.from({ length: 500 }, (_, i) => `file_${String(i).padStart(3, '0')}.txt`);
+  const summary = summarizeTree(rootFilesList, { scope: '.', depth: 2 });
 
+  assert.equal(summary.rootFiles.length, 15);
+  assert.equal(summary.omittedRootFiles, 485);
 
+  const payload = JSON.stringify({
+    root: '/dummy/repo',
+    scope: '.',
+    source: 'git',
+    files: 500,
+    rootFiles: summary.rootFiles,
+    omittedRootFiles: summary.omittedRootFiles,
+    extensions: summary.extensions,
+    tree: summary.tree,
+    omittedDirs: summary.omittedDirs,
+    tests: { files: 0, patterns: {}, dirs: [] },
+    memory: [],
+  });
 
+  const payloadBytes = Buffer.byteLength(payload, 'utf8');
+  assert.ok(
+    payloadBytes <= 2560,
+    `Payload con 500 archivos en raíz (${payloadBytes} bytes) debe ser <= 2560 bytes (2.5 KB)`
+  );
+});
+
+test('integridad de memoria: repo-memory.json corrupto arroja error y previene sobreescritura', () => {
+  const { rememberEntry } = require('../scripts/vsdd-sonar.js');
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'vsdd-sonar-corrupt-mem-'));
+
+  try {
+    const memDir = path.join(tmpDir, 'docs', 'sdd', 'vsdd');
+    fs.mkdirSync(memDir, { recursive: true });
+    const memPath = path.join(memDir, 'repo-memory.json');
+    fs.writeFileSync(memPath, '<<< CORRUPTED MERGE CONFLICT JSON >>>');
+
+    fs.writeFileSync(path.join(tmpDir, 'anchor.txt'), 'some text\n');
+
+    // Debe arrojar error de integridad impidiendo que se sobreescriba
+    assert.throws(
+      () => rememberEntry(tmpDir, { hypothesis: 'test', anchor: 'anchor.txt' }),
+      /error de integridad/i
+    );
+
+    // Comprobar que el contenido corrupto original no fue destruido
+    const after = fs.readFileSync(memPath, 'utf8');
+    assert.equal(after, '<<< CORRUPTED MERGE CONFLICT JSON >>>');
+  } finally {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  }
+});
+
+test('candidatos de test: findTestCandidates limita resultados a maxCandidates (10)', () => {
+  const { findTestCandidates } = require('../scripts/vsdd-sonar.js');
+  const allFiles = Array.from({ length: 30 }, (_, i) => `tests/service_${i}.test.js`);
+  const candidates = findTestCandidates(allFiles, 'src/service.js');
+
+  assert.equal(candidates.length, 10, 'Debe acotar a como máximo 10 candidatos');
+});
+
+test('seguridad symlinks: resolveSafePath bloquea symlinks que apuntan fuera del repositorio', () => {
+  const { resolveSafePath } = require('../scripts/vsdd-sonar.js');
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'vsdd-sonar-symlink-root-'));
+  const outsideDir = fs.mkdtempSync(path.join(os.tmpdir(), 'vsdd-sonar-symlink-outside-'));
+
+  try {
+    const outsideFile = path.join(outsideDir, 'secret.env');
+    fs.writeFileSync(outsideFile, 'SECRET=1234\n');
+
+    const linkPath = path.join(tmpDir, 'symlink-to-outside.txt');
+    try {
+      fs.symlinkSync(outsideFile, linkPath);
+    } catch (_) {
+      // Si el SO no permite symlinks sin privilegios, saltar
+      return;
+    }
+
+    assert.throws(
+      () => resolveSafePath(tmpDir, 'symlink-to-outside.txt'),
+      /apunta fuera de la raíz del repositorio/i
+    );
+  } finally {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+    fs.rmSync(outsideDir, { recursive: true, force: true });
+  }
+});
