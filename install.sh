@@ -144,7 +144,7 @@ resolve_source_directory() {
   local archive_url="https://github.com/ValentinZurita/vsdd/archive/refs/heads/main.tar.gz"
   local download_ok=0
 
-  if curl -fsSL --connect-timeout 10 "$archive_url" -o "$download_dir/vsdd.tar.gz" 2>/dev/null; then
+  if curl -fsSL --connect-timeout 10 --max-time 30 "$archive_url" -o "$download_dir/vsdd.tar.gz" 2>/dev/null; then
     if tar -xzf "$download_dir/vsdd.tar.gz" -C "$download_dir" 2>/dev/null; then
       local extracted_dir
       extracted_dir=$(find "$download_dir" -maxdepth 1 -type d -name "vsdd-*" | head -n 1)
@@ -192,7 +192,7 @@ run_uninstall() {
     IFS="|" read -r id name global_dest project_dest <<< "$entry"
     
     # Global
-    if [ -d "$global_dest" ]; then
+    if [ -d "$global_dest" ] || [ -L "$global_dest" ]; then
       printf "Eliminando: %s (%s)... " "$global_dest" "$name"
       rm -rf "$global_dest"
       printf "%b✔ Removido%b\n" "$GREEN" "$RESET"
@@ -200,7 +200,7 @@ run_uninstall() {
     fi
 
     # Local en directorio actual
-    if [ -d "./$project_dest" ]; then
+    if [ -d "./$project_dest" ] || [ -L "./$project_dest" ]; then
       printf "Eliminando local: ./%s (%s)... " "$project_dest" "$name"
       rm -rf "./$project_dest"
       printf "%b✔ Removido%b\n" "$GREEN" "$RESET"
@@ -284,6 +284,11 @@ main() {
   TMP_DIR="$(mktemp -d 2>/dev/null || mktemp -d -t 'vsdd-install')"
   local source_dir
   source_dir=$(resolve_source_directory "$TMP_DIR")
+  if [ -z "$source_dir" ] || [ ! -d "$source_dir" ]; then
+    printf "\n%b✖ Error: No se pudo resolver el código fuente de VSDD.%b\n\n" "$RED" "$RESET" >&2
+    pause_before_exit
+    exit 1
+  fi
 
   # 1. Detección de Agentes en la máquina
   printf "%b● Escaneando entornos de desarrollo en este equipo:%b\n" "$BOLD" "$RESET"

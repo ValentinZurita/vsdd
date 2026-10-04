@@ -92,7 +92,7 @@ function Run-Uninstall {
     } else {
         Write-Host ("`n✔ Desinstalación completada ({0} elementos limpiados).`n" -f $removedCount) -ForegroundColor Green
     }
-    exit 0
+    return
 }
 
 # ------------------------------------------------------------------------------
@@ -162,7 +162,7 @@ function Resolve-SourceDirectory {
     if (-not $Yes) {
         Read-Host "Presiona [Enter] para continuar..."
     }
-    exit 1
+    return $null
 }
 
 # ------------------------------------------------------------------------------
@@ -176,11 +176,12 @@ function Invoke-Main {
         Write-Host "  -Yes         Modo no interactivo (acepta valores recomendados)"
         Write-Host "  -Uninstall   Desinstala VSDD de los editores configurados"
         Write-Host "  -Help        Muestra esta ayuda`n"
-        exit 0
+        return
     }
 
     if ($Uninstall) {
         Run-Uninstall
+        return
     }
 
     Show-Banner
@@ -191,7 +192,7 @@ function Invoke-Main {
         Write-Host "VSDD requiere Node.js (v18+) para su motor determinista." -ForegroundColor Yellow
         Write-Host "Por favor instala Node.js desde https://nodejs.org y vuelve a intentar.`n" -ForegroundColor Yellow
         if (-not $Yes) { Read-Host "Presiona [Enter] para salir..." }
-        exit 1
+        return
     }
 
     try {
@@ -201,13 +202,16 @@ function Invoke-Main {
             Write-Host "✖ Error: Se detectó Node.js v$nodeVerRaw pero VSDD requiere Node.js v18.0.0 o superior." -ForegroundColor Red
             Write-Host "Por favor actualiza Node.js desde https://nodejs.org e intenta nuevamente.`n" -ForegroundColor Yellow
             if (-not $Yes) { Read-Host "Presiona [Enter] para salir..." }
-            exit 1
+            return
         }
     } catch {
         # Continuar si la versión no se pudo parsear como entero
     }
 
     $sourceDir = Resolve-SourceDirectory
+    if (-not $sourceDir -or -not (Test-Path $sourceDir)) {
+        return
+    }
 
 # 1. Detección de Agentes
 Write-Host "● Escaneando entornos de desarrollo en este equipo:" -ForegroundColor White
@@ -295,7 +299,7 @@ if ($hasExisting) {
     $updateChoice = Prompt-Choice -Message "👉 Selecciona una opción [1/2] (por defecto: 1): " -Default "1"
     if ($updateChoice -eq "2") {
         Write-Host "`nOperación cancelada. No se modificó ningún archivo.`n" -ForegroundColor Yellow
-        exit 0
+        return
     }
 }
 
@@ -323,7 +327,7 @@ foreach ($dest in $destinations) {
         if (-not $Yes) {
             Read-Host "Presiona [Enter] para continuar..."
         }
-        exit 1
+        return
     }
 }
 

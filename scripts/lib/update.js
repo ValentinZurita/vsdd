@@ -105,8 +105,9 @@ async function checkVersionUpdate(currentVersion = getLocalVsddVersion(), option
     try {
       const cached = JSON.parse(fs.readFileSync(cacheFile, 'utf8'));
       if (cached.lastCheck && Date.now() - cached.lastCheck < interval) {
+        const updateAvailable = compareSemver(currentVersion, cached.latestVersion) > 0;
         return {
-          updateAvailable: Boolean(cached.updateAvailable),
+          updateAvailable,
           latestVersion: cached.latestVersion || currentVersion,
           currentVersion,
           cached: true,
@@ -212,6 +213,12 @@ function performVsddUpdate(cwd = process.cwd(), options = {}) {
         } catch (syncErr) {}
       }
 
+      // Invalidar caché de versión para reflejar cambios de inmediato
+      try {
+        const cacheFile = path.join(os.homedir(), '.vsdd', 'version-cache.json');
+        if (fs.existsSync(cacheFile)) fs.unlinkSync(cacheFile);
+      } catch (_) {}
+
       return {
         success: true,
         isRepo: true,
@@ -232,9 +239,16 @@ function performVsddUpdate(cwd = process.cwd(), options = {}) {
   try {
     const isWin = (options.platform || process.platform) === 'win32';
     const cmd = isWin
-      ? 'powershell -NoProfile -ExecutionPolicy Bypass -Command "& ([scriptblock]::Create((irm https://raw.githubusercontent.com/ValentinZurita/vsdd/main/install.ps1))) -Yes"'
-      : 'curl -fsSL https://raw.githubusercontent.com/ValentinZurita/vsdd/main/install.sh | bash -s -- -y';
+      ? 'powershell -NoProfile -ExecutionPolicy Bypass -Command "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; & ([scriptblock]::Create((irm https://raw.githubusercontent.com/ValentinZurita/vsdd/main/install.ps1))) -Yes"'
+      : 'bash -c "set -o pipefail; curl -fsSL --connect-timeout 10 -m 30 https://raw.githubusercontent.com/ValentinZurita/vsdd/main/install.sh | bash -s -- -y"';
     const updateOut = runner(cmd, { encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] });
+
+    // Invalidar caché de versión tras actualización remota
+    try {
+      const cacheFile = path.join(os.homedir(), '.vsdd', 'version-cache.json');
+      if (fs.existsSync(cacheFile)) fs.unlinkSync(cacheFile);
+    } catch (_) {}
+
     return {
       success: true,
       isRepo: false,
