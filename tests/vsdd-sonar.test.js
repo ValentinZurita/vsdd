@@ -399,7 +399,8 @@ test('degradación por timeout: responde partial true y no arroja excepción', (
 
     // timeoutMs = 1 ms para forzar timeout en fs walk
     const res = runSonarMap(tmpDir, { timeoutMs: 1 });
-    // Puede ser partial por timeout
+    assert.equal(res.partial, true);
+    assert.equal(res.reason, 'timeout');
     assert.ok(typeof res.elapsedMs === 'number');
     assert.ok(Array.isArray(res.tree));
   } finally {

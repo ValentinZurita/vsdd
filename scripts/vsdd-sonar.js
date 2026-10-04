@@ -207,6 +207,7 @@ function listFiles(root, options = {}) {
       {
         cwd: root,
         timeout: timeoutMs,
+        maxBuffer: 10 * 1024 * 1024,
         encoding: 'utf8',
         stdio: ['pipe', 'pipe', 'pipe'],
       }
@@ -476,6 +477,7 @@ function rememberEntry(cwd = process.cwd(), { hypothesis, anchor, contains } = {
   try {
     commit = execFileSync('git', ['rev-parse', 'HEAD'], {
       cwd: root,
+      timeout: 1000,
       encoding: 'utf8',
       stdio: ['pipe', 'pipe', 'pipe'],
     }).trim();
@@ -637,9 +639,10 @@ function findReferences(root, target, allFiles, options = {}) {
 
   // Intento 1: git grep
   try {
-    const out = execFileSync('git', ['grep', '-l', '-I', '-F', baseName], {
+    const out = execFileSync('git', ['grep', '-l', '-I', '-F', '--', baseName], {
       cwd: root,
       timeout: timeoutMs,
+      maxBuffer: 10 * 1024 * 1024,
       encoding: 'utf8',
       stdio: ['pipe', 'pipe', 'pipe'],
     });
@@ -649,15 +652,21 @@ function findReferences(root, target, allFiles, options = {}) {
         .map((l) => l.trim().replace(/\\/g, '/'))
         .filter(Boolean);
     }
-  } catch (_) {
-    // Fallback a escaneo simple sobre allFiles si no hay git
-    if (Array.isArray(allFiles)) {
+  } catch (err) {
+    if (err && err.status === 1) {
+      // Exit code 1 en git grep significa 0 coincidencias encontradas, no error de git
+      matchedFiles = [];
+    } else if (Array.isArray(allFiles)) {
+      // Fallback a escaneo simple sobre allFiles si no hay git
       const fallbackStart = Date.now();
       for (const f of allFiles) {
         if (Date.now() - fallbackStart > timeoutMs) break;
         if (f === normalizedTarget) continue;
         try {
-          const content = fs.readFileSync(path.join(root, f), 'utf8');
+          const fullPath = path.join(root, f);
+          const stat = fs.statSync(fullPath);
+          if (stat.size > 1024 * 1024) continue;
+          const content = fs.readFileSync(fullPath, 'utf8');
           if (content.includes(baseName)) {
             matchedFiles.push(f);
           }
