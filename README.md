@@ -37,7 +37,6 @@ irm https://raw.githubusercontent.com/ValentinZurita/vsdd/main/install.ps1 | iex
 | `vsdd update` | Actualiza VSDD a la última versión |
 | `vsdd help` | Muestra la ayuda y todos los comandos disponibles |
 
-Para cancelar una funcionalidad: `vsdd abort <id>`. Añade `--delete-branch` solo si también quieres eliminar su rama.
 
 ## Flujo de Trabajo
 
