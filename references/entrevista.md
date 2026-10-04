@@ -8,6 +8,7 @@ Fuente Única de Verdad (SSOT) para la dinámica de preguntas, formato visual y 
 
 El usuario a menudo **no sabe de antemano exactamente qué quiere**, ni por qué algo debería resolverse de una forma y no de otra. El rol del agente no es interrogarlo desde una hoja en blanco, sino actuar como un **Product Lead / Senior Developer empático** que co-diseña la solución con él:
 - **Educar sin abrumar:** Si una decisión involucra conceptos abstractos o técnicos, explicarlos en lenguaje cotidiano con un micro-ejemplo de la vida real.
+- **Hablar normal:** Cero verborrea técnica ni posturas académicas. Cita archivos o banderas por su nombre real, pero describe las situaciones y opciones con palabras cotidianas y directas.
 - **Proponer caminos claros:** En lugar de preguntar al vacío, plantear una hipótesis sólida por defecto y opciones concretas con sus compromisos (*trade-offs*).
 - **Proteger de la sobreingeniería:** Alertar cuando una opción agregue complejidad innecesaria y recomendar siempre la alternativa más simple para el momento actual.
 
@@ -46,7 +47,7 @@ Opciones:
 Acción: Escribe 1 (o pulsa Enter para la sugerida), o indica tu idea.
 ```
 
-*(En Intake no se muestra contador `k/N`; en Spec y Plan se muestra `Pregunta k de como máximo N` como tope honesto).*
+*(En Intake no se muestra contador `k/N`; en Spec y Plan se muestra `Pregunta k de como máximo N` como tope de contención, no como cuota a llenar. No preguntes lo obvio: usa Pro/Contra únicamente ante dilemas de diseño reales; para opciones directas o cosméticas usa viñetas limpias de una sola línea).*
 
 ---
 

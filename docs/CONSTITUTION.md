@@ -9,6 +9,7 @@ Esta Constitución define las leyes inmutables, la filosofía de producto y el c
 1. **El usuario es el dueño del contenido:** Cada línea de especificación, plan o tarea debe tener trazabilidad directa hacia las palabras del usuario, una opción acordada o un descarte aceptado. La IA nunca inventa requisitos ni asume decisiones de negocio por su cuenta.
 2. **Cero burocracia innecesaria:** Si una funcionalidad es pequeña o puntual, no se le debe imponer el peso de un diseño enterprise. El esfuerzo de especificación debe ser estrictamente proporcional al tamaño y riesgo de la idea (*YAGNI: You Aren't Gonna Need It*).
 3. **North Star:** Capturar el dolor humano real y la intención de valor. Todo artefacto técnico debe proteger esta esencia sin sobreingeniería.
+4. **Guiar antes que prohibir:** VSDD es una brújula, no una camisa de fuerza. El objetivo es orientar con sentido común y lenguaje normal de todos los días; jamás bloquear con dogmas ni agotar la mente con verborrea técnica.
 
 ---
 
