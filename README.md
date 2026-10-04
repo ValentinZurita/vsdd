@@ -3,8 +3,11 @@
 <img src="https://media.tenor.com/hsZZX4Z7PLQAAAAd/boy-kid.gif" alt="VSDD Thumbs Up" width="340" />
 
 # VSDD
-**Valentin Spec-Driven Development para tus agentes de IA.**  
 *El Spec-Driven Development que nadie pidió.*
+
+<small><em>No pretende ser el framework definitivo ni salvar el desarrollo de software —mucho menos organizar equipos de 200 personas—. Es mi forma de trabajar ideas y features con IA sin lanzarle tres líneas y esperar un milagro. Sí: hace preguntas. Bastantes.</em></small>
+
+**Si con un prompt basta, úsalo. Para todo lo demás, VSDD.**
 
 [![Version](https://img.shields.io/badge/version-0.44.1-blue.svg)](https://github.com/ValentinZurita/vsdd)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
