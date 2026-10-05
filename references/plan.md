@@ -160,6 +160,7 @@ Máximo 2 búsquedas web breves. Al recibir el reporte, persistir acumulativamen
 3. Lanzar otra auditoría independiente de QA
 ```
 
+- **DETENERSE (STOP). Prohibido iniciar o encadenar `vsdd tasks` automáticamente en el mismo turno.** Esperar la elección explícita del usuario.
 - Opción 1: Esperar comentarios del usuario y volver al paso 10 si solicita cambios.
 - Opción 2: Iniciar la fase de descomposición de tareas cargando `references/tasks.md`.
 - Opción 3: Despachar nuevamente la auditoría QA y procesar el reporte.

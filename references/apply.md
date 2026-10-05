@@ -101,11 +101,28 @@ Listo para implementar tareas de tasks.md.
      - Invocar subagente reparador pasando el reporte exclusivamente en su prompt. El reparador aplica los fixes mínimos, valida TDD, comitea y devuelve archivos tocados.
      - Relanzar el auditor (máximo 2 iteraciones). Si persiste: frenar y reportar diagnóstico breve al usuario ($\le 5$ líneas).
 
-5. **Fin de la Implementación:**
+5. **Fin de la Implementación y Menú de Transición:**
    Al completarse todas las tareas (`[x]`) y todos los controles de fase de `tasks.md`:
    - Actualizar la cabecera de `tasks.md` a `Estado: listo-para-verify`.
    - Si Engram está disponible, persistir estado con `mem_save topic_key: vsdd-apply-<slug>`.
-   - Presentar resumen en el chat confirmando la conclusión de la implementación e invitar al usuario a iniciar la fase final de verificación: `vsdd verify`.
+   - Presentar en la terminal el menú de transición de 3 opciones:
+
+```text
+╭────────────────────────────────────────────────────────╮
+│  ✔ Implementación completada con éxito                 │
+│    Todas las tareas en verde bajo TDD y commits limpios│
+╰────────────────────────────────────────────────────────╯
+
+¿Cuál es el siguiente paso que deseas realizar?
+1. Pasar a la verificación final (vsdd verify)
+2. Revisar diff de la rama antes de verificar
+3. Pausar aquí y retomar la verificación luego
+```
+
+- **DETENERSE (STOP). Prohibido iniciar o encadenar `vsdd verify` automáticamente en el mismo turno.** Esperar la elección explícita del usuario.
+- Opción 1: Iniciar la fase de verificación cargando `references/verify.md`.
+- Opción 2: Ejecutar `git diff --stat <rama_base>` y esperar comentarios.
+- Opción 3: Confirmar que el estado quedó guardado en `Estado: listo-para-verify` y listo para retomar con `vsdd verify`.
 
 ---
 

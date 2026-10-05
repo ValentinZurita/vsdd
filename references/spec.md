@@ -234,6 +234,7 @@ A lo sumo 2 consultas genéricas breves. Al recibir el reporte, persistir acumul
 3. Lanzar otra verificación independiente de QA
 ```
 
+- **DETENERSE (STOP). Prohibido iniciar o encadenar `vsdd plan` automáticamente en el mismo turno.** Esperar la elección explícita del usuario.
 - Opción 1: Esperar comentarios del usuario y volver al paso 10 si solicita cambios.
 - Opción 2: Iniciar la fase de planificación cargando `references/plan.md`.
 - Opción 3: Despachar nuevamente la auditoría QA y procesar el reporte.

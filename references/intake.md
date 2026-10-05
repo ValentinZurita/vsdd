@@ -129,14 +129,31 @@ Búsquedas masivas de código en el repositorio (`Grep`/`Glob` recursivos) o lec
    `¿Estás satisfecho con esta propuesta para tu idea? (Sí / No, deseo ajustar algo)`
    **DETENERSE (STOP). No escribir ningún archivo en este turno.**
 7. **Ajustes:** Si el usuario responde "No" o pide cambios, formular una pregunta puntual para aclarar el ajuste, actualizar el recapitulativo y volver a preguntar.
-8. **Cierre y guardado del artefacto:**
+8. **Cierre, guardado del artefacto y menú de transición:**
     Únicamente en el turno donde el usuario responda **Sí**:
     - Crear el directorio `docs/sdd/vsdd/<nnn>-<slug>/` si no existe (`nnn` correlativo de 3 dígitos, ej: `001-mi-idea`).
     - Guardar `docs/sdd/vsdd/<nnn>-<slug>/idea.md` conteniendo los 4 encabezados más la línea final `Estado: listo-para-spec`.
     - Ejecutar la **Compuerta de Formato**: `vsdd validate docs/sdd/vsdd/<nnn>-<slug>/idea.md`. Si reporta errores, corregirlos en disco de inmediato.
     - Promover la exploración del borrador a `context.json`: `promoteIntakeDraft("docs/sdd/vsdd/<nnn>-<slug>")`.
     - Si Engram está disponible, persistir un resumen con `mem_save topic_key: vsdd-intake-<slug>`.
-    - Confirmar en el chat que la idea ha quedado congelada con éxito e indicar que el siguiente paso natural es iniciar la especificación con `vsdd spec`.
+    - Presentar en la terminal el menú de transición de 3 opciones:
+
+```text
+╭────────────────────────────────────────────────────────╮
+│  ✔ Idea aprobada y guardada con éxito                  │
+│    Archivo: docs/sdd/vsdd/<nnn>-<slug>/idea.md         │
+╰────────────────────────────────────────────────────────╯
+
+¿Cuál es el siguiente paso que deseas realizar?
+1. Revisar la propuesta de idea en detalle
+2. Pasar a la fase de especificación (vsdd spec)
+3. Ajustar algún aspecto de la idea
+```
+
+- **DETENERSE (STOP). Prohibido iniciar o encadenar `vsdd spec` automáticamente en el mismo turno.** Esperar la elección explícita del usuario.
+- Opción 1: Mostrar los puntos clave y esperar comentarios.
+- Opción 2: Iniciar la fase de especificación cargando `references/spec.md`.
+- Opción 3: Volver al paso 7 para atender los ajustes solicitados.
 
 ## Contrato de Salida
 

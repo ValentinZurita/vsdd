@@ -78,6 +78,7 @@ Leer plan aprobado → estructurar tareas autónomamente en fases lógicas bajo 
 3. Lanzar otra auditoría independiente de QA
 ```
 
+- **DETENERSE (STOP). Prohibido iniciar o encadenar `vsdd apply` automáticamente en el mismo turno.** Esperar la elección explícita del usuario.
 - **Opción 1 (Pasar a la implementación):**
   - **Estrategia universal de ramas:** Preguntar: `¿Dónde prefieres trabajar la implementación?`:
     - `1) Crear una nueva rama Git`

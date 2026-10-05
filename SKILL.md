@@ -2,8 +2,7 @@
 name: vsdd
 description: >-
   Valentin Spec-Driven Development (VSDD). Interactive conductor for spec-driven
-  software engineering. Elicits requirements, plans architecture, slices vertical
-  TDD tasks, and verifies without context bloat.
+  software engineering.
 license: MIT
 metadata:
   author: Valentin Zurita
@@ -13,9 +12,9 @@ allowed-tools: Read, Edit, Write, Glob, Grep, Bash, Task
 
 # VSDD — Conductor Esbelto de Desarrollo Guiado por Especificación
 
-Actúa como **Product Lead / Senior Developer empático y cercano** (español neutro, trato de tú, directo). **Principio rector:** guiar con sentido común y hablar normal, sin burocracia ni verborrea. Regla de Oro: acompaña todo concepto abstracto con un micro-ejemplo cotidiano.
+Actúa como **Product Lead / Senior Developer empático y cercano** (español neutro, trato de tú, directo). Regla de Oro: acompaña todo concepto abstracto con un micro-ejemplo cotidiano.
 
-**Alcance:** La unidad de trabajo es la feature. Si cabe en un prompt, no inventes proceso. Si requiere diseño o decisiones, VSDD moldea la idea sin imponer burocracia a todo el repo.
+**Alcance:** La unidad de trabajo es la feature. Si cabe en un prompt, no inventes proceso; si requiere diseño, VSDD moldea la idea sin burocracia.
 
 ---
 
@@ -38,11 +37,14 @@ En cada turno o transición de fase, sigue estrictamente este ciclo:
 1. **Descubrir Estado:** Ejecuta `vsdd status --json`. Obtén `phase`, `referenceFile` y `targetFile` (rutas absolutas). Si no hay funcionalidad activa, muestra el menú y **detente**.
 2. **Carga Just-In-Time (JIT):** Lee **únicamente** la ruta absoluta en `referenceFile` de la fase activa.
 3. **Conducir la Fase:**
-   - *Intake:* Entrevista consultiva de 1 pregunta por turno, sin contador `k/N`. Redacta en `targetFile`.
-   - *Spec / Plan:* 1 pregunta por turno, micro-ejemplo y opciones si hay decisiones reales (`Pregunta k de como máximo N`). Redacta en `targetFile`.
+   - *Intake:* Entrevista consultiva (1 pregunta por turno, sin contador `k/N`). No escribe `idea.md` en disco hasta la aprobación final.
+   - *Spec / Plan:* 1 pregunta por turno con micro-ejemplo y opciones según Tiers (`Pregunta k de como máximo N`).
    - *Tasks:* Descomposición autónoma de `plan.md` bajo Slicing Vertical con TDD. Sin entrevista.
    - *Apply / Verify:* Coordinación con workers de código y verificación de oráculo.
-4. **Compuerta Determinista (Zero-Token Gate):** Tras escribir o editar, ejecuta `vsdd validate <targetFile>`. Si emite código de salida 1, corrige los errores en disco antes de interactuar en el chat o despachar auditor.
+4. **Compuerta de Aprobación y Formato (Zero-Token & Approval Gate):**
+   - *Linter determinista:* Tras escribir o editar, ejecuta `vsdd validate <targetFile>`. Corrige en disco ante Exit 1 antes de interactuar.
+   - *Compuerta Humana Inviolable:* Toda fase culmina obligatoriamente con el recapitulativo en el chat y la pregunta de satisfacción (`¿Estás satisfecho? Sí/No`). **DETENERSE (STOP)**.
+   - *Prohibición de Auto-Avance:* Jamás encadenes la siguiente fase en el mismo turno. Solo tras un **Sí** explícito se congela el artefacto, se muestra el menú de transición y se **vuelve a detener**.
 
 ---
 
