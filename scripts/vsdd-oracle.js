@@ -188,16 +188,22 @@ function runOracle(args = process.argv.slice(2), cwd = process.cwd()) {
     } catch (_) {}
 
     let targetToCheck = resolvedTarget;
-    let curr = path.dirname(resolvedTarget);
-    while (curr && curr !== path.dirname(curr) && !fs.existsSync(curr)) {
-      curr = path.dirname(curr);
-    }
-    try {
-      if (fs.existsSync(curr)) {
-        const realParent = fs.realpathSync(curr);
-        targetToCheck = path.join(realParent, path.relative(curr, resolvedTarget));
+    if (fs.existsSync(resolvedTarget)) {
+      try {
+        targetToCheck = fs.realpathSync(resolvedTarget);
+      } catch (_) {}
+    } else {
+      let curr = path.dirname(resolvedTarget);
+      while (curr && curr !== path.dirname(curr) && !fs.existsSync(curr)) {
+        curr = path.dirname(curr);
       }
-    } catch (_) {}
+      try {
+        if (fs.existsSync(curr)) {
+          const realParent = fs.realpathSync(curr);
+          targetToCheck = path.join(realParent, path.relative(curr, resolvedTarget));
+        }
+      } catch (_) {}
+    }
 
     const relFromCwd = path.relative(realCwd, targetToCheck);
     const escapesCwd =

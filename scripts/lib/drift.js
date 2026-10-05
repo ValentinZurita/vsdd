@@ -9,7 +9,7 @@ function parseTrackedFilesFromPlanContent(content) {
   const trackedFiles = [];
   if (!content) return trackedFiles;
 
-  const treeSectionMatch = content.match(/##\s+(?:[0-9]+\.\s*)?Árbol de cambios\s+([\s\S]*?)(?=\n##|$)/i);
+  const treeSectionMatch = content.match(/##\s+(?:[0-9]+\.\s*)?[ÁáAa]rbol de cambios\s+([\s\S]*?)(?=\n##|$)/i);
   if (treeSectionMatch) {
     const lines = treeSectionMatch[1].split('\n');
     for (const line of lines) {

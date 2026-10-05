@@ -722,4 +722,44 @@ test('oracle: runOracle rechaza intentos de Directory Traversal fuera del worksp
   }
 });
 
+test('oracle: runOracle rechaza symlink pre-existente que apunta fuera del workspace con --force', () => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'vsdd-symlink-sec-'));
+  const outsideDir = fs.mkdtempSync(path.join(os.tmpdir(), 'vsdd-outside-'));
+  const originalExitCode = process.exitCode;
+  const originalError = console.error;
+  let capturedErr = '';
+  console.error = (msg) => { capturedErr += msg + '\n'; };
+
+  try {
+    const specDir = path.join(tmpDir, 'docs', 'sdd', 'vsdd', '005-symlink');
+    fs.mkdirSync(specDir, { recursive: true });
+    fs.writeFileSync(path.join(specDir, 'spec.md'), '# Spec 005 Symlink\n## Requisitos funcionales\n### RF-01\n', 'utf8');
+
+    const testsDir = path.join(tmpDir, 'tests');
+    fs.mkdirSync(testsDir, { recursive: true });
+    const outsideTarget = path.join(outsideDir, 'external.test.ts');
+    fs.writeFileSync(outsideTarget, '// external test', 'utf8');
+
+    // Symlink dentro del repo apuntando hacia afuera
+    const symlinkInRepo = path.join(testsDir, 'symlink.test.ts');
+    fs.symlinkSync(outsideTarget, symlinkInRepo);
+
+    process.exitCode = 0;
+    runOracle(['005-symlink', '--target=tests/symlink.test.ts', '--force'], tmpDir);
+    assert.equal(process.exitCode, 1);
+    assert.match(capturedErr, /fuera del workspace/);
+  } finally {
+    console.error = originalError;
+    process.exitCode = originalExitCode;
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+    fs.rmSync(outsideDir, { recursive: true, force: true });
+  }
+});
+
+test('oracle: isTestFilePath reconoce archivos _spec.rb de Ruby RSpec', () => {
+  assert.equal(isTestFilePath('spec/models/user_spec.rb'), true);
+  assert.equal(isTestFilePath('test/models/user_test.rb'), true);
+});
+
+
 

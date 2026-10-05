@@ -20,14 +20,34 @@ function formatReport(results) {
       for (const err of res.errors) {
         totalErrors++;
         lines.push(`   ❌ [ERROR] Línea ${err.line}: ${err.message}`);
+        if (err.snippet) {
+          const indentSnippet = err.snippet
+            .split('\n')
+            .map((s) => `      ${s}`)
+            .join('\n');
+          lines.push(indentSnippet);
+        }
         if (err.expected && err.found) {
           lines.push(`      • Esperado: ${err.expected}`);
           lines.push(`      • Encontrado: ${err.found}`);
+        }
+        if (err.suggestion) {
+          lines.push(`      • Sugerencia: ${err.suggestion}`);
         }
       }
       for (const warn of res.warnings) {
         totalWarnings++;
         lines.push(`   ⚠️  [AVISO] Línea ${warn.line}: ${warn.message}`);
+        if (warn.snippet) {
+          const indentSnippet = warn.snippet
+            .split('\n')
+            .map((s) => `      ${s}`)
+            .join('\n');
+          lines.push(indentSnippet);
+        }
+        if (warn.suggestion) {
+          lines.push(`      • Sugerencia: ${warn.suggestion}`);
+        }
       }
     }
     lines.push('');

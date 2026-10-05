@@ -39,7 +39,7 @@ function isTestFilePath(filePath) {
     /[^/]+_test\.go$/i.test(base) ||
     /(?:^|\/)tests\/.*?\.rs$/i.test(clean) ||
     /[^/]+Test(?:s)?\.(?:cs|java|php)$/i.test(base) ||
-    /[^/]+_test\.rb$/i.test(base)
+    /[^/]+_(?:test|spec)\.rb$/i.test(base)
   );
 }
 
@@ -157,10 +157,17 @@ function resolveAutoTestTarget(featureArg, cwd = process.cwd()) {
         .replace(/(?:_test|\.(?:test|spec))\.[^.]+$/i, '')
         .replace(/\.[^.]+$/, '')
         .replace(/[-_]/g, '');
+
+      const slugTokens = featureSlug
+        .split(/[-_]/)
+        .filter((t) => t.length >= 3 && !/^\d+$/.test(t));
+      const tokenMatch = slugTokens.some((t) => normCand.includes(t));
+
       return (
-        normCand.includes(normSlug) ||
-        normSlug.includes(stripped) ||
-        stripped.includes(normSlug)
+        (normSlug.length >= 3 && normCand.includes(normSlug)) ||
+        (stripped.length >= 3 && normSlug.includes(stripped)) ||
+        (stripped.length >= 3 && stripped.includes(normSlug)) ||
+        tokenMatch
       );
     });
 

@@ -18,6 +18,8 @@ function validateIdea(parsed, errors, warnings) {
       message: "Falta el título principal '# <Título>' en idea.md.",
       expected: '# Idea <nnn> <Nombre>',
       found: 'Sin título H1',
+      snippet: parsed.getSnippet ? parsed.getSnippet(1) : undefined,
+      suggestion: "Agrega al inicio del archivo: '# Idea 001 <Nombre de la funcionalidad>'.",
     });
   }
 
@@ -26,12 +28,15 @@ function validateIdea(parsed, errors, warnings) {
     !l.inCodeBlock && /^\s*Estado:\s*([a-zA-Z0-9_-]+)/i.test(l.trimmed)
   );
   if (!estadoLine) {
+    const targetLine = h1 ? h1.lineNumber + 1 : 2;
     errors.push({
-      line: h1 ? h1.lineNumber + 1 : 2,
+      line: targetLine,
       rule: 'metadata-estado-requerida',
       message: "Falta la línea de metadata 'Estado: listo-para-spec' o 'Estado: en-revision'.",
       expected: 'Estado: listo-para-spec',
       found: 'No declarada',
+      snippet: parsed.getSnippet ? parsed.getSnippet(targetLine) : undefined,
+      suggestion: "Declara debajo del título: 'Estado: listo-para-spec'.",
     });
   } else {
     const estadoMatch = estadoLine.trimmed.match(/^\s*Estado:\s*([a-zA-Z0-9_-]+)/i);
@@ -48,6 +53,8 @@ function validateIdea(parsed, errors, warnings) {
         message: `Estado '${estadoVal}' no es válido para idea.md. Debe ser 'listo-para-spec' o 'en-revision'.`,
         expected: 'Estado: listo-para-spec',
         found: estadoLine.trimmed,
+        snippet: parsed.getSnippet ? parsed.getSnippet(estadoLine.lineNumber) : undefined,
+        suggestion: "Cambia el estado a 'Estado: listo-para-spec' o 'Estado: en-revision'.",
       });
     }
   }
@@ -74,14 +81,21 @@ function validateIdea(parsed, errors, warnings) {
           message: `Falta la sección obligatoria '## ${req.title}'. Se detectó '## ${aliasFound.aliasUsed}'. Usa el encabezado estándar para cumplir con el contrato.`,
           expected: `## ${req.title}`,
           found: `## ${aliasFound.aliasUsed}`,
+          snippet: parsed.getSnippet ? parsed.getSnippet(aliasFound.match.lineNumber) : undefined,
+          suggestion: `Renombra '## ${aliasFound.aliasUsed}' por '## ${req.title}'.`,
         });
       } else {
+        const insertionLine = parsed.calculateInsertionLine
+          ? parsed.calculateInsertionLine(req.key, requiredH2)
+          : 1;
         errors.push({
-          line: 1,
+          line: insertionLine,
           rule: 'seccion-obligatoria-faltante',
           message: `Falta la sección obligatoria '## ${req.title}' en idea.md.`,
           expected: `## ${req.title}`,
           found: 'Sección ausente',
+          snippet: parsed.getSnippet ? parsed.getSnippet(insertionLine) : undefined,
+          suggestion: `Inserta '## ${req.title}' con su contenido correspondiente.`,
         });
       }
     } else {
@@ -94,6 +108,8 @@ function validateIdea(parsed, errors, warnings) {
           message: `La sección '## ${req.title}' está vacía. Debe contener descripción redactada.`,
           expected: 'Contenido redactado',
           found: 'Sección sin líneas de contenido',
+          snippet: parsed.getSnippet ? parsed.getSnippet(found.lineNumber) : undefined,
+          suggestion: `Redacta el contenido descriptivo para '## ${req.title}'.`,
         });
       }
 
@@ -107,6 +123,8 @@ function validateIdea(parsed, errors, warnings) {
             message: "La sección '## Listo cuando' debe contener de 1 a 3 viñetas con resultados observables.",
             expected: '- Condición observable 1',
             found: 'Sin viñetas observables',
+            snippet: parsed.getSnippet ? parsed.getSnippet(found.lineNumber) : undefined,
+            suggestion: "Agrega de 1 a 3 viñetas iniciando con: '- Se puede comprobar que: <resultado observable>'.",
           });
         }
       }
@@ -125,6 +143,8 @@ function validateIdea(parsed, errors, warnings) {
           line: h.lineNumber,
           rule: 'seccion-adicional-vacia',
           message: `La sección adicional '## ${h.text}' no contiene contenido.`,
+          snippet: parsed.getSnippet ? parsed.getSnippet(h.lineNumber) : undefined,
+          suggestion: `Agrega contenido a la sección '## ${h.text}' o elimínala si no es necesaria.`,
         });
       }
     }
@@ -144,6 +164,8 @@ function validateSpec(parsed, errors, warnings) {
       message: "El título principal debe iniciar con '# Spec <nnn> <Nombre>'.",
       expected: '# Spec <nnn> <Nombre>',
       found: h1 ? h1.text : 'Sin título',
+      snippet: parsed.getSnippet ? parsed.getSnippet(h1 ? h1.lineNumber : 1) : undefined,
+      suggestion: "Asegúrate de que la primera línea comience con: '# Spec 001 <Nombre>'.",
     });
   }
 
@@ -152,12 +174,15 @@ function validateSpec(parsed, errors, warnings) {
     !l.inCodeBlock && /^\s*Estado:\s*([a-zA-Z0-9_-]+)/i.test(l.trimmed)
   );
   if (!estadoLine) {
+    const targetLine = h1 ? h1.lineNumber + 1 : 2;
     errors.push({
-      line: h1 ? h1.lineNumber + 1 : 2,
+      line: targetLine,
       rule: 'metadata-estado-requerida',
       message: "Falta la línea de metadata 'Estado: <en-revision | listo-para-plan>'.",
       expected: 'Estado: en-revision o Estado: listo-para-plan',
       found: 'No declarada',
+      snippet: parsed.getSnippet ? parsed.getSnippet(targetLine) : undefined,
+      suggestion: "Declara debajo del título: 'Estado: en-revision' o 'Estado: listo-para-plan'.",
     });
   } else {
     const match = estadoLine.trimmed.match(/^\s*Estado:\s*([a-zA-Z0-9_-]+)/i);
@@ -174,6 +199,8 @@ function validateSpec(parsed, errors, warnings) {
         message: `Estado '${estadoVal}' no es válido para spec.md. Debe ser 'en-revision' o 'listo-para-plan'.`,
         expected: 'Estado: en-revision o Estado: listo-para-plan',
         found: estadoLine.trimmed,
+        snippet: parsed.getSnippet ? parsed.getSnippet(estadoLine.lineNumber) : undefined,
+        suggestion: "Cambia el estado a 'Estado: en-revision' o 'Estado: listo-para-plan'.",
       });
     }
   }
@@ -184,7 +211,7 @@ function validateSpec(parsed, errors, warnings) {
     { key: 'requisitos funcionales', title: 'Requisitos funcionales', accepted: ['requisitos funcionales'] },
     { key: 'casos límite', title: 'Casos límite', accepted: ['casos limite'] },
     { key: 'requisitos no funcionales', title: 'Requisitos no funcionales', accepted: ['requisitos no funcionales'] },
-    { key: 'fuera de alcance', title: 'Fuera de alcance', accepted: ['fuera de alcance', 'limites y exclusiones'] },
+    { key: 'fuera de alcance', title: 'Fuera de alcance', accepted: ['fuera de alcance', 'limites y exclusiones', 'limites y exclusiones (non-goals y anti-goals)'] },
     { key: 'criterios de finalización', title: 'Criterios de finalización', accepted: ['criterios de finalizacion'] },
   ];
 
@@ -201,14 +228,21 @@ function validateSpec(parsed, errors, warnings) {
           message: `Falta la sección obligatoria '## ${req.title}'. Se detectó '## ${aliasFound.aliasUsed}'. Usa el encabezado estándar para cumplir con el contrato.`,
           expected: `## ${req.title}`,
           found: `## ${aliasFound.aliasUsed}`,
+          snippet: parsed.getSnippet ? parsed.getSnippet(aliasFound.match.lineNumber) : undefined,
+          suggestion: `Renombra '## ${aliasFound.aliasUsed}' por '## ${req.title}'.`,
         });
       } else {
+        const insertionLine = parsed.calculateInsertionLine
+          ? parsed.calculateInsertionLine(req.key, requiredH2)
+          : 1;
         errors.push({
-          line: 1,
+          line: insertionLine,
           rule: 'seccion-obligatoria-faltante',
           message: `Falta la sección obligatoria '## ${req.title}' en spec.md.`,
           expected: `## ${req.title}`,
           found: 'Sección ausente',
+          snippet: parsed.getSnippet ? parsed.getSnippet(insertionLine) : undefined,
+          suggestion: `Inserta la sección obligatoria '## ${req.title}'.`,
         });
       }
     }
@@ -230,6 +264,8 @@ function validateSpec(parsed, errors, warnings) {
         message: "La sección '## Requisitos funcionales' debe contener al menos un requisito '### RF-01 <Título>'.",
         expected: '### RF-01 <Título>',
         found: 'Sin requisitos RF-xx',
+        snippet: parsed.getSnippet ? parsed.getSnippet(rfSection.lineNumber) : undefined,
+        suggestion: "Agrega al menos un requisito funcional: '### RF-01 <Título del Requisito>'.",
       });
     }
 
@@ -244,6 +280,8 @@ function validateSpec(parsed, errors, warnings) {
             message: `El identificador de requisito '${rfh.text}' debe usar 2 dígitos correlativos (ej: '### RF-01').`,
             expected: `RF-${digits.padStart(2, '0')}`,
             found: rfh.text,
+            snippet: parsed.getSnippet ? parsed.getSnippet(rfh.lineNumber) : undefined,
+            suggestion: `Corrige el identificador a 2 dígitos: '### RF-${digits.padStart(2, '0')} ...'.`,
           });
         }
       }
@@ -268,10 +306,12 @@ function validateSpec(parsed, errors, warnings) {
           message: `'${rfh.text}' no contiene criterios observables redactados con viñetas.`,
           expected: '- Cuando <evento>, el sistema debe <resultado>',
           found: 'Sin viñetas de criterios',
+          snippet: parsed.getSnippet ? parsed.getSnippet(rfh.lineNumber) : undefined,
+          suggestion: "Agrega viñetas con criterios observables: '- Cuando <evento>, el sistema debe <resultado>'.",
         });
       } else {
         const hasEars = rfBullets.some((b) =>
-          /\b(siempre|cuando|si|debe)\b/i.test(b.trimmed)
+          /\b(siempre|cuando|si|debe|while|when|if|shall|always)\b/i.test(b.trimmed)
         );
         if (!hasEars) {
           errors.push({
@@ -280,12 +320,15 @@ function validateSpec(parsed, errors, warnings) {
             message: `'${rfh.text}' no contiene criterios redactados bajo sintaxis EARS ('Siempre', 'Cuando', 'Si', 'debe').`,
             expected: 'Viñeta con sintaxis EARS (Siempre / Cuando / Si / debe)',
             found: rfBullets.map((b) => b.trimmed).join('; '),
+            snippet: parsed.getSnippet ? parsed.getSnippet(rfh.lineNumber) : undefined,
+            suggestion: "Reformula el criterio usando sintaxis EARS: '- Cuando <acción>, el sistema debe <resultado observable>'.",
           });
         }
       }
     }
 
     // Validar presencia de Example Mapping como oráculo TDD en Requisitos Funcionales
+    // Tolera tanto viñetas (- **Ejemplo concreto:**) como tablas markdown de Example Mapping
     const hasExampleMapping = rfHeadings.some((rfh) => {
       const rfStartIndex = parsed.lines.findIndex((l) => l.lineNumber === rfh.lineNumber);
       const nextHIndex = parsed.lines.findIndex(
@@ -298,9 +341,23 @@ function validateSpec(parsed, errors, warnings) {
         rfStartIndex + 1,
         nextHIndex !== -1 ? nextHIndex : parsed.lines.length
       );
-      return rfLines.some((l) =>
-        /^\s*[-*]\s+\*\*ejemplo\s+concreto:?\*\*/i.test(l.trimmed)
+
+      // Forma 1: Viñeta con formato flexible
+      const hasBulletExample = rfLines.some((l) =>
+        /^\s*[-*]\s+\*\*ejemplo\s+(?:concreto)?(?:\*\*:?|:?\*\*)/i.test(l.trimmed)
       );
+      if (hasBulletExample) return true;
+
+      // Forma 2: Tabla markdown con columnas de Ejemplo / Entrada / Salida
+      const tableLines = rfLines.filter((l) => /^\s*\|.*\|\s*$/.test(l.trimmed));
+      if (tableLines.length >= 2) {
+        const fullTableText = tableLines.map((l) => l.trimmed || l.text || '').join(' ');
+        const normTable = normalizeText(fullTableText);
+        const hasInput = /entrada|input|escenario|ejemplo|caso|given|when/i.test(normTable);
+        const hasOutput = /salida|resultado|output|esperado|expected|respuesta|then/i.test(normTable);
+        if (hasInput && hasOutput) return true;
+      }
+      return false;
     });
 
     if (!hasExampleMapping) {
@@ -310,6 +367,8 @@ function validateSpec(parsed, errors, warnings) {
         message: "En '## Requisitos funcionales', al menos un requisito debe contener un ejemplo concreto ('- **Ejemplo concreto:** Entrada: ... → Resultado observable: ...') que actúe como oráculo independiente para las pruebas TDD.",
         expected: '- **Ejemplo concreto:** Entrada: <valor> → Resultado observable: <salida>',
         found: 'Sin viñetas de ejemplo concreto en requisitos funcionales',
+        snippet: parsed.getSnippet ? parsed.getSnippet(rfSection.lineNumber) : undefined,
+        suggestion: "Agrega debajo de al menos un RF: '- **Ejemplo concreto:** Entrada: <datos> → Resultado observable: <salida>'.",
       });
     }
   }
@@ -329,6 +388,8 @@ function validateSpec(parsed, errors, warnings) {
         message: "La sección '## Criterios de finalización' debe contener al menos una viñeta iniciando con '- Se puede comprobar que:'.",
         expected: '- Se puede comprobar que: <condición observable>',
         found: 'Sin viñetas',
+        snippet: parsed.getSnippet ? parsed.getSnippet(criteriosSection.lineNumber) : undefined,
+        suggestion: "Agrega viñetas iniciando con: '- Se puede comprobar que: <condición observable>'.",
       });
     } else {
       const minIndent = Math.min(...allBullets.map((b) => b.text.match(/^(\s*)/)[1].length));
@@ -342,6 +403,8 @@ function validateSpec(parsed, errors, warnings) {
             message: `En '## Criterios de finalización', cada viñeta principal debe comenzar estrictamente con '- Se puede comprobar que:'.`,
             expected: `- Se puede comprobar que: ...`,
             found: bullet.trimmed,
+            snippet: parsed.getSnippet ? parsed.getSnippet(bullet.lineNumber) : undefined,
+            suggestion: `Inicia la viñeta con el prefijo exacto: '- Se puede comprobar que: ${bullet.trimmed.replace(/^[-*]\s+/, '')}'.`,
           });
         }
       }
@@ -366,19 +429,23 @@ function validateSpec(parsed, errors, warnings) {
           message: "En '## Decisiones y alternativas descartadas', debe registrarse 'Ninguna.' o una lista de alternativas descartadas estructuradas.",
           expected: '- **Alternativa descartada:** <enfoque>',
           found: contentLines[0].trimmed,
+          snippet: parsed.getSnippet ? parsed.getSnippet(adrSection.lineNumber) : undefined,
+          suggestion: "Estructura la alternativa como: '- **Alternativa descartada:** <enfoque>' o escribe 'Ninguna.' si no hay alternativas.",
         });
       } else {
         const minIndent = Math.min(...bullets.map((b) => b.text.match(/^(\s*)/)[1].length));
         const topLevelBullets = bullets.filter((b) => b.text.match(/^(\s*)/)[1].length <= minIndent + 1);
 
         for (const bullet of topLevelBullets) {
-          if (!/^\s*[-*]\s+\*\*alternativa\s+descartada:?\*\*:?/i.test(bullet.trimmed)) {
+          if (!/^\s*[-*]\s+\*\*alternativas?\s+descartadas?:?\*\*:?/i.test(bullet.trimmed)) {
             errors.push({
               line: bullet.lineNumber,
               rule: 'spec-decisiones-formato-invalido',
               message: "En '## Decisiones y alternativas descartadas', cada alternativa debe comenzar con '- **Alternativa descartada:** <enfoque>' y contener '• Por qué se descarta: <justificación>'.",
               expected: '- **Alternativa descartada:** <enfoque>',
               found: bullet.trimmed,
+              snippet: parsed.getSnippet ? parsed.getSnippet(bullet.lineNumber) : undefined,
+              suggestion: `Reescribe la viñeta iniciando con: '- **Alternativa descartada:** ${bullet.trimmed.replace(/^[-*]\s+/, '')}'.`,
             });
           }
         }
@@ -387,9 +454,11 @@ function validateSpec(parsed, errors, warnings) {
   }
 
   // 7. Validación de Límites y exclusiones (Non-Goals y Anti-Goals)
-  const limitesSection = parsed.headings.find(
-    (h) => h.level === 2 && normalizeText(h.text) === 'limites y exclusiones'
-  );
+  const limitesSection = parsed.headings.find((h) => {
+    if (h.level !== 2) return false;
+    const norm = normalizeText(h.text);
+    return norm === 'limites y exclusiones' || norm.startsWith('limites y exclusiones');
+  });
   if (limitesSection) {
     const hasNonGoals = parsed.headings.some(
       (h) =>
@@ -411,6 +480,8 @@ function validateSpec(parsed, errors, warnings) {
         message: "En '## Límites y exclusiones', falta la subsección obligatoria '### Fuera de alcance (Non-Goals)'.",
         expected: '### Fuera de alcance (Non-Goals)',
         found: 'Subsección ausente',
+        snippet: parsed.getSnippet ? parsed.getSnippet(limitesSection.lineNumber) : undefined,
+        suggestion: "Agrega debajo de '## Límites y exclusiones': '### Fuera de alcance (Non-Goals)'.",
       });
     }
     if (!hasAntiGoals) {
@@ -420,6 +491,8 @@ function validateSpec(parsed, errors, warnings) {
         message: "En '## Límites y exclusiones', falta la subsección obligatoria '### Anti-objetivos e invariantes prohibidas (Anti-Goals)'.",
         expected: '### Anti-objetivos e invariantes prohibidas (Anti-Goals)',
         found: 'Subsección ausente',
+        snippet: parsed.getSnippet ? parsed.getSnippet(limitesSection.lineNumber) : undefined,
+        suggestion: "Agrega debajo de '## Límites y exclusiones': '### Anti-objetivos e invariantes prohibidas (Anti-Goals)'.",
       });
     }
   }
@@ -438,6 +511,8 @@ function validatePlan(parsed, errors, warnings) {
       message: "El título principal debe iniciar con '# Plan <nnn> <Nombre>'.",
       expected: '# Plan <nnn> <Nombre>',
       found: h1 ? h1.text : 'Sin título',
+      snippet: parsed.getSnippet ? parsed.getSnippet(h1 ? h1.lineNumber : 1) : undefined,
+      suggestion: "Asegúrate de que la primera línea comience con: '# Plan 001 <Nombre>'.",
     });
   }
 
@@ -446,12 +521,15 @@ function validatePlan(parsed, errors, warnings) {
     !l.inCodeBlock && /^\s*Estado:\s*([a-zA-Z0-9_-]+)/i.test(l.trimmed)
   );
   if (!estadoLine) {
+    const targetLine = h1 ? h1.lineNumber + 1 : 2;
     errors.push({
-      line: h1 ? h1.lineNumber + 1 : 2,
+      line: targetLine,
       rule: 'metadata-estado-requerida',
       message: "Falta la línea de metadata 'Estado: <en-revision | listo-para-tareas>'.",
       expected: 'Estado: en-revision o Estado: listo-para-tareas',
       found: 'No declarada',
+      snippet: parsed.getSnippet ? parsed.getSnippet(targetLine) : undefined,
+      suggestion: "Declara debajo del título: 'Estado: en-revision' o 'Estado: listo-para-tareas'.",
     });
   } else {
     const match = estadoLine.trimmed.match(/^\s*Estado:\s*([a-zA-Z0-9_-]+)/i);
@@ -468,6 +546,8 @@ function validatePlan(parsed, errors, warnings) {
         message: `Estado '${estadoVal}' no es válido para plan.md. Debe ser 'en-revision' o 'listo-para-tareas'.`,
         expected: 'Estado: en-revision o Estado: listo-para-tareas',
         found: estadoLine.trimmed,
+        snippet: parsed.getSnippet ? parsed.getSnippet(estadoLine.lineNumber) : undefined,
+        suggestion: "Cambia el estado a 'Estado: en-revision' o 'Estado: listo-para-tareas'.",
       });
     }
   }
@@ -476,29 +556,44 @@ function validatePlan(parsed, errors, warnings) {
   const hasIdeaRef = parsed.lines.some((l) => !l.inCodeBlock && /^\s*Idea:\s*\S+/i.test(l.trimmed));
   const hasSpecRef = parsed.lines.some((l) => !l.inCodeBlock && /^\s*Spec:\s*\S+/i.test(l.trimmed));
   if (!hasIdeaRef || !hasSpecRef) {
+    const targetLine = h1 ? h1.lineNumber + 2 : 3;
     errors.push({
-      line: h1 ? h1.lineNumber + 2 : 3,
+      line: targetLine,
       rule: 'referencias-origen-requeridas',
       message: "plan.md debe incluir referencias de trazabilidad 'Idea: <ruta>' y 'Spec: <ruta>'.",
       expected: "Idea: '<ruta>/idea.md' y Spec: '<ruta>/spec.md'",
       found: `Idea: ${hasIdeaRef ? 'OK' : 'FALTA'}, Spec: ${hasSpecRef ? 'OK' : 'FALTA'}`,
+      snippet: parsed.getSnippet ? parsed.getSnippet(targetLine) : undefined,
+      suggestion: "Declara las rutas de trazabilidad: 'Idea: `001-slug/idea.md`' y 'Spec: `001-slug/spec.md`'.",
     });
   }
 
   // 4. Secciones Obligatorias del Contrato Mínimo Viable
   const requiredH2 = [
     { key: 'módulos y arquitectura', title: 'Módulos y arquitectura' },
-    { key: 'prerrequisitos y validaciones previas', title: 'Prerrequisitos y validaciones previas (Spikes)' },
-    { key: 'árbol de cambios', title: 'Árbol de cambios' },
+    {
+      key: 'prerrequisitos y validaciones previas',
+      title: 'Prerrequisitos y validaciones previas (Spikes)',
+      accepted: [
+        'prerrequisitos y validaciones previas (spikes)',
+        'prerrequisitos y validaciones previas',
+      ],
+    },
+    { key: 'árbol de cambios', title: 'Árbol de cambios', accepted: ['arbol de cambios'] },
     { key: 'estrategia de tests', title: 'Estrategia de tests' },
     { key: 'cobertura rf / rnf', title: 'Cobertura RF / RNF' },
     { key: 'decisiones técnicas', title: 'Decisiones técnicas' },
   ];
 
   for (const req of requiredH2) {
-    const found = parsed.headings.find(
-      (h) => h.level === 2 && normalizeText(h.text) === normalizeText(req.title)
-    );
+    const found = parsed.headings.find((h) => {
+      if (h.level !== 2) return false;
+      const normH = normalizeText(h.text);
+      if (req.accepted) {
+        return req.accepted.includes(normH);
+      }
+      return normH === normalizeText(req.title) || normH === normalizeText(req.key);
+    });
     if (!found) {
       const aliasFound = findHeadingByAlias(parsed.headings, 2, req.key);
       if (aliasFound && aliasFound.aliasUsed) {
@@ -508,14 +603,21 @@ function validatePlan(parsed, errors, warnings) {
           message: `Falta la sección obligatoria '## ${req.title}'. Se detectó '## ${aliasFound.aliasUsed}'. Usa el encabezado estándar para cumplir con el contrato.`,
           expected: `## ${req.title}`,
           found: `## ${aliasFound.aliasUsed}`,
+          snippet: parsed.getSnippet ? parsed.getSnippet(aliasFound.match.lineNumber) : undefined,
+          suggestion: `Renombra '## ${aliasFound.aliasUsed}' por '## ${req.title}'.`,
         });
       } else {
+        const insertionLine = parsed.calculateInsertionLine
+          ? parsed.calculateInsertionLine(req.key, requiredH2)
+          : 1;
         errors.push({
-          line: 1,
+          line: insertionLine,
           rule: 'seccion-obligatoria-faltante',
           message: `Falta la sección obligatoria '## ${req.title}' en plan.md.`,
           expected: `## ${req.title}`,
           found: 'Sección ausente',
+          snippet: parsed.getSnippet ? parsed.getSnippet(insertionLine) : undefined,
+          suggestion: `Inserta la sección obligatoria '## ${req.title}'.`,
         });
       }
     }
@@ -536,6 +638,8 @@ function validatePlan(parsed, errors, warnings) {
         message: "La sección '## Árbol de cambios' debe contener al menos un archivo con prefijo '+ ', '~ ' o '- '.",
         expected: "- `+ ruta/archivo.ext` o - `~ ruta/archivo.ext`",
         found: 'Sin archivos declarados',
+        snippet: parsed.getSnippet ? parsed.getSnippet(arbolSection.lineNumber) : undefined,
+        suggestion: "Agrega los archivos a tocar con su acción: '- `+ ruta/archivo`' (crear), '- `~ ruta/archivo`' (modificar), '- `- ruta/archivo`' (eliminar).",
       });
     } else {
       const minIndent = Math.min(...allBullets.map((b) => b.text.match(/^(\s*)/)[1].length));
@@ -551,6 +655,8 @@ function validatePlan(parsed, errors, warnings) {
             message: `En '## Árbol de cambios', cada archivo debe tener prefijo '+ ' (nuevo), '~ ' (modificado) o '- ' (eliminado).`,
             expected: "- `+ ruta/archivo` o - `~ ruta/archivo`",
             found: bullet.trimmed,
+            snippet: parsed.getSnippet ? parsed.getSnippet(bullet.lineNumber) : undefined,
+            suggestion: `Agrega el prefijo de acción: '- \`+ ${bullet.trimmed.replace(/^[-*]\s+/, '')}\`' (crear) o '- \`~ ${bullet.trimmed.replace(/^[-*]\s+/, '')}\`' (modificar).`,
           });
         }
       }
@@ -572,6 +678,8 @@ function validatePlan(parsed, errors, warnings) {
         message: "La sección '## Cobertura RF / RNF' debe contener una tabla markdown con encabezado '| ID | Dónde se resuelve ... |'.",
         expected: '| ID | Dónde se resuelve |',
         found: 'Tabla no encontrada',
+        snippet: parsed.getSnippet ? parsed.getSnippet(coberturaSection.lineNumber) : undefined,
+        suggestion: "Inserta la tabla de cobertura:\n| ID | Dónde se resuelve (Módulo, DT, Tests) |\n| :--- | :--- |\n| RF-01 | ... |",
       });
     }
   }
@@ -599,6 +707,8 @@ function validatePlan(parsed, errors, warnings) {
         message: "En '## Estrategia de tests', debe incluirse la subsección '### Paseo de Verificación Manual (Golden Path Walkthrough)' con pasos de humo (≤ 2 min), o registrar explícitamente 'No aplica (cambio 100% interno cubierto por pruebas automatizadas)'.",
         expected: '### Paseo de Verificación Manual (Golden Path Walkthrough) o No aplica',
         found: 'Subsección de Golden Path ausente',
+        snippet: parsed.getSnippet ? parsed.getSnippet(testsSection.lineNumber) : undefined,
+        suggestion: "Agrega '### Paseo de Verificación Manual (Golden Path Walkthrough)' o registra 'No aplica'.",
       });
     }
   }
@@ -625,15 +735,31 @@ function validatePlan(parsed, errors, warnings) {
     const hasDecision = dtLines.some((l) =>
       normalizeText(l.trimmed).includes('decision')
     );
-    const hasBestOption = dtLines.some((l) =>
-      normalizeText(l.trimmed).includes('por que es la mejor opcion')
-    );
-    const hasAlternative = dtLines.some((l) =>
-      normalizeText(l.trimmed).includes('alternativa descartada')
-    );
-    const hasWhyDiscarded = dtLines.some((l) =>
-      normalizeText(l.trimmed).includes('por que se descarta')
-    );
+    const hasBestOption = dtLines.some((l) => {
+      const norm = normalizeText(l.trimmed);
+      return (
+        norm.includes('por que es la mejor opcion') ||
+        norm.includes('mejor opcion actual') ||
+        norm.includes('por que es la mejor opcion actual') ||
+        norm.includes('justificacion de la eleccion') ||
+        norm.includes('por que se eligio esta opcion')
+      );
+    });
+    const hasAlternative = dtLines.some((l) => {
+      const norm = normalizeText(l.trimmed);
+      return (
+        norm.includes('alternativa descartada') ||
+        norm.includes('alternativas descartadas')
+      );
+    });
+    const hasWhyDiscarded = dtLines.some((l) => {
+      const norm = normalizeText(l.trimmed);
+      return (
+        norm.includes('por que se descarta') ||
+        norm.includes('por que se descarto') ||
+        norm.includes('motivo de descarte')
+      );
+    });
 
     if (!hasDecision) {
       errors.push({
@@ -642,6 +768,8 @@ function validatePlan(parsed, errors, warnings) {
         message: `'${dth.text}' no contiene el campo obligatorio '- **Decisión:**'.`,
         expected: '- **Decisión:** <enfoque>',
         found: 'Campo ausente',
+        snippet: parsed.getSnippet ? parsed.getSnippet(dth.lineNumber) : undefined,
+        suggestion: "Agrega debajo del DT: '- **Decisión:** <enfoque técnico elegido>'.",
       });
     }
     if (!hasBestOption) {
@@ -651,6 +779,8 @@ function validatePlan(parsed, errors, warnings) {
         message: `'${dth.text}' no contiene el campo obligatorio '- **Por qué es la mejor opción:**'.`,
         expected: '- **Por qué es la mejor opción:** <justificación>',
         found: 'Campo ausente',
+        snippet: parsed.getSnippet ? parsed.getSnippet(dth.lineNumber) : undefined,
+        suggestion: "Agrega debajo de la decisión: '- **Por qué es la mejor opción actual:** <justificación técnica>'.",
       });
     }
     if (!hasAlternative) {
@@ -660,6 +790,8 @@ function validatePlan(parsed, errors, warnings) {
         message: `'${dth.text}' no contiene el campo obligatorio '- **Alternativa descartada:**'.`,
         expected: '- **Alternativa descartada:** <enfoque alternativo>',
         found: 'Campo ausente',
+        snippet: parsed.getSnippet ? parsed.getSnippet(dth.lineNumber) : undefined,
+        suggestion: "Agrega la alternativa descartada: '- **Alternativa descartada:** <otro enfoque considerado>'.",
       });
     }
     if (!hasWhyDiscarded) {
@@ -669,6 +801,8 @@ function validatePlan(parsed, errors, warnings) {
         message: `'${dth.text}' no contiene el campo obligatorio '- **Por qué se descarta:**'.`,
         expected: '- **Por qué se descarta:** <motivo técnico>',
         found: 'Campo ausente',
+        snippet: parsed.getSnippet ? parsed.getSnippet(dth.lineNumber) : undefined,
+        suggestion: "Agrega el motivo de descarte: '- **Por qué se descarta:** <trade-off o motivo técnico>'.",
       });
     }
   }
@@ -687,6 +821,8 @@ function validateTasks(parsed, errors, warnings, filePath = 'tasks.md', options 
       message: "El título principal debe iniciar con '# Tareas <nnn> <Nombre>'.",
       expected: '# Tareas <nnn> <Nombre>',
       found: h1 ? h1.text : 'Sin título',
+      snippet: parsed.getSnippet ? parsed.getSnippet(h1 ? h1.lineNumber : 1) : undefined,
+      suggestion: "Asegúrate de que la primera línea comience con: '# Tareas 001 <Nombre>'.",
     });
   }
 
@@ -695,12 +831,15 @@ function validateTasks(parsed, errors, warnings, filePath = 'tasks.md', options 
     !l.inCodeBlock && /^\s*Estado:\s*([a-zA-Z0-9_-]+)/i.test(l.trimmed)
   );
   if (!estadoLine) {
+    const targetLine = h1 ? h1.lineNumber + 1 : 2;
     errors.push({
-      line: h1 ? h1.lineNumber + 1 : 2,
+      line: targetLine,
       rule: 'metadata-estado-requerida',
       message: "Falta la línea de metadata 'Estado: <en-revision | listo-para-aplicar | listo-para-verify | completado>'.",
       expected: 'Estado: listo-para-aplicar',
       found: 'No declarada',
+      snippet: parsed.getSnippet ? parsed.getSnippet(targetLine) : undefined,
+      suggestion: "Declara debajo del título: 'Estado: listo-para-aplicar'.",
     });
   } else {
     const match = estadoLine.trimmed.match(/^\s*Estado:\s*([a-zA-Z0-9_-]+)/i);
@@ -718,6 +857,8 @@ function validateTasks(parsed, errors, warnings, filePath = 'tasks.md', options 
         message: `Estado '${estadoVal}' no es válido para tasks.md. Debe ser uno de: ${validStates.join(', ')}.`,
         expected: 'Estado: listo-para-aplicar',
         found: estadoLine.trimmed,
+        snippet: parsed.getSnippet ? parsed.getSnippet(estadoLine.lineNumber) : undefined,
+        suggestion: `Cambia el estado a uno válido: ${validStates.join(', ')}.`,
       });
     }
   }
@@ -726,12 +867,15 @@ function validateTasks(parsed, errors, warnings, filePath = 'tasks.md', options 
   const hasIdeaRef = parsed.lines.some((l) => !l.inCodeBlock && /^\s*Idea:\s*\S+/i.test(l.trimmed));
   const hasPlanRef = parsed.lines.some((l) => !l.inCodeBlock && /^\s*Plan:\s*\S+/i.test(l.trimmed));
   if (!hasIdeaRef || !hasPlanRef) {
+    const targetLine = h1 ? h1.lineNumber + 2 : 3;
     errors.push({
-      line: h1 ? h1.lineNumber + 2 : 3,
+      line: targetLine,
       rule: 'referencias-origen-requeridas',
       message: "tasks.md debe incluir referencias de trazabilidad 'Idea: <ruta>' y 'Plan: <ruta>'.",
       expected: "Idea: '<ruta>/idea.md' y Plan: '<ruta>/plan.md'",
       found: `Idea: ${hasIdeaRef ? 'OK' : 'FALTA'}, Plan: ${hasPlanRef ? 'OK' : 'FALTA'}`,
+      snippet: parsed.getSnippet ? parsed.getSnippet(targetLine) : undefined,
+      suggestion: "Declara las referencias: 'Idea: `001-slug/idea.md`' y 'Plan: `001-slug/plan.md`'.",
     });
   }
 
@@ -755,14 +899,21 @@ function validateTasks(parsed, errors, warnings, filePath = 'tasks.md', options 
           message: `Falta la sección obligatoria '## ${req.title}'. Se detectó '## ${aliasFound.aliasUsed}'. Usa el encabezado estándar para cumplir con el contrato.`,
           expected: `## ${req.title}`,
           found: `## ${aliasFound.aliasUsed}`,
+          snippet: parsed.getSnippet ? parsed.getSnippet(aliasFound.match.lineNumber) : undefined,
+          suggestion: `Renombra '## ${aliasFound.aliasUsed}' por '## ${req.title}'.`,
         });
       } else {
+        const insertionLine = parsed.calculateInsertionLine
+          ? parsed.calculateInsertionLine(req.key, requiredH2)
+          : 1;
         errors.push({
-          line: 1,
+          line: insertionLine,
           rule: 'seccion-obligatoria-faltante',
           message: `Falta la sección obligatoria '## ${req.title}' en tasks.md.`,
           expected: `## ${req.title}`,
           found: 'Sección ausente',
+          snippet: parsed.getSnippet ? parsed.getSnippet(insertionLine) : undefined,
+          suggestion: `Inserta la sección obligatoria '## ${req.title}'.`,
         });
       }
     }
@@ -780,12 +931,14 @@ function validateTasks(parsed, errors, warnings, filePath = 'tasks.md', options 
       message: "tasks.md debe contener al menos una sección de fase '## Fase 1: <Nombre>'.",
       expected: '## Fase 1: <Nombre>',
       found: 'Sin secciones de Fase',
+      snippet: parsed.getSnippet ? parsed.getSnippet(1) : undefined,
+      suggestion: "Agrega al menos una fase de tareas: '## Fase 1: Core Vertical Slice'.",
     });
   }
 
   // 5. Validación de tareas individuales
   const taskLines = parsed.lines.filter((l) =>
-    /^\s*[-*]\s*\[\s*[xX ]\s*\]\s*\*\*TASK-(\d+)/i.test(l.trimmed)
+    /^\s*[-*]\s*\[\s*[xX ]\s*\]\s*(?:\*\*)?TASK-(\d+)/i.test(l.trimmed)
   );
 
   if (taskLines.length === 0) {
@@ -795,6 +948,8 @@ function validateTasks(parsed, errors, warnings, filePath = 'tasks.md', options 
       message: "tasks.md debe contener al menos una tarea con formato '- [ ] **TASK-01: <título>**'.",
       expected: '- [ ] **TASK-01: Título de la tarea**',
       found: 'Sin tareas detectadas',
+      snippet: parsed.getSnippet ? parsed.getSnippet(1) : undefined,
+      suggestion: "Agrega tareas con formato: '- [ ] **TASK-01: <título de la rebanada vertical>**'.",
     });
   }
 
@@ -807,6 +962,8 @@ function validateTasks(parsed, errors, warnings, filePath = 'tasks.md', options 
         message: `La tarea en línea ${tl.lineNumber} contiene una estimación de tiempo ficticia '${durationMatch[0]}'. VSDD exige Slicing Vertical estricto basado en comportamiento atómico comprobable, no en minutos o cronómetros de reloj.`,
         expected: '- [ ] **TASK-xx: <título descriptivo de la rebanada vertical>**',
         found: tl.trimmed,
+        snippet: parsed.getSnippet ? parsed.getSnippet(tl.lineNumber) : undefined,
+        suggestion: `Elimina '${durationMatch[0]}' del título de la tarea. VSDD evalúa comportamiento atómico, no duración estimada.`,
       });
     }
 
@@ -816,7 +973,7 @@ function validateTasks(parsed, errors, warnings, filePath = 'tasks.md', options 
       (l, idx) =>
         idx > taskStartIndex &&
         !l.inCodeBlock &&
-        (/^\s*[-*]\s*\[\s*[xX ]\s*\]\s*\*\*TASK-/i.test(l.trimmed) ||
+        (/^\s*[-*]\s*\[\s*[xX ]\s*\]\s*(?:\*\*)?TASK-/i.test(l.trimmed) ||
          /^#{1,3}\s+/.test(l.trimmed))
     );
     const taskBlockLines = parsed.lines.slice(
@@ -824,9 +981,10 @@ function validateTasks(parsed, errors, warnings, filePath = 'tasks.md', options 
       nextTaskIndex !== -1 ? nextTaskIndex : parsed.lines.length
     );
 
-    const hasTddField = taskBlockLines.some((l) =>
-      normalizeText(l.trimmed).includes('test primero')
-    );
+    const hasTddField = taskBlockLines.some((l) => {
+      const norm = normalizeText(l.trimmed);
+      return norm.includes('test primero') || norm.includes('prueba primero');
+    });
     if (!hasTddField) {
       errors.push({
         line: tl.lineNumber,
@@ -834,6 +992,8 @@ function validateTasks(parsed, errors, warnings, filePath = 'tasks.md', options 
         message: `La tarea en línea ${tl.lineNumber} no contiene el campo obligatorio '- **Test primero (TDD):**'.`,
         expected: '- **Test primero (TDD):** <especificación de la prueba>',
         found: 'Campo TDD ausente',
+        snippet: parsed.getSnippet ? parsed.getSnippet(tl.lineNumber) : undefined,
+        suggestion: "Agrega dentro de la tarea: '- **Test primero (TDD):** <suite o archivo de prueba que falla>'.",
       });
     }
 
@@ -847,9 +1007,10 @@ function validateTasks(parsed, errors, warnings, filePath = 'tasks.md', options 
     if (isManualTitle) {
       violatingLine = tl;
     } else {
-      const tddLine = taskBlockLines.find((l) =>
-        normalizeText(l.trimmed).includes('test primero')
-      );
+      const tddLine = taskBlockLines.find((l) => {
+        const norm = normalizeText(l.trimmed);
+        return norm.includes('test primero') || norm.includes('prueba primero');
+      });
       if (tddLine) {
         const hasManualPhrase = /(?:probar|verificar|testear)\s+(?:manualmente|a\s+mano)/i.test(tddLine.trimmed);
         const tddClean = tddLine.trimmed.replace(/[*_`]/g, '');
@@ -868,6 +1029,8 @@ function validateTasks(parsed, errors, warnings, filePath = 'tasks.md', options 
         message: `La tarea en línea ${violatingLine.lineNumber} indica pruebas o verificación manual. tasks.md está reservado para código puro y pruebas automatizadas con TDD. Los spikes o pruebas manuales exploratorias deben resolverse en plan.md; las pruebas de humo finales pertenecen al Golden Path de verify.md.`,
         expected: '- **Test primero (TDD):** <prueba automatizada unitaria o de integración>',
         found: violatingLine.trimmed,
+        snippet: parsed.getSnippet ? parsed.getSnippet(violatingLine.lineNumber) : undefined,
+        suggestion: "Reemplaza la verificación manual por una prueba automatizada con TDD.",
       });
     }
   }
@@ -889,6 +1052,8 @@ function validateTasks(parsed, errors, warnings, filePath = 'tasks.md', options 
           message: `La sección '${fh.text}' no contiene su subsección obligatoria '### Control de Fase ${fNum}'.`,
           expected: `### Control de Fase ${fNum}`,
           found: 'Subsección de control ausente',
+          snippet: parsed.getSnippet ? parsed.getSnippet(fh.lineNumber) : undefined,
+          suggestion: `Agrega al final de la fase: '### Control de Fase ${fNum}' con sus checkboxes de auditoría y commit.`,
         });
       }
     }

@@ -9,6 +9,7 @@ const {
   validateFile,
   validateFeatureDir,
   parseMarkdownLines,
+  formatReport,
 } = require('../scripts/vsdd-validate');
 
 // ============================================================================
@@ -825,6 +826,185 @@ test('trazabilidad cruzada en disco: validateFeatureDir verifica automáticament
     fs.rmSync(tmpDir, { recursive: true, force: true });
   }
 });
+
+test('diagnóstico AST: genera snippet visual de código con contexto y puntero en los errores', () => {
+  const malformedSpec = `# Spec 001 Test
+Estado: listo-para-plan
+
+## Contexto y objetivos
+Objetivo claro.
+
+## Requisitos funcionales
+### RF-1 Mal Identificador
+- Cuando pasa X debe ocurrir Y.
+- **Ejemplo concreto:** Entrada: A -> Resultado observable: B
+
+## Casos límite
+- Ninguno.
+
+## Requisitos no funcionales
+- Rápido.
+
+## Fuera de alcance
+- Nada.
+
+## Criterios de finalización
+- Se puede comprobar que: funciona.
+`;
+  const res = validateContent(malformedSpec, 'spec.md');
+  assert.equal(res.valid, false);
+  const rfErr = res.errors.find((e) => e.rule === 'rf-identificador-formato');
+  assert.ok(rfErr, 'Debe detectar identificador RF inválido');
+  assert.equal(rfErr.line, 8);
+  assert.ok(rfErr.snippet, 'El error debe incluir un snippet de código');
+  assert.match(rfErr.snippet, />\s+8\s+\|/);
+  assert.match(rfErr.snippet, /### RF-1 Mal Identificador/);
+});
+
+test('diagnóstico AST: provee sugerencia accionable en errores de sintaxis y secciones', () => {
+  const badIdea = `# Idea 001 Test
+Estado: estado-invalido
+
+## Problema
+Problema descripto.
+`;
+  const res = validateContent(badIdea, 'idea.md');
+  assert.equal(res.valid, false);
+  const estadoErr = res.errors.find((e) => e.rule === 'estado-invalido');
+  assert.ok(estadoErr);
+  assert.ok(estadoErr.suggestion, 'Debe incluir sugerencia de solución');
+  assert.match(estadoErr.suggestion, /listo-para-spec|en-revision/i);
+});
+
+test('diagnóstico AST: calcula la línea de inserción contextual para secciones obligatorias intermedias', () => {
+  const specMissingCasosLimite = `# Spec 001 Test
+Estado: listo-para-plan
+
+## Contexto y objetivos
+Objetivo claro.
+
+## Requisitos funcionales
+### RF-01 Login
+- Cuando el usuario ingresa sus datos debe iniciar sesión.
+- **Ejemplo concreto:** Entrada: datos válidos → Resultado observable: sesión iniciada.
+
+## Requisitos no funcionales
+- Rápido.
+
+## Fuera de alcance
+- Nada.
+
+## Criterios de finalización
+- Se puede comprobar que: inicia sesión.
+`;
+  const res = validateContent(specMissingCasosLimite, 'spec.md');
+  assert.equal(res.valid, false);
+  const missingErr = res.errors.find((e) => e.message.includes('Casos límite'));
+  assert.ok(missingErr, 'Debe detectar que falta Casos límite');
+  // En vez de clavar línea 1 ciego, debe calcular la inserción después de Requisitos funcionales (línea > 8)
+  assert.ok(missingErr.line > 8, `La línea de inserción debe ser posterior a RF (${missingErr.line} > 8)`);
+});
+
+test('spec.md: aprueba Example Mapping estructurado en tabla Markdown dentro de RF', () => {
+  const specWithTableExample = `# Spec 001 Test Table
+Estado: listo-para-plan
+
+## Contexto y objetivos
+Objetivo claro.
+
+## Requisitos funcionales
+
+### RF-01 Cálculo de Descuento
+- Cuando el total supera $100 el sistema debe aplicar 10% de descuento.
+
+| Escenario | Entrada | Salida observable |
+| :--- | :--- | :--- |
+| Carrito mayor a $100 | Total $150 | Total con descuento: $135 |
+
+## Casos límite
+- Si el cupón expiró debe rechazarlo.
+
+## Requisitos no funcionales
+- Tiempo < 100ms.
+
+## Fuera de alcance
+- Envíos internacionales.
+
+## Criterios de finalización
+- Se puede comprobar que: el descuento se calcula correctamente.
+`;
+  const res = validateContent(specWithTableExample, 'spec.md');
+  assert.equal(res.valid, true, `Debe validar como válida la spec con Example Mapping en tabla. Errores: ${JSON.stringify(res.errors)}`);
+  assert.equal(res.errors.length, 0);
+});
+
+test('report: formatReport formatea e indenta snippets y sugerencias para la terminal', () => {
+  const fakeResults = [
+    {
+      filePath: 'docs/sdd/vsdd/001-test/spec.md',
+      type: 'spec',
+      errors: [
+        {
+          line: 12,
+          rule: 'rf-identificador-formato',
+          message: "El identificador 'RF-1' debe usar 2 dígitos.",
+          expected: 'RF-01',
+          found: 'RF-1',
+          snippet: '  11 | ## Requisitos\n> 12 | ### RF-1 Test\n  13 | - Criterio',
+          suggestion: "Renombra 'RF-1' por 'RF-01'.",
+        },
+      ],
+      warnings: [],
+    },
+  ];
+
+  const report = formatReport(fakeResults);
+  assert.match(report.output, /> 12 \| ### RF-1 Test/);
+  assert.match(report.output, /Sugerencia: Renombra 'RF-1' por 'RF-01'/);
+  assert.equal(report.totalErrors, 1);
+});
+
+test('validatePlan aprueba ## Prerrequisitos y validaciones previas sin sufijo (Spikes)', () => {
+  const planWithoutSpikesSuffix = VALID_PLAN.replace(
+    '## Prerrequisitos y validaciones previas (Spikes)',
+    '## Prerrequisitos y validaciones previas'
+  );
+  const res = validateContent(planWithoutSpikesSuffix, 'plan.md');
+  assert.equal(res.valid, true, `Debe aprobar plan con prerrequisitos sin sufijo. Errores: ${JSON.stringify(res.errors)}`);
+});
+
+test('validateSpec aprueba ## Límites y exclusiones (Non-Goals y Anti-Goals)', () => {
+  const specWithFullLimitsTitle = VALID_SPEC.replace(
+    '## Fuera de alcance',
+    '## Límites y exclusiones (Non-Goals y Anti-Goals)\n### Fuera de alcance (Non-Goals)\n- Nada\n### Anti-objetivos e invariantes prohibidas (Anti-Goals)\n- Nada'
+  );
+  const res = validateContent(specWithFullLimitsTitle, 'spec.md');
+  assert.equal(res.valid, true, `Debe aprobar spec con título canónico completo de límites. Errores: ${JSON.stringify(res.errors)}`);
+});
+
+test('traceability y drift toleran ## Arbol de cambios sin tilde', () => {
+  const planWithoutAccent = VALID_PLAN.replace('## Árbol de cambios', '## Arbol de cambios');
+  const res = validateContent(VALID_TASKS, 'tasks.md', { planContent: planWithoutAccent });
+  assert.equal(res.valid, true);
+  const warn = res.warnings.find((w) => w.rule === 'trazabilidad-archivo-no-en-plan');
+  assert.equal(warn, undefined, 'No debe advertir archivos faltantes cuando Arbol de cambios no tiene tilde');
+});
+
+test('validateSpec exige H3 obligatorios incluso con título completo ## Límites y exclusiones (Non-Goals y Anti-Goals)', () => {
+  const specWithEmptyFullLimits = VALID_SPEC.replace(
+    '## Fuera de alcance',
+    '## Límites y exclusiones (Non-Goals y Anti-Goals)\n- Contenido genérico sin subsecciones H3'
+  );
+  const res = validateContent(specWithEmptyFullLimits, 'spec.md');
+  assert.equal(res.valid, false);
+  const nonGoalsErr = res.errors.find((e) => e.rule === 'spec-non-goals-faltante');
+  const antiGoalsErr = res.errors.find((e) => e.rule === 'spec-anti-goals-faltante');
+  assert.ok(nonGoalsErr, 'Debe exigir subsección Non-Goals');
+  assert.ok(antiGoalsErr, 'Debe exigir subsección Anti-Goals');
+});
+
+
+
 
 
 

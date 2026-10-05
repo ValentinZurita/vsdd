@@ -85,6 +85,8 @@ const SECTION_ALIASES = {
     'fuera de alcance',
     'límites y exclusiones',
     'limites y exclusiones',
+    'límites y exclusiones (non-goals y anti-goals)',
+    'limites y exclusiones (non-goals y anti-goals)',
     'non-goals',
     'non goals',
     'exclusiones',
@@ -106,6 +108,8 @@ function validateUniversalHygiene(parsed, errors) {
       message: `Bloque de código abierto en línea ${parsed.unclosedCodeBlock} que no fue cerrado con triples comillas (\`\`\`).`,
       expected: 'Bloque de código cerrado con ```',
       found: 'Bloque sin cerrar al final del archivo',
+      snippet: parsed.getSnippet ? parsed.getSnippet(parsed.unclosedCodeBlock) : undefined,
+      suggestion: 'Cierra el bloque de código con ``` antes del final del documento.',
     });
   }
 
@@ -124,6 +128,8 @@ function validateUniversalHygiene(parsed, errors) {
         message: `Se encontró el marcador de instrucción residual '${match[0]}'. Debes redactar el contenido real y eliminar la instrucción de la plantilla.`,
         expected: 'Contenido redactado sin marcadores de instrucción',
         found: match[0],
+        snippet: parsed.getSnippet ? parsed.getSnippet(lineObj.lineNumber) : undefined,
+        suggestion: `Elimina el prefijo '${match[0]}' y escribe el contenido definitivo.`,
       });
     }
 
@@ -135,6 +141,8 @@ function validateUniversalHygiene(parsed, errors) {
         message: `Se encontró el marcador angular sin resolver '${match[0]}'. Debes sustituirlo por el valor real.`,
         expected: 'Valor concreto resuelto',
         found: match[0],
+        snippet: parsed.getSnippet ? parsed.getSnippet(lineObj.lineNumber) : undefined,
+        suggestion: `Reemplaza '${match[0]}' por el valor o descripción concreta de la funcionalidad.`,
       });
     }
   }

@@ -71,12 +71,15 @@ function validateCrossArtifactTraceability(parsedTasks, featureDir, errors, warn
         // 1. Requisitos huérfanos: definidos en spec.md pero ausentes en tasks.md
         for (const [id, info] of specRFs.entries()) {
           if (!tasksRFs.has(id)) {
+            const line = tasksEstadoLine ? tasksEstadoLine.lineNumber : 1;
             const issue = {
-              line: tasksEstadoLine ? tasksEstadoLine.lineNumber : 1,
+              line,
               rule: 'trazabilidad-rf-huerfano',
               message: `El requisito '${id}${info.title ? ': ' + info.title : ''}' definido en spec.md no está cubierto por ninguna tarea en tasks.md.`,
               expected: `Al menos una tarea cubriendo '${id}'`,
               found: 'Requisito sin tarea asignada',
+              snippet: parsedTasks.getSnippet ? parsedTasks.getSnippet(line) : undefined,
+              suggestion: `Agrega una tarea que implemente '${id}' o declara '- **Cubre:** ${id}' en la tarea correspondiente.`,
             };
             if (isBlockingState) {
               errors.push(issue);
@@ -94,6 +97,8 @@ function validateCrossArtifactTraceability(parsedTasks, featureDir, errors, warn
             message: `La tarea cita el requisito '${phantom.id}', pero este no existe en spec.md.`,
             expected: `Requisito definido en spec.md (${Array.from(specRFs.keys()).join(', ')})`,
             found: phantom.id,
+            snippet: parsedTasks.getSnippet ? parsedTasks.getSnippet(phantom.line) : undefined,
+            suggestion: `Corrige el identificador a uno existente en spec.md (${Array.from(specRFs.keys()).join(', ')}) o define '${phantom.id}' en spec.md.`,
           });
         }
       }
@@ -115,7 +120,7 @@ function validateCrossArtifactTraceability(parsedTasks, featureDir, errors, warn
 
     for (const line of planParsed.lines) {
       if (line.inCodeBlock) continue;
-      if (/^##\s+.*[Áá]rbol de cambios/i.test(line.trimmed)) {
+      if (/^##\s+.*[ÁáAa]rbol de cambios/i.test(line.trimmed)) {
         inArbol = true;
         continue;
       }
@@ -160,6 +165,8 @@ function validateCrossArtifactTraceability(parsedTasks, featureDir, errors, warn
                     message: `El archivo '${cleaned}' mencionado en la tarea no figura en el '## Árbol de cambios' de plan.md.`,
                     expected: `Archivo declarado en plan.md (${Array.from(planFiles).join(', ')})`,
                     found: cleaned,
+                    snippet: parsedTasks.getSnippet ? parsedTasks.getSnippet(line.lineNumber) : undefined,
+                    suggestion: `Declara '${cleaned}' en el '## Árbol de cambios' de plan.md para asegurar consistencia.`,
                   });
                 }
               }
