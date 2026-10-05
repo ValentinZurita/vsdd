@@ -37,7 +37,7 @@ En cada turno o transición de fase, sigue estrictamente este ciclo:
 1. **Descubrir Estado:** Ejecuta `vsdd status --json`. Obtén `phase`, `referenceFile` y `targetFile` (rutas absolutas). Si no hay funcionalidad activa, muestra el menú y **detente**.
 2. **Carga Just-In-Time (JIT):** Lee **únicamente** la ruta absoluta en `referenceFile` de la fase activa.
 3. **Conducir la Fase:**
-   - *Intake:* Entrevista consultiva (1 pregunta por turno, sin contador `k/N`). No escribe `idea.md` en disco hasta la aprobación final.
+   - *Intake:* Entrevista consultiva (Brújula de Completitud, sin cuotas). No escribe `idea.md` en disco hasta la aprobación final.
    - *Spec / Plan:* 1 pregunta por turno con micro-ejemplo y opciones según Tiers (`Pregunta k de como máximo N`).
    - *Tasks:* Descomposición autónoma de `plan.md` bajo Slicing Vertical con TDD. Sin entrevista.
    - *Apply / Verify:* Coordinación con workers de código y verificación de oráculo.

@@ -47,7 +47,7 @@ Opciones:
 Acción: Escribe 1 (o pulsa Enter para la sugerida), o indica tu idea.
 ```
 
-*(En Intake no se muestra contador `k/N`; en Spec y Plan se muestra `Pregunta k de como máximo N` como tope de contención, no como cuota a llenar. No preguntes lo obvio: usa Pro/Contra únicamente ante dilemas de diseño reales; para opciones directas o cosméticas usa viñetas limpias de una sola línea).*
+*(En Intake: las preguntas siguen la Brújula de Completitud Mental con diálogo de producto cercano: plantean la hipótesis sugerida por defecto y opciones ágiles de una línea, SIN tarjetas pesadas de Pro/Contra, y sin contador `k/N`. Las tarjetas formales con `• Pro:`, `• Contra:` y `Pregunta k de como máximo N` se reservan para dilemas técnicos reales en Spec y Plan).*
 
 ---
 
