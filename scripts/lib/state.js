@@ -8,6 +8,62 @@ const { parseTrackedFilesFromPlanContent } = require('./drift');
 const { getIntakeDraftPath } = require('./paths');
 
 /**
+ * Lee y parsea un archivo JSON de forma segura retornando un objeto vacío ante error.
+ */
+function readJsonSafe(filePath) {
+  if (!fs.existsSync(filePath)) {
+    return {};
+  }
+  try {
+    return JSON.parse(fs.readFileSync(filePath, 'utf8'));
+  } catch (err) {
+    return {};
+  }
+}
+
+/**
+ * Hidrata y preserva el estado de harness dentro de context.json.
+ */
+function hydrateHarnessState(existingHarness = {}, incomingHarness = {}) {
+  const prev = existingHarness && typeof existingHarness === 'object' ? existingHarness : {};
+  const next = incomingHarness && typeof incomingHarness === 'object' ? incomingHarness : {};
+  return {
+    testCommand: next.testCommand !== undefined ? next.testCommand : (prev.testCommand ?? null),
+    sharedBrief: next.sharedBrief !== undefined ? next.sharedBrief : (prev.sharedBrief ?? null),
+    seals: {
+      ...(prev.seals || {}),
+      ...(next.seals || {}),
+    },
+    tasks: {
+      ...(prev.tasks || {}),
+      ...(next.tasks || {}),
+    },
+    appeals: Array.isArray(next.appeals)
+      ? next.appeals
+      : Array.isArray(prev.appeals)
+        ? prev.appeals
+        : [],
+  };
+}
+
+/**
+ * Resuelve la lista de trackedFiles desde data, plan.md o context.json previo.
+ */
+function resolveTrackedFiles(featureDir, data, existing) {
+  if (data.trackedFiles) {
+    return data.trackedFiles;
+  }
+  const planPath = path.join(featureDir, 'plan.md');
+  if (fs.existsSync(planPath)) {
+    const parsed = parseTrackedFilesFromPlanContent(readFileSafe(planPath));
+    if (parsed && parsed.length > 0) {
+      return parsed;
+    }
+  }
+  return existing.trackedFiles || [];
+}
+
+/**
  * Guarda o actualiza el archivo context.json de una funcionalidad.
  */
 function saveFeatureContext(featureDir, data = {}, cwd = process.cwd()) {
@@ -16,40 +72,14 @@ function saveFeatureContext(featureDir, data = {}, cwd = process.cwd()) {
   let branch = data.branch || '';
 
   if (gitRoot && hasGitCommits(gitRoot)) {
-    if (!baseCommit) {
-      const stdout = execGit(['rev-parse', 'HEAD'], gitRoot, 1500);
-      if (stdout) {
-        baseCommit = stdout.trim();
-      }
-    }
-    if (!branch) {
-      branch = getCurrentBranch(gitRoot);
-    }
+    const stdout = !baseCommit ? execGit(['rev-parse', 'HEAD'], gitRoot, 1500) : '';
+    baseCommit = baseCommit || (stdout ? stdout.trim() : '');
+    branch = branch || getCurrentBranch(gitRoot);
   }
 
   const contextPath = path.join(featureDir, 'context.json');
-  let existing = {};
-  if (fs.existsSync(contextPath)) {
-    try {
-      existing = JSON.parse(fs.readFileSync(contextPath, 'utf8'));
-    } catch (err) {}
-  }
-
-  // Prevenir que context.json congele una lista obsoleta de trackedFiles si plan.md fue editado manualmente
-  let trackedFilesToSave = data.trackedFiles;
-  if (!trackedFilesToSave) {
-    const planPath = path.join(featureDir, 'plan.md');
-    if (fs.existsSync(planPath)) {
-      const planContent = readFileSafe(planPath);
-      const parsed = parseTrackedFilesFromPlanContent(planContent);
-      if (parsed && parsed.length > 0) {
-        trackedFilesToSave = parsed;
-      }
-    }
-  }
-  if (!trackedFilesToSave) {
-    trackedFilesToSave = existing.trackedFiles || [];
-  }
+  const existing = readJsonSafe(contextPath);
+  const trackedFilesToSave = resolveTrackedFiles(featureDir, data, existing);
 
   const updated = {
     $schema: 'https://json-schema.org/draft/2020-12/schema',
@@ -65,6 +95,7 @@ function saveFeatureContext(featureDir, data = {}, cwd = process.cwd()) {
       ...(existing.phases || {}),
       ...(data.phases || {}),
     },
+    harness: hydrateHarnessState(existing.harness, data.harness),
   };
 
   fs.writeFileSync(contextPath, JSON.stringify(updated, null, 2) + '\n', 'utf8');
@@ -76,12 +107,7 @@ function saveFeatureContext(featureDir, data = {}, cwd = process.cwd()) {
  */
 function saveFeatureExploration(featureDir, phase, explorationData = {}, cwd = process.cwd()) {
   const contextPath = path.join(featureDir, 'context.json');
-  let existing = {};
-  if (fs.existsSync(contextPath)) {
-    try {
-      existing = JSON.parse(fs.readFileSync(contextPath, 'utf8'));
-    } catch (err) {}
-  }
+  const existing = readJsonSafe(contextPath);
 
   const existingPhase = (existing.phases && existing.phases[phase]) || {};
   const existingExploration = existingPhase.exploration || {};
@@ -143,12 +169,7 @@ function saveIntakeDraft(draftData = {}, cwd = process.cwd()) {
     fs.mkdirSync(vsddRoot, { recursive: true });
   }
   const draftPath = getIntakeDraftPath(cwd);
-  let existing = {};
-  if (fs.existsSync(draftPath)) {
-    try {
-      existing = JSON.parse(fs.readFileSync(draftPath, 'utf8'));
-    } catch (err) {}
-  }
+  const existing = readJsonSafe(draftPath);
 
   const existingExploration = existing.exploration || {};
   const newExploration = draftData.exploration || {};
@@ -247,21 +268,10 @@ function promoteIntakeDraft(featureDir, cwd = process.cwd()) {
 }
 
 /**
- * Guarda o actualiza una respuesta consensuada de la entrevista en context.json.
+ * Inserta o actualiza una pregunta de entrevista manteniendo el orden por índice.
  */
-function saveInterviewAnswer(featureDir, phase, questionData = {}, cwd = process.cwd()) {
-  const contextPath = path.join(featureDir, 'context.json');
-  let existing = {};
-  if (fs.existsSync(contextPath)) {
-    try {
-      existing = JSON.parse(fs.readFileSync(contextPath, 'utf8'));
-    } catch (err) {}
-  }
-
-  const existingPhase = (existing.phases && existing.phases[phase]) || {};
-  const existingInterview = existingPhase.interview || {};
-  const questions = Array.isArray(existingInterview.questions) ? [...existingInterview.questions] : [];
-
+function upsertInterviewQuestions(existingQuestions, questionData) {
+  const questions = Array.isArray(existingQuestions) ? [...existingQuestions] : [];
   if (questionData && (questionData.question || questionData.answer)) {
     const qIndex = questionData.index || questionData.q || (questions.length + 1);
     const entry = {
@@ -271,7 +281,6 @@ function saveInterviewAnswer(featureDir, phase, questionData = {}, cwd = process
       answer: questionData.answer || '',
       recordedAt: questionData.recordedAt || new Date().toISOString(),
     };
-
     const existingPos = questions.findIndex((q) => q.index === qIndex);
     if (existingPos !== -1) {
       questions[existingPos] = { ...questions[existingPos], ...entry };
@@ -279,8 +288,19 @@ function saveInterviewAnswer(featureDir, phase, questionData = {}, cwd = process
       questions.push(entry);
     }
   }
-
   questions.sort((a, b) => (a.index || 0) - (b.index || 0));
+  return questions;
+}
+
+/**
+ * Guarda o actualiza una respuesta consensuada de la entrevista en context.json.
+ */
+function saveInterviewAnswer(featureDir, phase, questionData = {}, cwd = process.cwd()) {
+  const contextPath = path.join(featureDir, 'context.json');
+  const existing = readJsonSafe(contextPath);
+  const existingPhase = (existing.phases && existing.phases[phase]) || {};
+  const existingInterview = existingPhase.interview || {};
+  const questions = upsertInterviewQuestions(existingInterview.questions, questionData);
 
   return saveFeatureContext(
     featureDir,
@@ -326,14 +346,9 @@ function getInterviewProgress(featureDir, phase) {
  */
 function clearInterviewProgress(featureDir, phase, cwd = process.cwd()) {
   const contextPath = path.join(featureDir, 'context.json');
-  let existing = {};
-  if (fs.existsSync(contextPath)) {
-    try {
-      existing = JSON.parse(fs.readFileSync(contextPath, 'utf8'));
-    } catch (err) {}
-  }
-
+  const existing = readJsonSafe(contextPath);
   const existingPhase = (existing.phases && existing.phases[phase]) || {};
+
   return saveFeatureContext(
     featureDir,
     {
@@ -357,27 +372,7 @@ function clearInterviewProgress(featureDir, phase, cwd = process.cwd()) {
 function saveIntakeInterviewAnswer(questionData = {}, cwd = process.cwd()) {
   const draft = getIntakeDraft(cwd) || {};
   const existingInterview = draft.interview || {};
-  const questions = Array.isArray(existingInterview.questions) ? [...existingInterview.questions] : [];
-
-  if (questionData && (questionData.question || questionData.answer)) {
-    const qIndex = questionData.index || questionData.q || (questions.length + 1);
-    const entry = {
-      index: qIndex,
-      topic: questionData.topic || '',
-      question: questionData.question || '',
-      answer: questionData.answer || '',
-      recordedAt: questionData.recordedAt || new Date().toISOString(),
-    };
-
-    const existingPos = questions.findIndex((q) => q.index === qIndex);
-    if (existingPos !== -1) {
-      questions[existingPos] = { ...questions[existingPos], ...entry };
-    } else {
-      questions.push(entry);
-    }
-  }
-
-  questions.sort((a, b) => (a.index || 0) - (b.index || 0));
+  const questions = upsertInterviewQuestions(existingInterview.questions, questionData);
 
   return saveIntakeDraft(
     {
@@ -393,6 +388,7 @@ function saveIntakeInterviewAnswer(questionData = {}, cwd = process.cwd()) {
 }
 
 module.exports = {
+  hydrateHarnessState,
   saveFeatureContext,
   saveFeatureExploration,
   getFeatureExploration,

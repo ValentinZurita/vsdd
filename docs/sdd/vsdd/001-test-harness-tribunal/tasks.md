@@ -15,13 +15,13 @@ Plan: `docs/sdd/vsdd/001-test-harness-tribunal/plan.md`
 
 ## Fase 1: Core Vertical Slice — Contexto Inteligente y Enrutamiento CLI
 
-- [ ] **TASK-01: Ensamblador de Contexto Compartido y Corte de Tarea con persistencia en context.json**
+- [x] **TASK-01: Ensamblador de Contexto Compartido y Corte de Tarea con persistencia en context.json**
   - **Qué:** Extiende `scripts/lib/state.js` para preservar la clave `harness` en `context.json` e implementa `scripts/lib/harness/brief.js` para construir el Contexto Compartido Global (cacheado con invalidación automática por `mtime` de `idea.md`, `spec.md` y `plan.md`) y fusionarlo en 0 tokens con el Corte Específico de la Tarea activa (`RF-xx` y `DT-xx` íntegros más resumen de tareas previas completadas), rechazando con error tareas inexistentes.
   - **Cubre:** RF-01, DT-01, DT-02, RNF (Rendimiento y 0 tokens)
   - **Archivos:** `~ scripts/lib/state.js`, `+ scripts/lib/harness/brief.js`, `+ tests/vsdd-harness.test.js`
   - **Test primero (TDD):** Suite automatizada en `tests/vsdd-harness.test.js` comprobando que `assembleBrief` genera el Contexto Compartido Global unido al bloque íntegro de `RF-01` y `TASK-01`, reutiliza la caché si no cambió `mtime`, la invalida si se edita `spec.md` y falla ante un identificador de tarea inexistente.
   - **Listo cuando:** Las pruebas unitarias de `assembleBrief` y persistencia de `harness` en `context.json` pasan en verde en menos de 100 ms.
-  - [ ] **Commit de tarea:** `feat(harness): implementar ensamblador de contexto compartido y corte de tarea`
+  - [x] **Commit de tarea:** `feat(harness): implementar ensamblador de contexto compartido y corte de tarea`
 
 - [ ] **TASK-02: Enrutamiento de vsdd harness brief en CLI y fachada de terminal**
   - **Qué:** Crea `scripts/vsdd-harness.js` y registra el subcomando `harness` en `scripts/cli.js` y `package.json`, permitiendo invocar `vsdd harness brief <task-id> [--json]` desde la terminal con salida estructurada de máximo 80 columnas.
