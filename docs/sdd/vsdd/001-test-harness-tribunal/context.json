@@ -1,0 +1,106 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "version": "1.0",
+  "featureId": "001-test-harness-tribunal",
+  "git": {
+    "branch": "main",
+    "baseCommit": "415065896937c268a6e4ac95ef3afca62317c720",
+    "capturedAt": "2026-10-26T20:32:30.693Z"
+  },
+  "trackedFiles": [
+    {
+      "path": "package.json",
+      "action": "modify"
+    },
+    {
+      "path": "scripts/cli.js",
+      "action": "modify"
+    },
+    {
+      "path": "scripts/vsdd-harness.js",
+      "action": "create"
+    },
+    {
+      "path": "scripts/lib/harness/analyzer.js",
+      "action": "create"
+    },
+    {
+      "path": "scripts/lib/harness/brief.js",
+      "action": "create"
+    },
+    {
+      "path": "scripts/lib/harness/seal.js",
+      "action": "create"
+    },
+    {
+      "path": "scripts/lib/harness/verify.js",
+      "action": "create"
+    },
+    {
+      "path": "scripts/lib/harness/appeal.js",
+      "action": "create"
+    },
+    {
+      "path": "scripts/lib/state.js",
+      "action": "modify"
+    },
+    {
+      "path": "SKILL.md",
+      "action": "modify"
+    },
+    {
+      "path": "references/tasks.md",
+      "action": "modify"
+    },
+    {
+      "path": "references/apply.md",
+      "action": "modify"
+    },
+    {
+      "path": "references/verify.md",
+      "action": "modify"
+    },
+    {
+      "path": "tests/vsdd-harness.test.js",
+      "action": "create"
+    }
+  ],
+  "phases": {
+    "intake": {
+      "status": "completado",
+      "completedAt": "2026-10-26T18:35:53.294Z",
+      "exploration": {
+        "reusableModules": [
+          "scripts/vsdd-oracle.js",
+          "scripts/vsdd-validate.js",
+          "references/apply.md",
+          "references/verify.md"
+        ],
+        "summary": "Evolución de vsdd-oracle, vsdd-validate y referencias apply/verify para sellar tests con SHA-256, detectar trampas/espagueti en 0 tokens y separar roles.",
+        "completedAt": "2026-10-26T18:27:01.376Z",
+        "baseCommit": "415065896937c268a6e4ac95ef3afca62317c720"
+      },
+      "interview": {
+        "questions": [
+          {
+            "q": "Arquitectura de Test Harness y Juez con Jurado",
+            "a": "Separar Autor de Test e Implementador con candado de tests y Jurado de 3 lentes (Contrato, Anti-Trampa, Artesano de Código)."
+          },
+          {
+            "q": "Límite de reintentos y manejo de bloqueos",
+            "a": "Regla 2+1 con git restore, Analista en lenguaje sencillo si se traba y optimización estricta de tokens (0 tokens en CLI + micro-briefing)."
+          }
+        ],
+        "updatedAt": "2026-10-26T18:27:01.376Z"
+      }
+    },
+    "spec": {
+      "status": "completado",
+      "completedAt": "2026-10-26T19:06:53.509Z"
+    },
+    "plan": {
+      "status": "completado",
+      "completedAt": "2026-10-26T20:32:30.659Z"
+    }
+  }
+}
