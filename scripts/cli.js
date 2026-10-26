@@ -21,6 +21,7 @@ Uso:
   vsdd abort <id> [--delete-branch] Cancela y excluye una funcionalidad en curso
   vsdd oracle [id] [--target <r>]   Genera el oráculo de pruebas universal desde spec.md
   vsdd sonar [opciones]             Exploración determinista y memoria del repositorio
+  vsdd harness <cmd> [opciones]     Test Harness antifraude, contexto y candado SHA-256
   vsdd update [--json]              Actualiza VSDD a la última versión
   vsdd install [opciones]           Instala o actualiza la skill en tus agentes
   vsdd --version | -v               Muestra la versión instalada
@@ -29,6 +30,7 @@ Uso:
 Comandos directos del agente:
   vsdd oracle <id> [--target <ruta>] [--dry-run|--json]
   vsdd sonar [--path <d>] [--focus <f>] [--remember <t>] [--forget <id>] [--json]
+  vsdd harness brief <task-id> [--feature <id>] [--json]
   vsdd validate docs/sdd/vsdd/<slug>/idea.md
   vsdd validate docs/sdd/vsdd/<slug>/spec.md
   vsdd validate docs/sdd/vsdd/<slug>/plan.md
@@ -36,88 +38,58 @@ Comandos directos del agente:
 `);
 }
 
-function parseCliCommand(args, baseDir) {
+function resolveKnownSubcommand(first, restArgs, baseDir) {
+  const simpleMap = {
+    validate: 'vsdd-validate.js',
+    status: 'vsdd-status.js',
+    install: 'install-skill.js',
+    oracle: 'vsdd-oracle.js',
+    'scaffold-tests': 'vsdd-oracle.js',
+    scaffold: 'vsdd-oracle.js',
+    sonar: 'vsdd-sonar.js',
+  };
+
+  if (simpleMap[first]) {
+    return { script: path.join(baseDir, simpleMap[first]), args: restArgs };
+  }
+  if (first === 'abort') {
+    return { script: path.join(baseDir, 'vsdd-status.js'), args: ['--abort', ...restArgs] };
+  }
+  if (first === 'update') {
+    return { script: path.join(baseDir, 'vsdd-status.js'), args: ['update', ...restArgs] };
+  }
+  if (first === 'harness') {
+    return { action: 'run', script: path.join(baseDir, 'vsdd-harness.js'), args: restArgs };
+  }
+  return null;
+}
+
+function parseCliCommand(args = [], baseDir = __dirname) {
   const version = getVersion(baseDir);
   const first = args[0];
 
   if (!first) {
-    return {
-      script: path.join(baseDir, 'vsdd-status.js'),
-      args: [],
-    };
+    return { script: path.join(baseDir, 'vsdd-status.js'), args: [] };
   }
-
   if (first === '--version' || first === '-v') {
     return { action: 'version', version, isJson: args.includes('--json') };
   }
-
   if (first === '--help' || first === '-h' || first === 'help') {
     return { action: 'help', version };
   }
 
-  if (first === 'validate') {
-    return {
-      script: path.join(baseDir, 'vsdd-validate.js'),
-      args: args.slice(1),
-    };
-  }
-
-  if (first === 'status') {
-    return {
-      script: path.join(baseDir, 'vsdd-status.js'),
-      args: args.slice(1),
-    };
-  }
-
-  if (first === 'abort') {
-    return {
-      script: path.join(baseDir, 'vsdd-status.js'),
-      args: ['--abort', ...args.slice(1)],
-    };
-  }
-
-  if (first === 'update') {
-    return {
-      script: path.join(baseDir, 'vsdd-status.js'),
-      args: ['update', ...args.slice(1)],
-    };
-  }
-
-  if (first === 'install') {
-    return {
-      script: path.join(baseDir, 'install-skill.js'),
-      args: args.slice(1),
-    };
-  }
-
-  if (first === 'oracle' || first === 'scaffold-tests' || first === 'scaffold') {
-    return {
-      script: path.join(baseDir, 'vsdd-oracle.js'),
-      args: args.slice(1),
-    };
-  }
-
-  if (first === 'sonar') {
-    return {
-      script: path.join(baseDir, 'vsdd-sonar.js'),
-      args: args.slice(1),
-    };
+  const routed = resolveKnownSubcommand(first, args.slice(1), baseDir);
+  if (routed) {
+    return routed;
   }
 
   // Si comienza con bandera (ej: --json, --catalog, --abort, etc.), delegar a vsdd-status
   if (first.startsWith('-')) {
-    return {
-      script: path.join(baseDir, 'vsdd-status.js'),
-      args: args,
-    };
+    return { script: path.join(baseDir, 'vsdd-status.js'), args: args };
   }
 
   // Comando no reconocido
-  return {
-    action: 'unknown',
-    command: first,
-    version,
-  };
+  return { action: 'unknown', command: first, version };
 }
 
 function main() {

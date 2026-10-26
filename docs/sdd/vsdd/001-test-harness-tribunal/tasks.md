@@ -23,13 +23,13 @@ Plan: `docs/sdd/vsdd/001-test-harness-tribunal/plan.md`
   - **Listo cuando:** Las pruebas unitarias de `assembleBrief` y persistencia de `harness` en `context.json` pasan en verde en menos de 100 ms.
   - [x] **Commit de tarea:** `feat(harness): implementar ensamblador de contexto compartido y corte de tarea`
 
-- [ ] **TASK-02: Enrutamiento de vsdd harness brief en CLI y fachada de terminal**
+- [x] **TASK-02: Enrutamiento de vsdd harness brief en CLI y fachada de terminal**
   - **Qué:** Crea `scripts/vsdd-harness.js` y registra el subcomando `harness` en `scripts/cli.js` y `package.json`, permitiendo invocar `vsdd harness brief <task-id> [--json]` desde la terminal con salida estructurada de máximo 80 columnas.
   - **Cubre:** RF-01, DT-02, RNF (Ergonomía visual 80 cols)
   - **Archivos:** `~ package.json`, `~ scripts/cli.js`, `+ scripts/vsdd-harness.js`, `~ tests/vsdd-harness.test.js`
   - **Test primero (TDD):** Prueba de integración en `tests/vsdd-harness.test.js` verificando que `parseCliCommand(['harness', 'brief', 'TASK-01'])` enrute a `vsdd-harness.js` y que la invocación del CLI emita el briefing con código 0 y código 1 ante tarea inexistente.
   - **Listo cuando:** El comando `node ./scripts/cli.js harness brief TASK-01` emite el contexto completo tanto en formato texto como con `--json`.
-  - [ ] **Commit de tarea:** `feat(cli): registrar comando vsdd harness y subcomando brief`
+  - [x] **Commit de tarea:** `feat(cli): registrar comando vsdd harness y subcomando brief`
 
 ### Control de Fase 1
 

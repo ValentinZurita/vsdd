@@ -12,6 +12,8 @@ const {
   saveInterviewAnswer,
 } = require('../scripts/lib/state');
 const { assembleBrief } = require('../scripts/lib/harness/brief');
+const { parseCliCommand } = require('../scripts/cli');
+const { spawnSync } = require('node:child_process');
 
 function createTempFeatureFixture() {
   const tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'vsdd-harness-t01-'));
@@ -314,6 +316,79 @@ test('assembleBrief lanza error descriptivo con tareas válidas cuando la tarea 
         return true;
       }
     );
+  } finally {
+    fs.rmSync(tmpRoot, { recursive: true, force: true });
+  }
+});
+
+test('cli: parseCliCommand(["harness", "brief", "TASK-01"]) rutea a vsdd-harness.js con action run', () => {
+  const parsed = parseCliCommand(['harness', 'brief', 'TASK-01']);
+  assert.equal(parsed.action, 'run');
+  assert.ok(parsed.script.endsWith('vsdd-harness.js'));
+  assert.deepEqual(parsed.args, ['brief', 'TASK-01']);
+});
+
+test('vsdd-harness brief: ejecución exportada y por CLI emite briefing (texto <=80 cols en cabecera y --json) con código 0', () => {
+  const { tmpRoot, featureDir } = createTempFeatureFixture();
+  try {
+    const { runHarness, formatBriefHeader } = require('../scripts/vsdd-harness');
+
+    // Ejecución por función exportada con autodescubrimiento de feature en cwd
+    const textRes = runHarness(['brief', 'TASK-01'], { cwd: tmpRoot });
+    assert.equal(textRes.exitCode, 0);
+    assert.match(textRes.stdout, /Contexto Compartido Global/);
+    assert.match(textRes.stdout, /Corte Específico de Tarea: TASK-01/);
+
+    // Verificar que todas las líneas de la cabecera/caja de resumen tienen <= 80 columnas
+    const headerLines = formatBriefHeader(textRes.data).split('\n');
+    assert.ok(headerLines.length >= 3);
+    for (const line of headerLines) {
+      assert.ok(
+        line.length <= 80,
+        `Línea de cabecera excede 80 columnas (${line.length}): ${line}`
+      );
+    }
+
+    // Ejecución real desde CLI con --feature y --json
+    const cliPath = path.resolve(__dirname, '..', 'scripts', 'cli.js');
+    const proc = spawnSync(
+      process.execPath,
+      [cliPath, 'harness', 'brief', 'TASK-01', '--feature', featureDir, '--json'],
+      { cwd: tmpRoot, encoding: 'utf8' }
+    );
+
+    assert.equal(proc.status, 0);
+    const parsedJson = JSON.parse(proc.stdout);
+    assert.equal(parsedJson.cacheHit, true);
+    assert.equal(parsedJson.meta.taskId, 'TASK-01');
+    assert.match(parsedJson.taskSlice, /### RF-01 Ensamblar contexto compartido/);
+  } finally {
+    fs.rmSync(tmpRoot, { recursive: true, force: true });
+  }
+});
+
+test('vsdd-harness brief: falla con código 1 y mensaje descriptivo en stderr ante tarea inexistente o sin argumentos', () => {
+  const { tmpRoot, featureDir } = createTempFeatureFixture();
+  try {
+    const { runHarness } = require('../scripts/vsdd-harness');
+
+    // Sin argumentos requeridos
+    const missingTask = runHarness(['brief'], { cwd: tmpRoot });
+    assert.equal(missingTask.exitCode, 1);
+    assert.match(missingTask.stderr, /TASK-/i);
+
+    // Tarea inexistente desde CLI
+    const cliPath = path.resolve(__dirname, '..', 'scripts', 'cli.js');
+    const proc = spawnSync(
+      process.execPath,
+      [cliPath, 'harness', 'brief', 'TASK-99', '--feature', featureDir],
+      { cwd: tmpRoot, encoding: 'utf8' }
+    );
+
+    assert.equal(proc.status, 1);
+    assert.match(proc.stderr, /TASK-99/);
+    assert.match(proc.stderr, /tasks\.md/);
+    assert.match(proc.stderr, /TASK-01/);
   } finally {
     fs.rmSync(tmpRoot, { recursive: true, force: true });
   }
