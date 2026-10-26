@@ -1,6 +1,6 @@
 # Tareas 001 Test Harness Antifraude, Contexto Inteligente y Tribunal de Calidad
 
-Estado: listo-para-verify
+Estado: completado
 
 Idea: `docs/sdd/vsdd/001-test-harness-tribunal/idea.md`
 Plan: `docs/sdd/vsdd/001-test-harness-tribunal/plan.md`
