@@ -10,10 +10,10 @@ Valida de forma exhaustiva que la funcionalidad implementada cumple al 100% con 
 
 - **Git Guard previo obligatorio:** Antes de despachar subagentes, verificar `git status -s`. Si el árbol tiene cambios pendientes ajenos a la verificación, DETENERSE (STOP) y solicitar al usuario que los comitee o guarde.
 - **Precondición de entrada:** Requerir que `tasks.md` esté en `Estado: listo-para-verify` y que no existan tareas pendientes (`- [ ]`). Si no, indicar que primero debe ejecutarse `vsdd apply`.
-- **Conductor No Modifica Código de Producto:** El agente principal **nunca** edita archivos de la aplicación, **nunca** ejecuta directamente suites de pruebas masivas, **nunca** inspecciona `git diff` de producto en el hilo principal y **nunca** pega reportes de auditoría en el chat. Se utilizan subagentes diferenciados:
-  1. **Auditor de Verificación (solo lectura, nivel Crítico):** Valida RFs, RNFs y el "Listo cuando".
+- **Conductor No Modifica Código de Producto y Tribunal 3+1:** El agente principal **nunca** edita archivos de la aplicación, **nunca** ejecuta directamente suites de pruebas masivas, **nunca** inspecciona `git diff` de producto en el hilo principal y **nunca** pega reportes de auditoría en el chat. Se utilizan subagentes diferenciados:
+  1. **Auditor de Verificación / Tribunal de Calidad (3+1 en 1 sola llamada, solo lectura, nivel Crítico):** Evalúa las 3 sillas del Jurado (*Fiscal del Contrato* para cobertura de `spec.md`, *Cazador de Trampas* contra overfitting/hardcoding y *Artesano de Código* para higiene, modularidad y arquitectura) más la sentencia del *Juez*, verificando además que se haya respetado la separación entre **Autor de Tests** e **Implementador** mediante `vsdd harness` (`brief`, `seal`, `verify`, `appeal`).
   2. **Runner de Calidad:** Ejecuta el comando de pruebas y calidad del proyecto.
-  3. **Reparador:** Aplica correcciones técnicas mínimas si hay fallos.
+  3. **Reparador:** Aplica correcciones técnicas mínimas si hay fallos (respetando el cortacircuitos `2+1` y la intervención del **Analista** en máximo 12 líneas, 0 bloques de código, analogía cotidiana y 3 opciones si se agotan los intentos).
   4. **Closer (DoD):** Prepara la consolidación hacia la rama base.
   5. **Asistente Golden Path (modo asistido opcional):** Ejecuta simulación de humo en segundo plano con modelo económico recomendado (`flash` / `haiku`).
 - **Trazabilidad Estricta y Validación del "Listo cuando":**

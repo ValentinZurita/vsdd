@@ -9,6 +9,7 @@
     "vsdd-validate": "./scripts/vsdd-validate.js",
     "vsdd-oracle": "./scripts/vsdd-oracle.js",
     "vsdd-sonar": "./scripts/vsdd-sonar.js",
+    "vsdd-harness": "./scripts/vsdd-harness.js",
     "vsdd-install": "./scripts/install-skill.js"
   },
   "files": [
@@ -24,6 +25,7 @@
     "validate": "node ./scripts/vsdd-validate.js",
     "oracle": "node ./scripts/vsdd-oracle.js",
     "sonar": "node ./scripts/vsdd-sonar.js",
+    "harness": "node ./scripts/vsdd-harness.js",
     "install:skill": "node scripts/install-skill.js --scope global --hosts all --apply",
     "uninstall:skill": "node scripts/install-skill.js --scope global --hosts all --apply --uninstall"
   },

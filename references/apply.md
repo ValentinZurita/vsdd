@@ -12,15 +12,18 @@ Ejecuta las tareas de `tasks.md` en código real bajo TDD estricto y commits at�
 - **TDD Estricto:** Para cada tarea, escribir primero la prueba automatizada que debe fallar antes de tocar código de producción. Comprobar que falle por el motivo esperado y luego implementar el código mínimo indispensable para ponerla en verde.
 - **Precondición de Código Puro:** Todas las tareas son unidades de código automatizadas bajo TDD. Se asume que todos los prerrequisitos de entorno (.env, accesos) y spikes técnicos exploratorios quedaron 100% resueltos en la fase de Plan. Si una tarea resulta imposible de automatizar o requiere intervención manual no prevista, pausar de inmediato y regresar al Plan para reajustar.
 - **Commits Atómicos por Tarea:** Cada tarea completada se comitea de inmediato cumpliendo Conventional Commits (`<tipo>(<alcance>): <descripción>`), sin trailers de IA ni Co-Authored-By. El **subagente implementador** marca `- [x]` en `tasks.md`. El conductor nunca marca casillas de producto.
-- **Conductor No Parchea Código:** El agente principal **nunca** edita código del proyecto, **nunca** aplica hallazgos del auditor y **nunca** pega reportes de auditoría en el chat. Se utilizan tres subagentes diferenciados:
-  1. **Implementador:** Escribe tests y código para las tareas.
-  2. **Auditor de Fase:** Revisa el diff de la fase (solo lectura).
-  3. **Reparador:** Aplica correcciones técnicas si el auditor encuentra fallas.
+- **Conductor No Parchea Código y Separación de Roles (Test Harness):** El agente principal **nunca** edita código del proyecto, **nunca** aplica hallazgos del auditor y **nunca** pega reportes de auditoría en el chat. Se separan estrictamente los roles:
+  1. **Autor de Tests:** Diseña las pruebas automatizadas sobre el contrato público y las sella en estado Rojo con `vsdd harness seal <ruta-test> --task <task-id>`. Prohibido editar código de producción.
+  2. **Implementador:** Recibe el contexto por trazabilidad mediante `vsdd harness brief <task-id>`, escribe el código de producción sin tocar el test sellado y verifica con `vsdd harness verify <task-id>` (o presenta reclamo formal con `vsdd harness appeal <task-id> --reason "<motivo>"`).
+  3. **Tribunal de Fase (3+1 en 1 sola llamada):** Al cierre de fase, un único despacho evalúa las 3 sillas del Jurado (*Fiscal del Contrato*, *Cazador de Trampas* y *Artesano de Código*) y emite sentencia del *Juez* (solo lectura).
+  4. **Reparador:** Aplica correcciones técnicas si el Tribunal encuentra fallas.
+  5. **Analista (Cortacircuitos `2+1`):** Si el Implementador falla en el segundo intento, `vsdd harness verify` ejecuta `git restore` sobre los archivos productivos de la tarea para un tercer intento limpio (`2+1`). Si el tercer intento falla, revierte a limpio y presenta la ficha didáctica del **Analista** (máximo 12 líneas, 0 bloques de código, una analogía de la vida cotidiana y 3 opciones numeradas de resolución).
   El reporte de auditoría se transfiere **únicamente** dentro del prompt del subagente reparador.
 - **Transparencia Absoluta de Agentes y Modelos:**
   - **Obligatorio antes del despacho:** Imprimir visiblemente en el chat el aviso correspondiente antes de lanzar cada subagente:
+    * `● [Subagente: Autor de Tests] Preparando y sellando pruebas de TASK-xx con modelo: <modelo>...`
     * `● [Subagente: Implementador] Ejecutando TASK-xx (<título>) con modelo: <modelo>...`
-    * `● [Subagente: Auditoría de Fase N] Verificando diff de la fase con modelo: <modelo>...`
+    * `● [Subagente: Auditoría / Tribunal de Fase N] Evaluando 3 lentes (Fiscal, Cazador, Artesano) y sentencia del Juez con modelo: <modelo>...`
     * `● [Subagente: Reparador de Fase N] Aplicando correcciones con modelo: <modelo>...`
     * `● [Subagente: Cierre de Fase N] Ejecutando pruebas (<comando>) con modelo: <modelo>...`
   - **Fallback transparente:** Si el entorno o CLI no soporta el modelo solicitado o produce un error al inicializarlo, emitir de inmediato un aviso visible en el chat explicando el motivo:

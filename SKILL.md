@@ -53,20 +53,21 @@ En cada turno o transición de fase, sigue estrictamente este ciclo:
 - **Transparencia:** Anuncia cada subagente: `● [Subagente: <Rol>] Perfil: <tier/capacidad>...`
 - **Exploración (tier rápido):** Inspecciona el repo y devuelve memo destilado ($\le 12$ líneas: entidades, temas, 1 Rabbit Hole, 1 No-Go). Persiste en `context.json`.
 - **Auditoría (tier avanzado):** Audita contra el checklist de su fase (`referenceFile`) y §1; emite veredicto sintético.
-- **Implementación (`apply`/`verify`):** Modifica código y corre suites en sandbox. El chat principal solo muestra checkpoints de una línea (`[TASK-xx OK] ...`).
+- **Implementación (`apply`/`verify`):** El **Autor de Tests** sella pruebas en Rojo y el **Implementador** codifica bajo candado SHA-256 (`vsdd harness`). El chat principal solo muestra checkpoints de una línea (`[TASK-xx OK] ...`).
 
 ---
 
 ## 4. Invariante de Seguridad en Control de Versiones (VCS)
 
-- `vsdd abort`: **NUNCA** pases `--delete-branch` de forma desatendida. Advierte siempre explícitamente en el chat y exige confirmación previa del usuario antes de borrar cualquier rama.
+- `vsdd abort`: **NUNCA** pases `--delete-branch` de forma desatendida. Advierte siempre en el chat y exige confirmación previa del usuario antes de borrar cualquier rama.
 
 ---
 
 ## 5. Comandos del Conductor
 
-- `vsdd status --json`: Inspección de DAG, drift y rutas canónicas absolutas.
-- `vsdd sonar [--path|--focus|--remember] [--json]`: Radar de exploración determinista y memoria del repo.
-- `vsdd validate <archivo>`: Linter determinista (Exit 0 verde / Exit 1 con número de línea).
-- `vsdd oracle <id>`: Generador de oráculo de pruebas desde `spec.md`.
-- `vsdd abort <id>`: Cancelación segura con salvaguardas de control de versiones.
+- `vsdd status --json`: DAG, drift y rutas canónicas absolutas.
+- `vsdd sonar [--path|--focus|--remember] [--json]`: Radar y memoria del repo.
+- `vsdd validate <archivo>`: Linter determinista (Exit 0 / Exit 1).
+- `vsdd oracle <id>`: Oráculo de pruebas desde `spec.md`.
+- `vsdd harness <brief|seal|verify|appeal>`: Contexto, candado SHA-256 y `2+1`.
+- `vsdd abort <id>`: Cancelación segura con salvaguardas VCS.
