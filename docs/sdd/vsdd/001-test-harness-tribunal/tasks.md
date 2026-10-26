@@ -38,13 +38,13 @@ Plan: `docs/sdd/vsdd/001-test-harness-tribunal/plan.md`
 
 ## Fase 2: Candado Criptográfico en Rojo y Analizador Anti-Espagueti
 
-- [ ] **TASK-03: Analizador léxico y estructural 0-tokens para tests y código de producción**
+- [x] **TASK-03: Analizador léxico y estructural 0-tokens para tests y código de producción**
   - **Qué:** Implementa `scripts/lib/harness/analyzer.js` en Node.js puro (cero dependencias) para detectar `.skip`/`todo`, aserciones cosméticas (`toBeDefined`, `toBeTruthy`, `expect(true).toBe(true)`), bloques `catch` vacíos, supresores (`@ts-ignore`, `# type: ignore`), literales espejo mayores a 8 caracteres copiados de los ejemplos de prueba y funciones nuevas con más de 50 líneas o más de 3 niveles de anidamiento.
   - **Cubre:** RF-02, RF-03, DT-04, RNF (Rendimiento y 0 tokens), RNF (Agnosticismo de lenguaje)
   - **Archivos:** `+ scripts/lib/harness/analyzer.js`, `~ tests/vsdd-harness.test.js`
   - **Test primero (TDD):** Pruebas unitarias en `tests/vsdd-harness.test.js` validando detección exacta de `.skip`, `toBeDefined`, `catch` vacío, funciones nuevas de más de 50 líneas, más de 3 niveles de `if` anidados y literales espejo en código de distintos lenguajes, aprobando código modular limpio.
   - **Listo cuando:** Todas las pruebas del analizador léxico y estructural pasan en verde con cero falsos positivos sobre código modular.
-  - [ ] **Commit de tarea:** `feat(harness): agregar analizador lexico anti-trampa y anti-espagueti`
+  - [x] **Commit de tarea:** `feat(harness): agregar analizador lexico anti-trampa y anti-espagueti`
 
 - [ ] **TASK-04: Sellado criptográfico SHA-256 en Rojo (vsdd harness seal)**
   - **Qué:** Implementa `scripts/lib/harness/seal.js` y su conexión en `scripts/vsdd-harness.js` con autodetección de runner (`--cmd`, timeout de 30s e inyección `runnerFn`), validando ausencia de trampas léxicas en el test, comprobando que falle en Rojo (código distinto de cero) y almacenando el hash SHA-256 en `context.json`.

@@ -393,3 +393,171 @@ test('vsdd-harness brief: falla con código 1 y mensaje descriptivo en stderr an
     fs.rmSync(tmpRoot, { recursive: true, force: true });
   }
 });
+
+test('analyzer.inspectTestPurity: rechaza modificadores skip/todo/ignore en múltiples lenguajes', () => {
+  const { inspectTestPurity } = require('../scripts/lib/harness/analyzer');
+
+  const skipSamples = [
+    "test.skip('omite prueba', () => { assert.equal(1, 1); });",
+    "it.todo('pendiente de implementar');",
+    "test.todo('pendiente');",
+    "xit('desactivado temporalmente', () => { expect(1).toBe(1); });",
+    "xdescribe('suite omitida', () => {});",
+    "@pytest.mark.skip(reason='no listo')\ndef test_algo():\n    assert suma(1, 2) == 3",
+    'func TestAlgo(t *testing.T) {\n  t.Skip("omitido")\n}',
+    '#[test]\n#[ignore]\nfn test_rust() { assert_eq!(2, 2); }',
+  ];
+
+  for (const sample of skipSamples) {
+    const res = inspectTestPurity(sample);
+    assert.equal(res.valid, false, `Debió rechazar muestra con skip/todo: ${sample}`);
+    assert.ok(res.violations.some((v) => v.type === 'test-skip'));
+  }
+});
+
+test('analyzer.inspectTestPurity: rechaza aserciones cosméticas o ausencia de aserciones y aprueba tests reales', () => {
+  const { inspectTestPurity } = require('../scripts/lib/harness/analyzer');
+
+  const cosmeticSamples = [
+    "test('cosmético 1', () => { expect(fn()).toBeDefined(); });",
+    "test('cosmético 2', () => { expect(fn()).toBeTruthy(); });",
+    "test('cosmético 3', () => { expect(fn()).not.toBeNull(); });",
+    "test('cosmético 4', () => { expect(true).toBe(true); });",
+    "test('cosmético 5', () => { assert.ok(true); });",
+    "test('sin aserciones', () => { const x = calcular(5); console.log(x); });",
+  ];
+
+  for (const sample of cosmeticSamples) {
+    const res = inspectTestPurity(sample);
+    assert.equal(res.valid, false, `Debió rechazar muestra cosmética/vacía: ${sample}`);
+    assert.ok(
+      res.violations.some(
+        (v) => v.type === 'cosmetic-assertion' || v.type === 'missing-real-assertion'
+      )
+    );
+  }
+
+  const validSample = [
+    "test('calcula impuesto correctamente', () => {",
+    "  assert.equal(calcularImpuesto(100), 116);",
+    "  assert.deepEqual(desglosar(100), { base: 100, iva: 16 });",
+    "  assert.match(formatearMoneda(116), /\\$116\\.00/);",
+    "  assert.throws(() => calcularImpuesto(-1), /monto invalido/);",
+    '});',
+  ].join('\n');
+
+  const cleanRes = inspectTestPurity(validSample);
+  assert.equal(cleanRes.valid, true);
+  assert.equal(cleanRes.violations.length, 0);
+});
+
+test('analyzer.inspectProductionCode: detecta funciones > 50 líneas efectivas en JS y Python', () => {
+  const { inspectProductionCode } = require('../scripts/lib/harness/analyzer');
+
+  const jsLines = ['function procesarFacturaGigante(items) {'];
+  for (let i = 1; i <= 52; i += 1) {
+    jsLines.push(`  const paso${i} = items.length + ${i};`);
+  }
+  jsLines.push('  return paso52;');
+  jsLines.push('}');
+
+  const jsRes = inspectProductionCode(jsLines.join('\n'));
+  assert.equal(jsRes.valid, false);
+  assert.ok(
+    jsRes.violations.some(
+      (v) => v.type === 'function-too-long' && v.name === 'procesarFacturaGigante'
+    )
+  );
+
+  const pyLines = ['def procesar_lote_extenso(datos):'];
+  for (let i = 1; i <= 52; i += 1) {
+    pyLines.push(`    acumulado_${i} = len(datos) + ${i}`);
+  }
+  pyLines.push('    return acumulado_52');
+
+  const pyRes = inspectProductionCode(pyLines.join('\n'));
+  assert.equal(pyRes.valid, false);
+  assert.ok(
+    pyRes.violations.some(
+      (v) => v.type === 'function-too-long' && v.name === 'procesar_lote_extenso'
+    )
+  );
+});
+
+test('analyzer.inspectProductionCode: detecta anidamiento > 3 niveles, catch vacíos, supresores y literales espejo', () => {
+  const {
+    extractTestLiterals,
+    inspectProductionCode,
+    inspectProductionDiff,
+  } = require('../scripts/lib/harness/analyzer');
+
+  const testCode = [
+    "test('valida cupon corporativo', () => {",
+    "  assert.equal(aplicarCupon('CUPON-MEGA-SECRETO-2026'), 'DESCUENTO-AUTORIZADO-99');",
+    '});',
+  ].join('\n');
+
+  const literals = extractTestLiterals(testCode);
+  assert.ok(literals.includes('CUPON-MEGA-SECRETO-2026'));
+  assert.ok(literals.includes('DESCUENTO-AUTORIZADO-99'));
+
+  const badProdCode = [
+    '// @ts-ignore',
+    'function evaluarReglasComplejas(entrada) {',
+    '  try {',
+    '    if (entrada.activo) {',
+    '      for (const item of entrada.lista) {',
+    '        while (item.intentos > 0) {',
+    '          if (item.codigo === "CUPON-MEGA-SECRETO-2026") {',
+    '            return "DESCUENTO-AUTORIZADO-99";',
+    '          }',
+    '        }',
+    '      }',
+    '    }',
+    '  } catch (err) {}',
+    '  return null;',
+    '}',
+  ].join('\n');
+
+  const res = inspectProductionDiff(badProdCode, literals);
+  assert.equal(res.valid, false);
+  assert.ok(res.violations.some((v) => v.type === 'excessive-nesting'));
+  assert.ok(res.violations.some((v) => v.type === 'empty-catch'));
+  assert.ok(res.violations.some((v) => v.type === 'type-suppressor'));
+  assert.ok(
+    res.violations.some(
+      (v) =>
+        v.type === 'hardcoded-test-literal' &&
+        v.literal === 'CUPON-MEGA-SECRETO-2026'
+    )
+  );
+
+  // Código limpio y el propio analyzer.js deben aprobar sin violaciones
+  const cleanProdCode = [
+    'function calcularTotalLimpio(items) {',
+    '  if (!Array.isArray(items)) {',
+    '    return 0;',
+    '  }',
+    '  try {',
+    '    return items.reduce((acc, item) => acc + item.precio, 0);',
+    '  } catch (err) {',
+    '    return -1;',
+    '  }',
+    '}',
+  ].join('\n');
+
+  const cleanRes = inspectProductionCode(cleanProdCode, literals);
+  assert.equal(cleanRes.valid, true);
+  assert.equal(cleanRes.violations.length, 0);
+
+  const selfCode = fs.readFileSync(
+    path.resolve(__dirname, '..', 'scripts', 'lib', 'harness', 'analyzer.js'),
+    'utf8'
+  );
+  const selfRes = inspectProductionCode(selfCode, []);
+  assert.equal(
+    selfRes.valid,
+    true,
+    `analyzer.js debe aprobarse a sí mismo sin violaciones: ${JSON.stringify(selfRes.violations)}`
+  );
+});
