@@ -953,3 +953,147 @@ test('verify.verifyTask (Casos 4 y 5): aplica cortacircuitos 2+1 con git restore
     fs.rmSync(tmpRoot, { recursive: true, force: true });
   }
 });
+
+test('appeal.manageAppeal y CLI (Casos 1, 2 y 3): registra apelación, valida --reason/tarea y resuelve re-sellado', () => {
+  const { tmpRoot, featureDir, testRel } = createGitTaskFixture();
+  try {
+    const { sealTestFile } = require('../scripts/lib/harness/seal');
+    const { verifyTask } = require('../scripts/lib/harness/verify');
+    const { runHarness } = require('../scripts/vsdd-harness');
+    const { inspectProductionCode } = require('../scripts/lib/harness/analyzer');
+
+    sealTestFile(featureDir, testRel, {
+      cwd: tmpRoot,
+      taskId: 'TASK-01',
+      cmd: 'node --test',
+      runnerFn: () => ({ exitCode: 1, stdout: '', stderr: 'fail' }),
+    });
+
+    // Caso 1: Registro exitoso de apelación (soportando TASK-01 posicional y --reason)
+    const appealRes = runHarness(
+      [
+        'appeal',
+        'TASK-01',
+        '--reason',
+        'El test espera status 200 pero RF-02 exige 201',
+        '--feature',
+        featureDir,
+      ],
+      { cwd: tmpRoot }
+    );
+    assert.equal(appealRes.exitCode, 0);
+    for (const line of appealRes.stdout.split('\n')) {
+      assert.ok(line.length <= 80, `Línea excede 80 cols: ${line}`);
+    }
+
+    const ctxAfterAppeal = JSON.parse(
+      fs.readFileSync(path.join(featureDir, 'context.json'), 'utf8')
+    );
+    assert.equal(ctxAfterAppeal.harness.appeals.length, 1);
+    assert.equal(ctxAfterAppeal.harness.appeals[0].taskId, 'TASK-01');
+    assert.equal(
+      ctxAfterAppeal.harness.appeals[0].reason,
+      'El test espera status 200 pero RF-02 exige 201'
+    );
+    assert.equal(ctxAfterAppeal.harness.tasks['TASK-01'].status, 'appealed');
+
+    // Caso 2: Rechazo si falta --reason, si --reason es vacío o si la tarea no existe (TASK-99)
+    const noReasonRes = runHarness(['appeal', 'TASK-01', '--feature', featureDir], {
+      cwd: tmpRoot,
+    });
+    assert.equal(noReasonRes.exitCode, 1);
+    assert.match(noReasonRes.stderr, /--reason|motivo/i);
+
+    const emptyReasonRes = runHarness(
+      ['appeal', 'TASK-01', '--reason', '   ', '--feature', featureDir],
+      { cwd: tmpRoot }
+    );
+    assert.equal(emptyReasonRes.exitCode, 1);
+    assert.match(emptyReasonRes.stderr, /--reason|motivo/i);
+
+    const badTaskRes = runHarness(
+      ['appeal', 'TASK-99', '--reason', 'Motivo válido', '--feature', featureDir],
+      { cwd: tmpRoot }
+    );
+    assert.equal(badTaskRes.exitCode, 1);
+    assert.match(badTaskRes.stderr, /TASK-99/);
+
+    // Caso 3: Resolución aprobada (--status approved) abre candado, Autor corrige test y re-sella en Rojo
+    const approveRes = runHarness(
+      ['appeal', 'TASK-01', '--status', 'approved', '--feature', featureDir, '--json'],
+      { cwd: tmpRoot }
+    );
+    assert.equal(approveRes.exitCode, 0);
+    const approveJson = JSON.parse(approveRes.stdout);
+    assert.equal(approveJson.appeal.status, 'approved');
+    assert.equal(approveJson.sealStatus, 'unlocked');
+
+    // El Autor de Tests corrige el test y lo vuelve a sellar en Rojo
+    const updatedTest = fs
+      .readFileSync(path.join(tmpRoot, testRel), 'utf8')
+      .replace('BONO-AUTORIZADO-77', 'BONO-CORREGIDO-201');
+    fs.writeFileSync(path.join(tmpRoot, testRel), updatedTest, 'utf8');
+
+    const resealRes = sealTestFile(featureDir, testRel, {
+      cwd: tmpRoot,
+      taskId: 'TASK-01',
+      cmd: 'node --test',
+      runnerFn: () => ({ exitCode: 1, stdout: '', stderr: 'fail' }),
+    });
+    assert.equal(resealRes.ok, true);
+
+    // Ahora verifyTask acepta el nuevo hash sellado cuando la implementación pasa en Verde
+    const verifyAfterReseal = verifyTask(featureDir, 'TASK-01', {
+      cwd: tmpRoot,
+      runnerFn: () => ({ exitCode: 0, stdout: 'PASS', stderr: '' }),
+    });
+    assert.equal(verifyAfterReseal.ok, true);
+    assert.equal(verifyAfterReseal.status, 'verified');
+
+    const appealCode = fs.readFileSync(
+      path.resolve(__dirname, '..', 'scripts', 'lib', 'harness', 'appeal.js'),
+      'utf8'
+    );
+    const harnessCliCode = fs.readFileSync(
+      path.resolve(__dirname, '..', 'scripts', 'vsdd-harness.js'),
+      'utf8'
+    );
+    assert.equal(inspectProductionCode(appealCode, []).valid, true);
+    assert.equal(inspectProductionCode(harnessCliCode, []).valid, true);
+  } finally {
+    fs.rmSync(tmpRoot, { recursive: true, force: true });
+  }
+});
+
+test('guías operativas (Caso 4): SKILL.md y references documentan vsdd harness, Autor vs Implementador, Tribunal 3+1 y Analista 2+1', () => {
+  const repoRoot = path.resolve(__dirname, '..');
+  const skillMd = fs.readFileSync(path.join(repoRoot, 'SKILL.md'), 'utf8');
+  const tasksMd = fs.readFileSync(path.join(repoRoot, 'references', 'tasks.md'), 'utf8');
+  const applyMd = fs.readFileSync(path.join(repoRoot, 'references', 'apply.md'), 'utf8');
+  const verifyMd = fs.readFileSync(path.join(repoRoot, 'references', 'verify.md'), 'utf8');
+
+  for (const [name, content] of [
+    ['SKILL.md', skillMd],
+    ['references/tasks.md', tasksMd],
+    ['references/apply.md', applyMd],
+    ['references/verify.md', verifyMd],
+  ]) {
+    assert.match(content, /vsdd harness/, `${name} debe documentar vsdd harness`);
+    assert.match(content, /Autor de Tests/i, `${name} debe documentar el rol Autor de Tests`);
+    assert.match(content, /Implementador/i, `${name} debe documentar el rol Implementador`);
+  }
+
+  // Subcomandos brief, seal, verify, appeal y protocolo 2+1 + Analista + Tribunal 3+1
+  assert.match(applyMd, /vsdd harness brief/);
+  assert.match(applyMd, /vsdd harness seal/);
+  assert.match(applyMd, /vsdd harness verify/);
+  assert.match(applyMd, /vsdd harness appeal/);
+  assert.match(applyMd, /2\+1/);
+  assert.match(applyMd, /Analista/);
+  assert.match(applyMd, /12 l[ií]neas/i);
+
+  assert.match(verifyMd, /Fiscal de(?:l)? Contrato/i);
+  assert.match(verifyMd, /Cazador de Trampas/i);
+  assert.match(verifyMd, /Artesano de C[oó]digo/i);
+  assert.match(verifyMd, /Juez/i);
+});

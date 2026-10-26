@@ -69,13 +69,13 @@ Plan: `docs/sdd/vsdd/001-test-harness-tribunal/plan.md`
   - **Listo cuando:** `vsdd harness verify` bloquea manipulaciones de tests y código espagueti, y ejecuta el ciclo 2+1 de forma determinista.
   - [x] **Commit de tarea:** `feat(harness): implementar verificador sha256 y cortacircuitos 2+1`
 
-- [ ] **TASK-06: Gestor de apelaciones (vsdd harness appeal) y actualización de guías operativas del Tribunal**
+- [x] **TASK-06: Gestor de apelaciones (vsdd harness appeal) y actualización de guías operativas del Tribunal**
   - **Qué:** Implementa `scripts/lib/harness/appeal.js` conectado a `scripts/vsdd-harness.js` para registrar y resolver apelaciones (`accept` desbloquea el sello para el Autor de Tests; `reject` conserva el candado y descuenta un intento), y actualiza `SKILL.md`, `references/tasks.md`, `references/apply.md` y `references/verify.md` con la separación Autor de Tests vs. Implementador, el protocolo 2+1, el Tribunal de 3 lentes en una sola llamada por cierre de fase y el formato del Analista.
   - **Cubre:** RF-04, RF-05, DT-01, DT-05, RNF (Ergonomía visual 80 cols), RNF (Tono didáctico del Analista)
   - **Archivos:** `+ scripts/lib/harness/appeal.js`, `~ scripts/vsdd-harness.js`, `~ SKILL.md`, `~ references/tasks.md`, `~ references/apply.md`, `~ references/verify.md`, `~ tests/vsdd-harness.test.js`
   - **Test primero (TDD):** Pruebas en `tests/vsdd-harness.test.js` validando el ciclo completo de `vsdd harness appeal` (creación, aceptación que abre el candado y rechazo que consume intento) y verificación de integridad de las guías del repositorio.
   - **Listo cuando:** El subcomando `appeal` y las guías operativas actualizadas pasan el 100% de la suite de pruebas del repositorio (`npm test`).
-  - [ ] **Commit de tarea:** `feat(harness): agregar gestor de apelaciones y actualizar protocolo del tribunal`
+  - [x] **Commit de tarea:** `feat(harness): agregar gestor de apelaciones y actualizar protocolo del tribunal`
 
 ### Control de Fase 3
 

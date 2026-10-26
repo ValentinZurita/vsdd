@@ -6,6 +6,7 @@ const path = require('path');
 const { assembleBrief } = require('./lib/harness/brief');
 const { sealTestFile } = require('./lib/harness/seal');
 const { verifyTask } = require('./lib/harness/verify');
+const { manageAppeal } = require('./lib/harness/appeal');
 
 /**
  * Devuelve el texto de ayuda del comando vsdd harness respetando el ancho de 80 columnas.
@@ -43,6 +44,7 @@ function consumeFlagValue(argv, index, parsed) {
     '--cmd': 'cmd',
     '--reason': 'reason',
     '--resolve': 'resolve',
+    '--status': 'status',
     '--cwd': 'cwd',
   };
   const key = flagMap[argv[index]];
@@ -66,6 +68,7 @@ function parseHarnessArgs(argv = []) {
     cmd: '',
     reason: '',
     resolve: '',
+    status: '',
     cwd: '',
     json: false,
     help: false,
@@ -299,6 +302,53 @@ function handleVerifyCommand(parsed, baseCwd, options = {}) {
 }
 
 /**
+ * Formatea la salida en terminal (<= 80 columnas) tras registrar o resolver una apelación.
+ */
+function formatAppealOutput(result) {
+  const ap = result.appeal || {};
+  const headerLine = `✔ Apelación ${ap.id || 'APPEAL'} (${ap.taskId || 'TASK'}): ${ap.status}`.slice(0, 78);
+  const sealLine = `● Estado del candado SHA-256: ${result.sealStatus || 'locked'}`.slice(0, 78);
+  return [
+    '╭──────────────────────────────────────────────────────────────╮',
+    '│  ⚖️  VSDD HARNESS · REGISTRO Y ARBITRAJE DE APELACIONES      │',
+    '╰──────────────────────────────────────────────────────────────╯',
+    headerLine,
+    sealLine,
+  ].join('\n');
+}
+
+/**
+ * Ejecuta el subcomando appeal devolviendo { exitCode, stdout, stderr, data }.
+ */
+function handleAppealCommand(parsed, baseCwd) {
+  const taskId = parsed.taskId || parsed.positionals[0] || '';
+  const featureDir = resolveFeatureDir(parsed.feature, baseCwd);
+  if (!featureDir) {
+    const msg = '✖ Error: No se encontró una funcionalidad activa para apelación.';
+    return { exitCode: 1, stdout: '', stderr: msg, data: null };
+  }
+
+  const res = manageAppeal(featureDir, {
+    cwd: baseCwd,
+    taskId,
+    testPath: parsed.testPath || '',
+    reason: parsed.reason,
+    resolve: parsed.resolve,
+    status: parsed.status,
+  });
+
+  if (!res.ok) {
+    const errOut = parsed.json
+      ? JSON.stringify(res, null, 2)
+      : `✖ Error en apelación: ${(res.errors || []).join(' ')}`;
+    return { exitCode: 1, stdout: '', stderr: errOut, data: res };
+  }
+
+  const out = parsed.json ? JSON.stringify(res, null, 2) : formatAppealOutput(res);
+  return { exitCode: 0, stdout: out, stderr: '', data: res };
+}
+
+/**
  * Ejecuta el comando vsdd harness y retorna { exitCode, stdout, stderr, data }.
  */
 function runHarness(argv = [], options = {}) {
@@ -318,14 +368,15 @@ function runHarness(argv = [], options = {}) {
     };
   }
 
-  if (parsed.subcommand === 'brief') {
-    return handleBriefCommand(parsed, baseCwd);
-  }
-  if (parsed.subcommand === 'seal') {
-    return handleSealCommand(parsed, baseCwd, options);
-  }
-  if (parsed.subcommand === 'verify') {
-    return handleVerifyCommand(parsed, baseCwd, options);
+  const handlers = {
+    brief: () => handleBriefCommand(parsed, baseCwd),
+    seal: () => handleSealCommand(parsed, baseCwd, options),
+    verify: () => handleVerifyCommand(parsed, baseCwd, options),
+    appeal: () => handleAppealCommand(parsed, baseCwd),
+  };
+
+  if (handlers[parsed.subcommand]) {
+    return handlers[parsed.subcommand]();
   }
 
   return {
