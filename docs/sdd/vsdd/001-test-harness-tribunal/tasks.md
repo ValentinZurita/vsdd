@@ -1,6 +1,6 @@
 # Tareas 001 Test Harness Antifraude, Contexto Inteligente y Tribunal de Calidad
 
-Estado: listo-para-aplicar
+Estado: listo-para-verify
 
 Idea: `docs/sdd/vsdd/001-test-harness-tribunal/idea.md`
 Plan: `docs/sdd/vsdd/001-test-harness-tribunal/plan.md`
@@ -79,8 +79,8 @@ Plan: `docs/sdd/vsdd/001-test-harness-tribunal/plan.md`
 
 ### Control de Fase 3
 
-- [ ] **Auditoría independiente de Fase 3:** subagente QA revisa código de la fase (solo lectura). Si hay hallazgos, un subagente reparador aplica los ajustes y se relanza la auditoría (máximo 2 iteraciones).
-- [ ] **Commit de Fase 3:** commit de cierre de fase validado con el comando de pruebas/calidad del proyecto (`npm test`).
+- [x] **Auditoría independiente de Fase 3:** subagente QA revisa código de la fase (solo lectura). Si hay hallazgos, un subagente reparador aplica los ajustes y se relanza la auditoría (máximo 2 iteraciones).
+- [x] **Commit de Fase 3:** commit de cierre de fase validado con el comando de pruebas/calidad del proyecto (`npm test`).
 
 ## Fuera de este corte
 
