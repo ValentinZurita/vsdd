@@ -4,6 +4,7 @@
 const fs = require('fs');
 const path = require('path');
 const { assembleBrief } = require('./lib/harness/brief');
+const { sealTestFile } = require('./lib/harness/seal');
 
 /**
  * Devuelve el texto de ayuda del comando vsdd harness respetando el ancho de 80 columnas.
@@ -188,6 +189,56 @@ function handleBriefCommand(parsed, baseCwd) {
 }
 
 /**
+ * Formatea la salida en terminal (<= 80 columnas) tras sellar un archivo de pruebas.
+ */
+function formatSealOutput(result) {
+  const shortHash = String(result.sha256 || '').slice(0, 16);
+  const fileLine = `✔ Archivo sellado en Rojo: ${result.sealKey}`.slice(0, 78);
+  const hashLine = `● SHA-256: ${shortHash}... | ExitCode Rojo: ${result.redExitCode}`.slice(0, 78);
+  return [
+    '╭──────────────────────────────────────────────────────────────╮',
+    '│  🔒 VSDD HARNESS · CANDADO CRIPTOGRÁFICO SHA-256 EN ROJO     │',
+    '╰──────────────────────────────────────────────────────────────╯',
+    fileLine,
+    hashLine,
+  ].join('\n');
+}
+
+/**
+ * Ejecuta el subcomando seal devolviendo { exitCode, stdout, stderr, data }.
+ */
+function handleSealCommand(parsed, baseCwd, options = {}) {
+  const testFile = parsed.testPath || parsed.positionals[0] || '';
+  if (!testFile) {
+    const msg = '✖ Error: Debes indicar la ruta del archivo de pruebas a sellar.';
+    return { exitCode: 1, stdout: '', stderr: msg, data: null };
+  }
+
+  const featureDir = resolveFeatureDir(parsed.feature, baseCwd);
+  if (!featureDir) {
+    const msg = '✖ Error: No se encontró una funcionalidad activa para registrar el sello.';
+    return { exitCode: 1, stdout: '', stderr: msg, data: null };
+  }
+
+  const res = sealTestFile(featureDir, testFile, {
+    cwd: baseCwd,
+    taskId: parsed.taskId || null,
+    cmd: parsed.cmd || '',
+    runnerFn: options.runnerFn,
+  });
+
+  if (!res.ok) {
+    const errOut = parsed.json
+      ? JSON.stringify(res, null, 2)
+      : `✖ Error al sellar prueba: ${(res.errors || []).join(' ')}`;
+    return { exitCode: 1, stdout: '', stderr: errOut, data: res };
+  }
+
+  const out = parsed.json ? JSON.stringify(res, null, 2) : formatSealOutput(res);
+  return { exitCode: 0, stdout: out, stderr: '', data: res };
+}
+
+/**
  * Ejecuta el comando vsdd harness y retorna { exitCode, stdout, stderr, data }.
  */
 function runHarness(argv = [], options = {}) {
@@ -209,6 +260,9 @@ function runHarness(argv = [], options = {}) {
 
   if (parsed.subcommand === 'brief') {
     return handleBriefCommand(parsed, baseCwd);
+  }
+  if (parsed.subcommand === 'seal') {
+    return handleSealCommand(parsed, baseCwd, options);
   }
 
   return {
@@ -242,5 +296,6 @@ module.exports = {
   parseHarnessArgs,
   resolveFeatureDir,
   formatBriefHeader,
+  formatSealOutput,
   runHarness,
 };

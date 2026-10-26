@@ -561,3 +561,168 @@ test('analyzer.inspectProductionCode: detecta anidamiento > 3 niveles, catch vac
     `analyzer.js debe aprobarse a sí mismo sin violaciones: ${JSON.stringify(selfRes.violations)}`
   );
 });
+
+test('seal.sealTestFile (Caso 1): sella en Rojo con SHA-256, registra literals y vincula taskId en context.json', () => {
+  const { tmpRoot, featureDir } = createTempFeatureFixture();
+  try {
+    const { sealTestFile } = require('../scripts/lib/harness/seal');
+    const testsDir = path.join(tmpRoot, 'tests');
+    fs.mkdirSync(testsDir, { recursive: true });
+    const relTestPath = 'tests/descuento.test.js';
+    const absTestPath = path.join(tmpRoot, relTestPath);
+
+    fs.writeFileSync(
+      absTestPath,
+      [
+        "const test = require('node:test');",
+        "const assert = require('node:assert/strict');",
+        "test('aplica cupon', () => {",
+        "  assert.equal(calcular('CUPON-INVIERNO-2026'), 'REBAJA-APLICADA-50');",
+        '});',
+      ].join('\n'),
+      'utf8'
+    );
+
+    const res = sealTestFile(featureDir, relTestPath, {
+      cwd: tmpRoot,
+      taskId: 'TASK-01',
+      cmd: 'node --test',
+      runnerFn: () => ({ exitCode: 1, stdout: '', stderr: 'ReferenceError: calcular is not defined' }),
+    });
+
+    assert.equal(res.ok, true);
+    assert.equal(res.redVerified, true);
+    assert.equal(res.redExitCode, 1);
+    assert.match(res.sha256, /^[a-f0-9]{64}$/);
+    assert.ok(res.literals.includes('CUPON-INVIERNO-2026'));
+
+    const ctx = JSON.parse(fs.readFileSync(path.join(featureDir, 'context.json'), 'utf8'));
+    const sealEntry = ctx.harness.seals[relTestPath];
+    assert.equal(sealEntry.sha256, res.sha256);
+    assert.equal(sealEntry.redExitCode, 1);
+    assert.equal(sealEntry.taskId, 'TASK-01');
+    assert.equal(sealEntry.status, 'locked');
+    assert.ok(sealEntry.literals.includes('REBAJA-APLICADA-50'));
+    assert.equal(ctx.harness.testCommand, 'node --test');
+    assert.equal(ctx.harness.tasks['TASK-01'].testFile, relTestPath);
+  } finally {
+    fs.rmSync(tmpRoot, { recursive: true, force: true });
+  }
+});
+
+test('seal.sealTestFile y CLI (Casos 2 y 3): rechaza si pasa en Verde antes de implementar o si el test es impuro', () => {
+  const { tmpRoot, featureDir } = createTempFeatureFixture();
+  try {
+    const { sealTestFile } = require('../scripts/lib/harness/seal');
+    const { runHarness } = require('../scripts/vsdd-harness');
+    const testsDir = path.join(tmpRoot, 'tests');
+    fs.mkdirSync(testsDir, { recursive: true });
+
+    // Caso 2: Pasa en Verde (exitCode === 0)
+    const greenTestRel = 'tests/pasa-verde.test.js';
+    fs.writeFileSync(
+      path.join(tmpRoot, greenTestRel),
+      "test('falso positivo', () => { assert.equal(2 + 2, 4); });",
+      'utf8'
+    );
+
+    const greenRes = sealTestFile(featureDir, greenTestRel, {
+      cwd: tmpRoot,
+      cmd: 'node --test',
+      runnerFn: () => ({ exitCode: 0, stdout: 'PASS', stderr: '' }),
+    });
+    assert.equal(greenRes.ok, false);
+    assert.match(greenRes.errors.join(' '), /verde|Red Gate/i);
+
+    // Caso 3: Impureza del test (.skip / toBeDefined) rechazado antes de sellar y desde CLI
+    const impureTestRel = 'tests/impuro.test.js';
+    fs.writeFileSync(
+      path.join(tmpRoot, impureTestRel),
+      "test.skip('trampa con skip', () => { expect(fn()).toBeDefined(); });",
+      'utf8'
+    );
+
+    const cliRes = runHarness(
+      ['seal', impureTestRel, '--task', 'TASK-01', '--feature', featureDir, '--cmd', 'node --test'],
+      { cwd: tmpRoot }
+    );
+    assert.equal(cliRes.exitCode, 1);
+    assert.match(cliRes.stderr, /omisión|skip|cosmética/i);
+
+    const ctxPath = path.join(featureDir, 'context.json');
+    if (fs.existsSync(ctxPath)) {
+      const ctx = JSON.parse(fs.readFileSync(ctxPath, 'utf8'));
+      assert.equal(ctx.harness.seals[impureTestRel], undefined);
+      assert.equal(ctx.harness.seals[greenTestRel], undefined);
+    }
+  } finally {
+    fs.rmSync(tmpRoot, { recursive: true, force: true });
+  }
+});
+
+test('seal.detectTestCommand y timeout (Casos 4 y 5): autodetecta manifiestos, soporta --cmd y rechaza timeout de 30s', () => {
+  const { tmpRoot, featureDir } = createTempFeatureFixture();
+  try {
+    const { detectTestCommand, sealTestFile } = require('../scripts/lib/harness/seal');
+    const { inspectProductionCode } = require('../scripts/lib/harness/analyzer');
+
+    // Sin manifiesto ni --cmd lanza error descriptivo
+    assert.throws(() => detectTestCommand(tmpRoot), /manifiesto|package\.json|--cmd/i);
+
+    // Cargo.toml
+    fs.writeFileSync(path.join(tmpRoot, 'Cargo.toml'), '[package]\nname = "demo"\n', 'utf8');
+    assert.equal(detectTestCommand(tmpRoot), 'cargo test');
+    fs.unlinkSync(path.join(tmpRoot, 'Cargo.toml'));
+
+    // go.mod
+    fs.writeFileSync(path.join(tmpRoot, 'go.mod'), 'module example.com/demo\n', 'utf8');
+    assert.equal(detectTestCommand(tmpRoot), 'go test ./...');
+    fs.unlinkSync(path.join(tmpRoot, 'go.mod'));
+
+    // pyproject.toml
+    fs.writeFileSync(path.join(tmpRoot, 'pyproject.toml'), '[tool.pytest]\n', 'utf8');
+    assert.equal(detectTestCommand(tmpRoot), 'pytest');
+    fs.unlinkSync(path.join(tmpRoot, 'pyproject.toml'));
+
+    // package.json
+    fs.writeFileSync(
+      path.join(tmpRoot, 'package.json'),
+      JSON.stringify({ scripts: { test: 'node --test' } }),
+      'utf8'
+    );
+    assert.equal(detectTestCommand(tmpRoot), 'node --test');
+    assert.equal(detectTestCommand(tmpRoot, 'npx vitest run'), 'npx vitest run');
+
+    // Caso 5: Timeout de 30s
+    const testsDir = path.join(tmpRoot, 'tests');
+    fs.mkdirSync(testsDir, { recursive: true });
+    const timeoutTestRel = 'tests/bucle.test.js';
+    fs.writeFileSync(
+      path.join(tmpRoot, timeoutTestRel),
+      "test('bucle infinito', () => { assert.equal(fn(), 42); });",
+      'utf8'
+    );
+
+    const timeoutRes = sealTestFile(featureDir, timeoutTestRel, {
+      cwd: tmpRoot,
+      runnerFn: () => ({ exitCode: null, timedOut: true, error: { code: 'ETIMEDOUT' } }),
+    });
+    assert.equal(timeoutRes.ok, false);
+    assert.equal(timeoutRes.timedOut, true);
+    assert.match(timeoutRes.errors.join(' '), /timeout|30s/i);
+
+    // Autoverificación de higiene en seal.js y vsdd-harness.js
+    const sealCode = fs.readFileSync(
+      path.resolve(__dirname, '..', 'scripts', 'lib', 'harness', 'seal.js'),
+      'utf8'
+    );
+    const harnessCliCode = fs.readFileSync(
+      path.resolve(__dirname, '..', 'scripts', 'vsdd-harness.js'),
+      'utf8'
+    );
+    assert.equal(inspectProductionCode(sealCode, []).valid, true);
+    assert.equal(inspectProductionCode(harnessCliCode, []).valid, true);
+  } finally {
+    fs.rmSync(tmpRoot, { recursive: true, force: true });
+  }
+});

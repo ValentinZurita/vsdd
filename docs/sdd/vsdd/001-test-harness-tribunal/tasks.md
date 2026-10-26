@@ -46,13 +46,13 @@ Plan: `docs/sdd/vsdd/001-test-harness-tribunal/plan.md`
   - **Listo cuando:** Todas las pruebas del analizador léxico y estructural pasan en verde con cero falsos positivos sobre código modular.
   - [x] **Commit de tarea:** `feat(harness): agregar analizador lexico anti-trampa y anti-espagueti`
 
-- [ ] **TASK-04: Sellado criptográfico SHA-256 en Rojo (vsdd harness seal)**
+- [x] **TASK-04: Sellado criptográfico SHA-256 en Rojo (vsdd harness seal)**
   - **Qué:** Implementa `scripts/lib/harness/seal.js` y su conexión en `scripts/vsdd-harness.js` con autodetección de runner (`--cmd`, timeout de 30s e inyección `runnerFn`), validando ausencia de trampas léxicas en el test, comprobando que falle en Rojo (código distinto de cero) y almacenando el hash SHA-256 en `context.json`.
   - **Cubre:** RF-02, DT-01, DT-03, DT-04, RNF (Agnosticismo de lenguaje)
   - **Archivos:** `+ scripts/lib/harness/seal.js`, `~ scripts/vsdd-harness.js`, `~ tests/vsdd-harness.test.js`
   - **Test primero (TDD):** Pruebas en `tests/vsdd-harness.test.js` comprobando que `sealTest` rechaza con código 1 si el test pasa en verde antes de implementar o si contiene `.skip`, y sella el SHA-256 en `context.json` cuando el test falla en Rojo.
   - **Listo cuando:** `vsdd harness seal` registra el sello SHA-256 en `context.json` únicamente cuando el test falla en Rojo y carece de trampas.
-  - [ ] **Commit de tarea:** `feat(harness): implementar sellado sha256 en rojo con red gate`
+  - [x] **Commit de tarea:** `feat(harness): implementar sellado sha256 en rojo con red gate`
 
 ### Control de Fase 2
 
