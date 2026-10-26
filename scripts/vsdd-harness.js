@@ -5,6 +5,7 @@ const fs = require('fs');
 const path = require('path');
 const { assembleBrief } = require('./lib/harness/brief');
 const { sealTestFile } = require('./lib/harness/seal');
+const { verifyTask } = require('./lib/harness/verify');
 
 /**
  * Devuelve el texto de ayuda del comando vsdd harness respetando el ancho de 80 columnas.
@@ -239,6 +240,65 @@ function handleSealCommand(parsed, baseCwd, options = {}) {
 }
 
 /**
+ * Formatea la salida en terminal (<= 80 columnas) tras verificar una tarea.
+ */
+function formatVerifyOutput(taskId, result) {
+  if (result.ok) {
+    return [
+      '╭──────────────────────────────────────────────────────────────╮',
+      '│  ✔ VSDD HARNESS · VERIFICACIÓN EN VERDE E HIGIENE APROBADA   │',
+      '╰──────────────────────────────────────────────────────────────╯',
+      `✔ Tarea ${taskId} verificada: SHA-256 intacto y código limpio.`.slice(0, 78),
+    ].join('\n');
+  }
+
+  const lines = [
+    `✖ Verificación fallida en ${taskId}: ${result.reason}`.slice(0, 78),
+    ...(result.errors || []).map((e) => `  • ${e}`.slice(0, 78)),
+  ];
+  if (result.rollbackExecuted) {
+    lines.push('● Cortacircuitos 2+1: Código productivo revertido a limpio.');
+  }
+  if (result.diagnostic) {
+    lines.push('', result.diagnostic);
+  }
+  return lines.join('\n');
+}
+
+/**
+ * Ejecuta el subcomando verify devolviendo { exitCode, stdout, stderr, data }.
+ */
+function handleVerifyCommand(parsed, baseCwd, options = {}) {
+  const taskId = parsed.taskId || parsed.positionals[0] || '';
+  if (!taskId) {
+    const msg = '✖ Error: Debes indicar el ID de tarea a verificar (ej. TASK-01).';
+    return { exitCode: 1, stdout: '', stderr: msg, data: null };
+  }
+
+  const featureDir = resolveFeatureDir(parsed.feature, baseCwd);
+  if (!featureDir) {
+    const msg = '✖ Error: No se encontró una funcionalidad activa para verificar.';
+    return { exitCode: 1, stdout: '', stderr: msg, data: null };
+  }
+
+  const res = verifyTask(featureDir, taskId, {
+    cwd: baseCwd,
+    cmd: parsed.cmd || '',
+    runnerFn: options.runnerFn,
+    gitFn: options.gitFn,
+  });
+
+  const formatted = parsed.json
+    ? JSON.stringify(res, null, 2)
+    : formatVerifyOutput(taskId.toUpperCase(), res);
+
+  if (!res.ok) {
+    return { exitCode: 1, stdout: '', stderr: formatted, data: res };
+  }
+  return { exitCode: 0, stdout: formatted, stderr: '', data: res };
+}
+
+/**
  * Ejecuta el comando vsdd harness y retorna { exitCode, stdout, stderr, data }.
  */
 function runHarness(argv = [], options = {}) {
@@ -263,6 +323,9 @@ function runHarness(argv = [], options = {}) {
   }
   if (parsed.subcommand === 'seal') {
     return handleSealCommand(parsed, baseCwd, options);
+  }
+  if (parsed.subcommand === 'verify') {
+    return handleVerifyCommand(parsed, baseCwd, options);
   }
 
   return {
@@ -297,5 +360,6 @@ module.exports = {
   resolveFeatureDir,
   formatBriefHeader,
   formatSealOutput,
+  formatVerifyOutput,
   runHarness,
 };

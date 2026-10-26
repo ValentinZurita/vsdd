@@ -726,3 +726,230 @@ test('seal.detectTestCommand y timeout (Casos 4 y 5): autodetecta manifiestos, s
     fs.rmSync(tmpRoot, { recursive: true, force: true });
   }
 });
+
+function createGitTaskFixture() {
+  const { tmpRoot, featureDir } = createTempFeatureFixture();
+  const srcDir = path.join(tmpRoot, 'src');
+  const testsDir = path.join(tmpRoot, 'tests');
+  fs.mkdirSync(srcDir, { recursive: true });
+  fs.mkdirSync(testsDir, { recursive: true });
+
+  const prodRel = 'src/calculadora.js';
+  const testRel = 'tests/calculadora.test.js';
+  const unrelatedRel = 'notas-usuario.txt';
+
+  fs.writeFileSync(
+    path.join(tmpRoot, prodRel),
+    "'use strict';\nfunction calcular(x) {\n  return 0;\n}\nmodule.exports = { calcular };\n",
+    'utf8'
+  );
+  fs.writeFileSync(path.join(tmpRoot, unrelatedRel), 'v1 original del usuario\n', 'utf8');
+
+  // Actualizar tasks.md del fixture para que TASK-01 autorice src/calculadora.js y tests/calculadora.test.js
+  const tasksPath = path.join(featureDir, 'tasks.md');
+  const updatedTasks = fs
+    .readFileSync(tasksPath, 'utf8')
+    .replace(
+      '- **Archivos:** `~ scripts/lib/state.js`, `+ scripts/lib/harness/brief.js`, `+ tests/vsdd-harness.test.js`',
+      `- **Archivos:** \`~ ${prodRel}\`, \`+ ${testRel}\``
+    );
+  fs.writeFileSync(tasksPath, updatedTasks, 'utf8');
+
+  spawnSync('git', ['init'], { cwd: tmpRoot });
+  spawnSync('git', ['config', 'user.email', 'test@example.com'], { cwd: tmpRoot });
+  spawnSync('git', ['config', 'user.name', 'Test User'], { cwd: tmpRoot });
+  spawnSync('git', ['add', '.'], { cwd: tmpRoot });
+  spawnSync('git', ['commit', '-m', 'chore: initial fixture'], { cwd: tmpRoot });
+
+  fs.writeFileSync(
+    path.join(tmpRoot, testRel),
+    [
+      "const test = require('node:test');",
+      "const assert = require('node:assert/strict');",
+      "const { calcular } = require('../src/calculadora');",
+      "test('aplica tarifa especial', () => {",
+      "  assert.equal(calcular('TARIFA-CORPORATIVA-2026'), 'BONO-AUTORIZADO-77');",
+      '});',
+    ].join('\n'),
+    'utf8'
+  );
+
+  return { tmpRoot, featureDir, prodRel, testRel, unrelatedRel };
+}
+
+test('verify.verifyTask (Casos 1, 2 y 3): detecta INTEGRITY_VIOLATION, TEST_FAILED y HYGIENE_VIOLATION', () => {
+  const { tmpRoot, featureDir, prodRel, testRel } = createGitTaskFixture();
+  try {
+    const { sealTestFile } = require('../scripts/lib/harness/seal');
+    const { verifyTask } = require('../scripts/lib/harness/verify');
+
+    const sealRes = sealTestFile(featureDir, testRel, {
+      cwd: tmpRoot,
+      taskId: 'TASK-01',
+      cmd: 'node --test',
+      runnerFn: () => ({ exitCode: 1, stdout: '', stderr: 'fail' }),
+    });
+    assert.equal(sealRes.ok, true);
+
+    // Caso 1: Adulteración del archivo de test sellado -> INTEGRITY_VIOLATION
+    const originalTest = fs.readFileSync(path.join(tmpRoot, testRel), 'utf8');
+    fs.writeFileSync(
+      path.join(tmpRoot, testRel),
+      originalTest.replace('BONO-AUTORIZADO-77', 'BONO-TRAMPA-00'),
+      'utf8'
+    );
+
+    const integrityRes = verifyTask(featureDir, 'TASK-01', {
+      cwd: tmpRoot,
+      runnerFn: () => ({ exitCode: 0, stdout: 'PASS', stderr: '' }),
+    });
+    assert.equal(integrityRes.ok, false);
+    assert.equal(integrityRes.reason, 'INTEGRITY_VIOLATION');
+
+    // Restaurar test legítimo
+    fs.writeFileSync(path.join(tmpRoot, testRel), originalTest, 'utf8');
+
+    // Caso 2: El test sigue fallando -> TEST_FAILED
+    const failRes = verifyTask(featureDir, 'TASK-01', {
+      cwd: tmpRoot,
+      runnerFn: () => ({ exitCode: 1, stdout: '', stderr: 'AssertionError' }),
+    });
+    assert.equal(failRes.ok, false);
+    assert.equal(failRes.reason, 'TEST_FAILED');
+
+    // Caso 3: Test pasa en Verde pero el código productivo tiene literal espejo y catch vacío -> HYGIENE_VIOLATION
+    fs.writeFileSync(
+      path.join(tmpRoot, prodRel),
+      [
+        'function calcular(x) {',
+        '  try {',
+        '    if (x === "TARIFA-CORPORATIVA-2026") return "BONO-AUTORIZADO-77";',
+        '  } catch (err) {}',
+        '  return 0;',
+        '}',
+        'module.exports = { calcular };',
+      ].join('\n'),
+      'utf8'
+    );
+
+    const hygieneRes = verifyTask(featureDir, 'TASK-01', {
+      cwd: tmpRoot,
+      runnerFn: () => ({ exitCode: 0, stdout: 'PASS', stderr: '' }),
+    });
+    assert.equal(hygieneRes.ok, false);
+    assert.equal(hygieneRes.reason, 'HYGIENE_VIOLATION');
+    assert.ok(hygieneRes.violations.some((v) => v.type === 'hardcoded-test-literal'));
+    assert.ok(hygieneRes.violations.some((v) => v.type === 'empty-catch'));
+  } finally {
+    fs.rmSync(tmpRoot, { recursive: true, force: true });
+  }
+});
+
+test('verify.verifyTask (Casos 4 y 5): aplica cortacircuitos 2+1 con git restore quirúrgico y aprueba en Verde', () => {
+  const { tmpRoot, featureDir, prodRel, testRel, unrelatedRel } = createGitTaskFixture();
+  try {
+    const { sealTestFile } = require('../scripts/lib/harness/seal');
+    const { verifyTask } = require('../scripts/lib/harness/verify');
+    const { runHarness } = require('../scripts/vsdd-harness');
+    const { inspectProductionCode } = require('../scripts/lib/harness/analyzer');
+
+    sealTestFile(featureDir, testRel, {
+      cwd: tmpRoot,
+      taskId: 'TASK-01',
+      cmd: 'node --test',
+      runnerFn: () => ({ exitCode: 1, stdout: '', stderr: 'fail' }),
+    });
+
+    // Modificar archivo ajeno del usuario (NUNCA debe ser revertido por el harness)
+    fs.writeFileSync(path.join(tmpRoot, unrelatedRel), 'cambio valioso del usuario no tocado\n', 'utf8');
+    // Ensuciar archivo de producción autorizado en Intento 1
+    fs.writeFileSync(path.join(tmpRoot, prodRel), '// intento 1 sucio\nmodule.exports = {};\n', 'utf8');
+
+    // Fallo #1: attempts === 1, status: retrying, rollbackExecuted: false
+    const attempt1 = verifyTask(featureDir, 'TASK-01', {
+      cwd: tmpRoot,
+      runnerFn: () => ({ exitCode: 1, stdout: '', stderr: 'fallo 1' }),
+    });
+    assert.equal(attempt1.ok, false);
+    assert.equal(attempt1.attempt, 1);
+    assert.equal(attempt1.status, 'retrying');
+    assert.equal(attempt1.rollbackExecuted, false);
+    assert.equal(attempt1.analystRequired, false);
+    assert.match(fs.readFileSync(path.join(tmpRoot, prodRel), 'utf8'), /intento 1 sucio/);
+
+    // Fallo #2: attempts === 2, status: clean_retry_required, rollbackExecuted: true
+    fs.writeFileSync(path.join(tmpRoot, prodRel), '// intento 2 espagueti\nmodule.exports = {};\n', 'utf8');
+    const attempt2 = verifyTask(featureDir, 'TASK-01', {
+      cwd: tmpRoot,
+      runnerFn: () => ({ exitCode: 1, stdout: '', stderr: 'fallo 2' }),
+    });
+    assert.equal(attempt2.ok, false);
+    assert.equal(attempt2.attempt, 2);
+    assert.equal(attempt2.status, 'clean_retry_required');
+    assert.equal(attempt2.rollbackExecuted, true);
+    assert.equal(attempt2.analystRequired, false);
+
+    // El archivo productivo volvió a HEAD limpio, pero el test y el archivo ajeno siguen intactos
+    assert.doesNotMatch(fs.readFileSync(path.join(tmpRoot, prodRel), 'utf8'), /intento 2 espagueti/);
+    assert.match(fs.readFileSync(path.join(tmpRoot, prodRel), 'utf8'), /function calcular\(x\)/);
+    assert.equal(
+      fs.readFileSync(path.join(tmpRoot, unrelatedRel), 'utf8'),
+      'cambio valioso del usuario no tocado\n'
+    );
+    assert.ok(fs.existsSync(path.join(tmpRoot, testRel)));
+
+    // Fallo #3: attempts === 3, status: blocked_analyst, rollbackExecuted: true, analystRequired: true
+    fs.writeFileSync(path.join(tmpRoot, prodRel), '// intento 3 fallido\nmodule.exports = {};\n', 'utf8');
+    const attempt3 = verifyTask(featureDir, 'TASK-01', {
+      cwd: tmpRoot,
+      runnerFn: () => ({ exitCode: 1, stdout: '', stderr: 'fallo 3' }),
+    });
+    assert.equal(attempt3.ok, false);
+    assert.equal(attempt3.attempt, 3);
+    assert.equal(attempt3.status, 'blocked_analyst');
+    assert.equal(attempt3.rollbackExecuted, true);
+    assert.equal(attempt3.analystRequired, true);
+    assert.ok(attempt3.diagnostic.split('\n').length <= 12);
+    assert.doesNotMatch(fs.readFileSync(path.join(tmpRoot, prodRel), 'utf8'), /intento 3 fallido/);
+
+    // Caso 5: Implementación limpia que pasa en Verde desde CLI / runHarness
+    fs.writeFileSync(
+      path.join(tmpRoot, prodRel),
+      [
+        "'use strict';",
+        'function calcular(codigo) {',
+        '  const prefijo = String(codigo || "").split("-")[0];',
+        '  const sufijo = "AUTORIZADO-77";',
+        '  return prefijo === "TARIFA" ? `BONO-${sufijo}` : "";',
+        '}',
+        'module.exports = { calcular };',
+      ].join('\n'),
+      'utf8'
+    );
+
+    const cliOk = runHarness(['verify', 'TASK-01', '--feature', featureDir], {
+      cwd: tmpRoot,
+      runnerFn: () => ({ exitCode: 0, stdout: 'PASS', stderr: '' }),
+    });
+    assert.equal(cliOk.exitCode, 0);
+    for (const line of cliOk.stdout.split('\n')) {
+      assert.ok(line.length <= 80, `Línea excede 80 cols: ${line}`);
+    }
+
+    const ctx = JSON.parse(fs.readFileSync(path.join(featureDir, 'context.json'), 'utf8'));
+    assert.equal(ctx.harness.tasks['TASK-01'].status, 'verified');
+
+    const verifyCode = fs.readFileSync(
+      path.resolve(__dirname, '..', 'scripts', 'lib', 'harness', 'verify.js'),
+      'utf8'
+    );
+    const harnessCliCode = fs.readFileSync(
+      path.resolve(__dirname, '..', 'scripts', 'vsdd-harness.js'),
+      'utf8'
+    );
+    assert.equal(inspectProductionCode(verifyCode, []).valid, true);
+    assert.equal(inspectProductionCode(harnessCliCode, []).valid, true);
+  } finally {
+    fs.rmSync(tmpRoot, { recursive: true, force: true });
+  }
+});

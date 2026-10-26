@@ -61,13 +61,13 @@ Plan: `docs/sdd/vsdd/001-test-harness-tribunal/plan.md`
 
 ## Fase 3: Verificador, Cortacircuitos 2+1, Apelaciones y Protocolo del Tribunal
 
-- [ ] **TASK-05: Verificador de integridad, cortacircuitos 2+1 con git restore y ficha del Analista (vsdd harness verify)**
+- [x] **TASK-05: Verificador de integridad, cortacircuitos 2+1 con git restore y ficha del Analista (vsdd harness verify)**
   - **Qué:** Implementa `scripts/lib/harness/verify.js` y su subcomando en `scripts/vsdd-harness.js` para validar el candado SHA-256 de los tests, comprobar el pase en Verde, ejecutar el analizador anti-espagueti sobre los archivos de producción del plan y aplicar automáticamente el cortacircuitos `2+1` (restauración acotada con `git restore` en los fallos 2 y 3 sin tocar archivos ajenos y activación de la ficha didáctica del Analista en el tercer fallo).
   - **Cubre:** RF-02, RF-03, RF-05, DT-01, DT-03, DT-04, DT-05, RNF (Tono didáctico del Analista)
   - **Archivos:** `+ scripts/lib/harness/verify.js`, `~ scripts/vsdd-harness.js`, `~ tests/vsdd-harness.test.js`
   - **Test primero (TDD):** Pruebas en `tests/vsdd-harness.test.js` verificando rechazo inmediato si cambia el hash del test, aprobación en Verde con código limpio, ejecución de restauración acotada en el fallo #2, y activación de `analystRequired: true` con plantilla didáctica en el fallo #3.
   - **Listo cuando:** `vsdd harness verify` bloquea manipulaciones de tests y código espagueti, y ejecuta el ciclo 2+1 de forma determinista.
-  - [ ] **Commit de tarea:** `feat(harness): implementar verificador sha256 y cortacircuitos 2+1`
+  - [x] **Commit de tarea:** `feat(harness): implementar verificador sha256 y cortacircuitos 2+1`
 
 - [ ] **TASK-06: Gestor de apelaciones (vsdd harness appeal) y actualización de guías operativas del Tribunal**
   - **Qué:** Implementa `scripts/lib/harness/appeal.js` conectado a `scripts/vsdd-harness.js` para registrar y resolver apelaciones (`accept` desbloquea el sello para el Autor de Tests; `reject` conserva el candado y descuenta un intento), y actualiza `SKILL.md`, `references/tasks.md`, `references/apply.md` y `references/verify.md` con la separación Autor de Tests vs. Implementador, el protocolo 2+1, el Tribunal de 3 lentes en una sola llamada por cierre de fase y el formato del Analista.
