@@ -4,8 +4,8 @@
   "featureId": "001-test-harness-tribunal",
   "git": {
     "branch": "main",
-    "baseCommit": "415065896937c268a6e4ac95ef3afca62317c720",
-    "capturedAt": "2026-10-26T20:32:30.693Z"
+    "baseCommit": "98c3a3106ae36f4712b53c02e569358380d7d239",
+    "capturedAt": "2026-10-26T20:36:05.138Z"
   },
   "trackedFiles": [
     {
@@ -101,6 +101,9 @@
     "plan": {
       "status": "completado",
       "completedAt": "2026-10-26T20:32:30.659Z"
+    },
+    "tasks": {
+      "status": "completado"
     }
   }
 }
