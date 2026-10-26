@@ -33,8 +33,8 @@ Plan: `docs/sdd/vsdd/001-test-harness-tribunal/plan.md`
 
 ### Control de Fase 1
 
-- [ ] **Auditoría independiente de Fase 1:** subagente QA revisa código de la fase contra spec/plan (solo lectura). Si hay hallazgos, un subagente reparador aplica los ajustes y se relanza la auditoría (máximo 2 iteraciones).
-- [ ] **Commit de Fase 1:** commit de cierre de fase validado con el comando de pruebas/calidad del proyecto (`npm test`).
+- [x] **Auditoría independiente de Fase 1:** subagente QA revisa código de la fase contra spec/plan (solo lectura). Si hay hallazgos, un subagente reparador aplica los ajustes y se relanza la auditoría (máximo 2 iteraciones).
+- [x] **Commit de Fase 1:** commit de cierre de fase validado con el comando de pruebas/calidad del proyecto (`npm test`).
 
 ## Fase 2: Candado Criptográfico en Rojo y Analizador Anti-Espagueti
 
