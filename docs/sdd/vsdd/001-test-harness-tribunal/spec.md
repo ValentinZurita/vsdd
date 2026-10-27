@@ -1,6 +1,6 @@
 # Spec 001 Test Harness Antifraude, Contexto Inteligente y Tribunal de Calidad
 
-Estado: listo-para-plan
+Estado: completado
 
 ## Contexto y objetivos
 

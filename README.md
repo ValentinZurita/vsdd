@@ -10,7 +10,7 @@
 
 <small><em>No pretende ser el framework definitivo ni salvar el desarrollo de software —mucho menos organizar equipos—. Es una forma de trabajar ideas y features con IA sin lanzarle tres líneas y esperar un milagro. Sí: hace preguntas. Bastantes. Si con un prompt basta, no lo uses.</em></small>
 
-[![Version](https://img.shields.io/badge/version-0.44.1-blue.svg)](https://github.com/ValentinZurita/vsdd)
+[![Version](https://img.shields.io/badge/version-0.45.0-blue.svg)](https://github.com/ValentinZurita/vsdd)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Platforms](https://img.shields.io/badge/plataformas-macOS%20%7C%20Linux%20%7C%20Windows-lightgrey.svg)]()
 

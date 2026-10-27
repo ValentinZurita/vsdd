@@ -42,7 +42,7 @@ function getCanonicalVersion() {
       }
     }
   } catch (e) {}
-  return '0.44.1';
+  return '0.45.0';
 }
 
 /**
