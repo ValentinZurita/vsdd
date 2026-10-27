@@ -9,12 +9,13 @@ const referencesDir = path.join(repoRoot, 'references');
 
 test('slender-skill: SKILL.md existe y cumple con el Guardián de Peso (<= 4.5 KB)', () => {
   assert.ok(fs.existsSync(skillPath), 'SKILL.md debe existir');
-  const stat = fs.statSync(skillPath);
+  const raw = fs.readFileSync(skillPath, 'utf8');
+  const normalizedSize = Buffer.byteLength(raw.replace(/\r\n/g, '\n'), 'utf8');
   assert.ok(
-    stat.size <= 4500,
-    `SKILL.md pesa ${stat.size} bytes. Debe mantenerse esbelto (<= 4500 bytes) para evitar Attention Dilution`
+    normalizedSize <= 4500,
+    `SKILL.md pesa ${normalizedSize} bytes (normalizado LF). Debe mantenerse esbelto (<= 4500 bytes) para evitar Attention Dilution`
   );
-  assert.ok(stat.size > 500, 'SKILL.md no debe ser un cascarón vacío');
+  assert.ok(normalizedSize > 500, 'SKILL.md no debe ser un cascarón vacío');
 });
 
 test('slender-skill: SKILL.md contiene el ciclo de ejecución de 4 pasos (The 4-Step Conductor Loop)', () => {
