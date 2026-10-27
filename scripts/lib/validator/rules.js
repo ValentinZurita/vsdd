@@ -46,11 +46,11 @@ function validateIdea(parsed, errors, warnings) {
       warnings.length = 0;
       return { errors, warnings };
     }
-    if (estadoVal !== 'listo-para-spec' && estadoVal !== 'en-revision') {
+    if (estadoVal !== 'listo-para-spec' && estadoVal !== 'en-revision' && estadoVal !== 'completado') {
       errors.push({
         line: estadoLine.lineNumber,
         rule: 'estado-invalido',
-        message: `Estado '${estadoVal}' no es válido para idea.md. Debe ser 'listo-para-spec' o 'en-revision'.`,
+        message: `Estado '${estadoVal}' no es válido para idea.md. Debe ser 'listo-para-spec', 'en-revision' o 'completado'.`,
         expected: 'Estado: listo-para-spec',
         found: estadoLine.trimmed,
         snippet: parsed.getSnippet ? parsed.getSnippet(estadoLine.lineNumber) : undefined,
@@ -192,15 +192,15 @@ function validateSpec(parsed, errors, warnings) {
       warnings.length = 0;
       return { errors, warnings };
     }
-    if (estadoVal !== 'en-revision' && estadoVal !== 'listo-para-plan') {
+    if (estadoVal !== 'en-revision' && estadoVal !== 'listo-para-plan' && estadoVal !== 'completado') {
       errors.push({
         line: estadoLine.lineNumber,
         rule: 'estado-invalido',
-        message: `Estado '${estadoVal}' no es válido para spec.md. Debe ser 'en-revision' o 'listo-para-plan'.`,
+        message: `Estado '${estadoVal}' no es válido para spec.md. Debe ser 'en-revision', 'listo-para-plan' o 'completado'.`,
         expected: 'Estado: en-revision o Estado: listo-para-plan',
         found: estadoLine.trimmed,
         snippet: parsed.getSnippet ? parsed.getSnippet(estadoLine.lineNumber) : undefined,
-        suggestion: "Cambia el estado a 'Estado: en-revision' o 'Estado: listo-para-plan'.",
+        suggestion: "Cambia el estado a 'Estado: en-revision', 'Estado: listo-para-plan' o 'Estado: completado'.",
       });
     }
   }
@@ -539,15 +539,15 @@ function validatePlan(parsed, errors, warnings) {
       warnings.length = 0;
       return { errors, warnings };
     }
-    if (estadoVal !== 'en-revision' && estadoVal !== 'listo-para-tareas') {
+    if (estadoVal !== 'en-revision' && estadoVal !== 'listo-para-tareas' && estadoVal !== 'completado') {
       errors.push({
         line: estadoLine.lineNumber,
         rule: 'estado-invalido',
-        message: `Estado '${estadoVal}' no es válido para plan.md. Debe ser 'en-revision' o 'listo-para-tareas'.`,
+        message: `Estado '${estadoVal}' no es válido para plan.md. Debe ser 'en-revision', 'listo-para-tareas' o 'completado'.`,
         expected: 'Estado: en-revision o Estado: listo-para-tareas',
         found: estadoLine.trimmed,
         snippet: parsed.getSnippet ? parsed.getSnippet(estadoLine.lineNumber) : undefined,
-        suggestion: "Cambia el estado a 'Estado: en-revision' o 'Estado: listo-para-tareas'.",
+        suggestion: "Cambia el estado a 'Estado: en-revision', 'Estado: listo-para-tareas' o 'Estado: completado'.",
       });
     }
   }
@@ -1064,9 +1064,86 @@ function validateTasks(parsed, errors, warnings, filePath = 'tasks.md', options 
   validateCrossArtifactTraceability(parsed, featureDir, errors, warnings, options);
 }
 
+/**
+ * Validador para resumen.md (Artefacto permanente de cierre en verify)
+ */
+function validateResumen(parsed, errors, warnings) {
+  const h1 = parsed.headings.find((h) => h.level === 1);
+  if (!h1 || !/^Resumen\b/i.test(h1.text)) {
+    errors.push({
+      line: h1 ? h1.lineNumber : 1,
+      rule: 'titulo-h1-resumen-requerido',
+      message: "El título principal de resumen.md debe iniciar con '# Resumen de Entrega: <Nombre>'.",
+      expected: '# Resumen de Entrega: <Nombre>',
+      found: h1 ? h1.text : 'Sin título',
+      snippet: parsed.getSnippet ? parsed.getSnippet(h1 ? h1.lineNumber : 1) : undefined,
+      suggestion: "Asegúrate de que la primera línea comience con: '# Resumen de Entrega: <Nombre>'.",
+    });
+  }
+
+  const estadoLine = parsed.lines.find(
+    (l) => !l.inCodeBlock && /^\s*Estado:\s*([a-zA-Z0-9_-]+)/i.test(l.trimmed)
+  );
+  if (!estadoLine) {
+    const targetLine = h1 ? h1.lineNumber + 1 : 2;
+    errors.push({
+      line: targetLine,
+      rule: 'metadata-estado-requerida',
+      message: "Falta la línea de metadata 'Estado: completado' en resumen.md.",
+      expected: 'Estado: completado',
+      found: 'No declarada',
+      snippet: parsed.getSnippet ? parsed.getSnippet(targetLine) : undefined,
+      suggestion: "Declara en la cabecera: 'Estado: completado'.",
+    });
+  } else {
+    const match = estadoLine.trimmed.match(/^\s*Estado:\s*([a-zA-Z0-9_-]+)/i);
+    const estadoVal = match[1].toLowerCase();
+    if (estadoVal === 'cancelado') {
+      errors.length = 0;
+      warnings.length = 0;
+      return { errors, warnings };
+    }
+    if (estadoVal !== 'completado') {
+      errors.push({
+        line: estadoLine.lineNumber,
+        rule: 'estado-invalido',
+        message: `Estado '${estadoVal}' no es válido para resumen.md. Debe ser 'completado'.`,
+        expected: 'Estado: completado',
+        found: estadoLine.trimmed,
+        snippet: parsed.getSnippet ? parsed.getSnippet(estadoLine.lineNumber) : undefined,
+        suggestion: "Cambia el estado a 'Estado: completado'.",
+      });
+    }
+  }
+
+  const requiredSections = [
+    { key: 'que se hizo', label: 'Qué se hizo' },
+    { key: 'componentes', label: 'Componentes y Pruebas' },
+    { key: 'golden path', label: 'Golden Path' },
+  ];
+
+  for (const sec of requiredSections) {
+    const found = parsed.headings.find(
+      (h) => h.level === 2 && normalizeText(h.text).includes(sec.key)
+    );
+    if (!found) {
+      errors.push({
+        line: 1,
+        rule: 'seccion-obligatoria-faltante',
+        message: `Falta la sección obligatoria '## ${sec.label}' en resumen.md.`,
+        expected: `## ${sec.label}`,
+        found: 'Sección ausente',
+        snippet: parsed.getSnippet ? parsed.getSnippet(1) : undefined,
+        suggestion: `Inserta la sección '## ${sec.label}' con su contenido correspondiente.`,
+      });
+    }
+  }
+}
+
 module.exports = {
   validateIdea,
   validateSpec,
   validatePlan,
   validateTasks,
+  validateResumen,
 };

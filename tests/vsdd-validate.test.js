@@ -1003,11 +1003,38 @@ test('validateSpec exige H3 obligatorios incluso con título completo ## Límite
   assert.ok(antiGoalsErr, 'Debe exigir subsección Anti-Goals');
 });
 
+test('validateContent aprueba Estado: completado en spec.md y plan.md y valida resumen.md', () => {
+  const completedSpec = VALID_SPEC.replace('Estado: listo-para-plan', 'Estado: completado');
+  const resSpec = validateContent(completedSpec, 'spec.md');
+  assert.equal(resSpec.valid, true, `spec.md completado debe ser válido: ${JSON.stringify(resSpec.errors)}`);
 
+  const completedPlan = VALID_PLAN.replace('Estado: listo-para-tareas', 'Estado: completado');
+  const resPlan = validateContent(completedPlan, 'plan.md');
+  assert.equal(resPlan.valid, true, `plan.md completado debe ser válido: ${JSON.stringify(resPlan.errors)}`);
 
+  const validResumen = [
+    '# Resumen de Entrega: 001 OAuth',
+    '',
+    'Fecha: 2026-10-26',
+    'Estado: completado',
+    '',
+    '## 1. Qué se hizo',
+    'Se implementó el flujo OAuth.',
+    '',
+    '## 2. Componentes y Pruebas',
+    '- Archivos clave: `src/auth/oauth-client.js`',
+    '',
+    '## 3. Golden Path (Cómo probar esta funcionalidad)',
+    '- Paso 1: `npm test`',
+  ].join('\n');
+  const resResumen = validateContent(validResumen, 'resumen.md');
+  assert.equal(resResumen.valid, true, `resumen.md válido debe aprobar: ${JSON.stringify(resResumen.errors)}`);
+  assert.equal(resResumen.type, 'resumen');
 
-
-
-
-
+  const badResumen = '# Resumen de Entrega: 001 OAuth\nEstado: en-revision\n';
+  const resBadResumen = validateContent(badResumen, 'resumen.md');
+  assert.equal(resBadResumen.valid, false);
+  assert.ok(resBadResumen.errors.some((e) => e.rule === 'estado-invalido'));
+  assert.ok(resBadResumen.errors.some((e) => e.rule === 'seccion-obligatoria-faltante'));
+});
 

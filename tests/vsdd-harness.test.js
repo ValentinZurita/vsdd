@@ -1097,3 +1097,88 @@ test('guías operativas (Caso 4): SKILL.md y references documentan vsdd harness,
   assert.match(verifyMd, /Artesano de C[oó]digo/i);
   assert.match(verifyMd, /Juez/i);
 });
+
+test('harness fixes: soporta repo-memory como Array (sonar), Archivos multilínea y prioriza features activas', () => {
+  const { tmpRoot, featureDir, prodRel, testRel } = createGitTaskFixture();
+  try {
+    const { sealTestFile } = require('../scripts/lib/harness/seal');
+    const { verifyTask } = require('../scripts/lib/harness/verify');
+    const { resolveFeatureDir } = require('../scripts/vsdd-harness');
+
+    // 1. repo-memory.json en formato Array top-level de vsdd sonar --remember (con campo hypothesis)
+    const sonarMemory = [
+      {
+        id: 'm-001',
+        hypothesis: 'Usar git checkout acotado para no borrar archivos del usuario.',
+        anchor: 'package.json',
+      },
+    ];
+    fs.writeFileSync(
+      path.join(tmpRoot, 'docs', 'sdd', 'vsdd', 'repo-memory.json'),
+      JSON.stringify(sonarMemory, null, 2),
+      'utf8'
+    );
+    // Forzar invalidación de caché de sharedBrief
+    const ideaPath = path.join(featureDir, 'idea.md');
+    const futureTime = new Date(Date.now() + 10000);
+    fs.utimesSync(ideaPath, futureTime, futureTime);
+
+    const briefRes = assembleBrief(featureDir, 'TASK-01');
+    assert.match(briefRes.sharedBrief, /m-001/);
+    assert.match(briefRes.sharedBrief, /Usar git checkout acotado/);
+
+    // 2. Archivos multilínea en sub-viñetas y throw new Error no marcado como hardcode
+    const tasksPath = path.join(featureDir, 'tasks.md');
+    const multilineTasks = fs
+      .readFileSync(tasksPath, 'utf8')
+      .replace(
+        `- **Archivos:** \`~ ${prodRel}\`, \`+ ${testRel}\``,
+        `- **Archivos:**\n    - \`~ ${prodRel}\`\n    - \`+ ${testRel}\``
+      );
+    fs.writeFileSync(tasksPath, multilineTasks, 'utf8');
+
+    sealTestFile(featureDir, testRel, {
+      cwd: tmpRoot,
+      taskId: 'TASK-01',
+      cmd: 'node --test',
+      runnerFn: () => ({ exitCode: 1, stdout: '', stderr: 'fail' }),
+    });
+
+    // Código productivo que lanza un Error con un literal largo y además tiene empty catch
+    fs.writeFileSync(
+      path.join(tmpRoot, prodRel),
+      [
+        'function calcular(x) {',
+        '  if (!x) throw new Error("TARIFA-CORPORATIVA-2026");',
+        '  try { return x; } catch (e) {}',
+        '}',
+        'module.exports = { calcular };',
+      ].join('\n'),
+      'utf8'
+    );
+
+    const verifyRes = verifyTask(featureDir, 'TASK-01', {
+      cwd: tmpRoot,
+      runnerFn: () => ({ exitCode: 0, stdout: 'PASS', stderr: '' }),
+    });
+    assert.equal(verifyRes.ok, false);
+    assert.equal(verifyRes.reason, 'HYGIENE_VIOLATION');
+    // Detectó el archivo multilínea (por el empty-catch), pero NO marcó el throw new Error como hardcoded-test-literal
+    assert.ok(verifyRes.violations.some((v) => v.type === 'empty-catch'));
+    assert.ok(!verifyRes.violations.some((v) => v.type === 'hardcoded-test-literal'));
+
+    // 3. discoverActiveFeatureDir prioriza 001 activa aunque exista 002 completada
+    const completedFeatureDir = path.join(tmpRoot, 'docs', 'sdd', 'vsdd', '002-cerrada');
+    fs.mkdirSync(completedFeatureDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(completedFeatureDir, 'tasks.md'),
+      '# Tareas 002 Cerrada\n\nEstado: completado\n',
+      'utf8'
+    );
+    const activeResolved = resolveFeatureDir('', tmpRoot);
+    assert.equal(activeResolved, featureDir);
+  } finally {
+    fs.rmSync(tmpRoot, { recursive: true, force: true });
+  }
+});
+

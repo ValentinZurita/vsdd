@@ -78,7 +78,7 @@ Paso 4c (pregunta de cierre) → escribir `spec.md` inicial (`Estado: en-revisio
 El conductor no realiza recorridos masivos del código del proyecto en esta fase.
 
 **Persistencia Inmediata de Exploración (Checkpoint en context.json):**
-- **Excepción de Metadatos Técnicos:** La regla de escritura diferida aplica exclusivamente a los artefactos Markdown de negocio (`spec.md`). Todo memo o hallazgo de subagentes se persiste inmediatamente en `context.json` mediante `saveFeatureExploration(featDir, 'spec', ...)` en el mismo turno en que se recibe, protegiendo el análisis si la sesión se interrumpe.
+- **Excepción de Metadatos Técnicos:** La regla de escritura diferida aplica exclusivamente a los artefactos Markdown de negocio (`spec.md`). Todo memo o hallazgo de subagentes se persiste inmediatamente en `context.json` mediante `vsdd status --save-exploration <featDir> --phase spec --data '<json>'` (`saveFeatureExploration(featDir, 'spec', ...)`) en el mismo turno en que se recibe, protegiendo el análisis si la sesión se interrumpe.
 - Si Engram está disponible, respaldar adicionalmente con `mem_save topic_key: vsdd-explore-<slug>-spec`.
 
 **Ola 1 (Análisis Agnóstico de Dominio, Huecos, Rabbit Holes y No-Gos):**
@@ -124,13 +124,13 @@ A lo sumo 2 consultas genéricas breves. Al recibir el reporte, persistir acumul
 0. **Cargar la idea y comprobar estado previo (Exploración y Entrevista):**
    - Requiere un archivo `idea.md` con `Estado: listo-para-spec`. Si no existe, invitar primero a ejecutar `vsdd intake`. Si hay varias, listar opciones numeradas en el chat y esperar selección.
    - Si ya existe un `spec.md` en esa carpeta, ofrecer: 1) Continuar revisión, 2) Rehacer, 3) Seleccionar otra idea.
-   - **Detección de Exploración Previa:** Antes de despachar subagentes, comprobar si existe `phases.spec.exploration` en `context.json` (`getFeatureExploration`). Si existe:
+   - **Detección de Exploración Previa:** Antes de despachar subagentes, comprobar si existe `phases.spec.exploration` en `context.json` ejecutando `vsdd status --get-exploration <featDir> --phase spec` (`getFeatureExploration`). Si existe:
      `● [Exploración previa detectada] Se encontró un análisis de requisitos del [fecha].`
      `¿Deseas retomar con estos hallazgos o realizar una nueva exploración?`
      `1. Usar exploración guardada y continuar con la entrevista [Recomendada]`
      `2. Descartar y re-explorar requisitos`
      Si elige 1, avanzar directamente a la entrevista.
-   - **Detección de Entrevista Previa en Progreso:** Comprobar si existen preguntas respondidas en `phases.spec.interview.questions` (`getInterviewProgress(featDir, 'spec')`). Si existen:
+   - **Detección de Entrevista Previa en Progreso:** Comprobar si existen preguntas respondidas en `phases.spec.interview.questions` ejecutando `vsdd status --get-interview <featDir> --phase spec` (`getInterviewProgress(featDir, 'spec')`). Si existen:
      `● [Entrevista en progreso detectada] Se encontraron acuerdos funcionales previos:`
      Listar acuerdos previos en viñetas:
      `  • Q1 (<tema>): <respuesta>`
@@ -138,12 +138,12 @@ A lo sumo 2 consultas genéricas breves. Al recibir el reporte, persistir acumul
      `1. Retomar desde la pregunta pendiente [Recomendada]`
      `2. Ajustar respuesta previa`
      `3. Reiniciar entrevista de especificación (mantiene exploración previa)`
-     Si elige 1, continuar con la siguiente pregunta pendiente. Si elige 2, permitir redefinir el tema y actualizar la respuesta. Si elige 3, ejecutar `clearInterviewProgress(featDir, 'spec')` y formular Q1 desde cero sin perder la exploración técnica de requisitos.
+     Si elige 1, continuar con la siguiente pregunta pendiente. Si elige 2, permitir redefinir el tema y actualizar la respuesta. Si elige 3, ejecutar `vsdd status --clear-interview <featDir> --phase spec` (`clearInterviewProgress(featDir, 'spec')`) y formular Q1 desde cero sin perder la exploración técnica de requisitos.
 1. **Inicio de sesión:** Leer las directrices del proyecto (si existen) y el `idea.md` seleccionado. Indicar en una línea amable que iniciaremos la especificación para cerrar los detalles de comportamiento paso a paso.
 2. **Primera Pregunta (Q1):** Anunciar el tope estimado $N$ y formular la pregunta 1.
    - Si se indaga el flujo principal o modelo mental: usar una **pregunta abierta acompañada de un ejemplo didáctico** para situar al usuario.
    - Si se dirime un tenedor de decisión central identificado en la Ola 1: usar una **pregunta con opciones numeradas (`1 / 2 / 3`) con Pro, Contra y Recomendada**.
-   - Al recibir la respuesta del usuario, persistir de inmediato con `saveInterviewAnswer(featDir, 'spec', { index: 1, topic: '<tema>', question: '...', answer: '...' })`. **DETENERSE y esperar respuesta.**
+   - Al recibir la respuesta del usuario, persistir de inmediato con `vsdd status --save-interview <featDir> --phase spec --data '<json>'` (`saveInterviewAnswer(featDir, 'spec', { index: 1, topic: '<tema>', question: '...', answer: '...' })`). **DETENERSE y esperar respuesta.**
 3. **Recorrido de Temas (Casos límite, Fronteras y Reglas de Negocio):**
    Avanzar por los temas clave, siempre una pregunta por turno encabezada con `Pregunta k de como máximo N.`:
    - **Alternancia Dinámica de Formato:**
@@ -152,7 +152,7 @@ A lo sumo 2 consultas genéricas breves. Al recibir el reporte, persistir acumul
    - **Pregunta Obligatoria de Fronteras y Límites (QUÉ NO HACER):**
      Dentro del recorrido, formular obligatoriamente una pregunta orientada a delimitar lo prohibido y lo pospuesto:
      *«Para asegurar un rumbo fijo y que el desarrollo no se desvíe: ¿Hay alguna funcionalidad relacionada que prefieras dejar expresamente fuera de alcance en este corte (Non-Goals) y qué comportamientos o fallos debemos evitar a toda costa (Anti-Goals)?»* (Acompañar con sugerencias/ejemplos según los hallazgos de la Ola 1).
-   - Al recibir cada respuesta del usuario, persistir de inmediato con `saveInterviewAnswer(featDir, 'spec', { index: k, topic: '<tema>', question: '...', answer: '...' })`.
+   - Al recibir cada respuesta del usuario, persistir de inmediato con `vsdd status --save-interview <featDir> --phase spec --data '<json>'` (`saveInterviewAnswer(featDir, 'spec', { index: k, topic: '<tema>', question: '...', answer: '...' })`).
 4. **Pregunta de Cierre del Diálogo (4c):** Al agotar los temas o alcanzar el tope, formular de manera obligatoria:
    `Última pregunta: ¿Deseas agregar o aclarar algún punto adicional sobre el comportamiento de la funcionalidad, o dejamos la propuesta así?`
    **DETENERSE y esperar respuesta.** No escribir el archivo ni generar el recapitulativo antes de esta respuesta.
@@ -216,7 +216,7 @@ A lo sumo 2 consultas genéricas breves. Al recibir el reporte, persistir acumul
 11. **Cierre Definitivo y Menú de Transición:**
     Únicamente en el turno donde el usuario confirme con **Sí**:
     - Actualizar en `spec.md` la cabecera a `Estado: listo-para-plan`.
-    - Actualizar `context.json` en la carpeta de la funcionalidad registrando la finalización de la fase spec (`saveFeatureContext`).
+    - Actualizar `context.json` en la carpeta de la funcionalidad registrando la finalización de la fase spec con `vsdd status --save-context <featDir> --phase spec --status completado` (`saveFeatureContext`).
     - Si Engram está disponible, persistir un resumen con `mem_save topic_key: vsdd-spec-<slug>`.
     - Si el proyecto usa Git, preguntar cordialmente al usuario si desea registrar un commit convencional de documentación o prefiere continuar sin commitear:
       *«¿Deseas que prepare un commit de git (`docs(sdd): aprobar especificación para <slug>`) o prefieres continuar sin commitear?»*

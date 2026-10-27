@@ -9,6 +9,7 @@ const {
   validateSpec,
   validatePlan,
   validateTasks,
+  validateResumen,
 } = require('./rules');
 
 /**
@@ -20,11 +21,13 @@ function detectArtifactType(filePath, content) {
   if (base === 'spec.md') return 'spec';
   if (base === 'plan.md') return 'plan';
   if (base === 'tasks.md') return 'tasks';
+  if (base === 'resumen.md') return 'resumen';
 
   if (/^#\s+Idea\b/im.test(content)) return 'idea';
   if (/^#\s+Spec\b/im.test(content)) return 'spec';
   if (/^#\s+Plan\b/im.test(content)) return 'plan';
   if (/^#\s+(Tareas|Tasks)\b/im.test(content)) return 'tasks';
+  if (/^#\s+Resumen\b/im.test(content)) return 'resumen';
 
   return 'unknown';
 }
@@ -80,12 +83,15 @@ function validateContent(content, filePath = 'document.md', options = {}) {
     case 'tasks':
       validateTasks(parsed, errors, warnings, filePath, options);
       break;
+    case 'resumen':
+      validateResumen(parsed, errors, warnings);
+      break;
     default:
       errors.push({
         line: 1,
         rule: 'tipo-artefacto-desconocido',
-        message: `No se pudo determinar el tipo de artefacto VSDD para '${filePath}'. Nombres esperados: idea.md, spec.md, plan.md, tasks.md.`,
-        expected: 'idea.md | spec.md | plan.md | tasks.md',
+        message: `No se pudo determinar el tipo de artefacto VSDD para '${filePath}'. Nombres esperados: idea.md, spec.md, plan.md, tasks.md, resumen.md.`,
+        expected: 'idea.md | spec.md | plan.md | tasks.md | resumen.md',
         found: path.basename(filePath),
       });
   }
@@ -104,7 +110,7 @@ function validateContent(content, filePath = 'document.md', options = {}) {
  */
 function validateFeatureDir(dirPath, options = {}) {
   const results = [];
-  const filesToCheck = ['idea.md', 'spec.md', 'plan.md', 'tasks.md'];
+  const filesToCheck = ['idea.md', 'spec.md', 'plan.md', 'tasks.md', 'resumen.md'];
 
   for (const fileName of filesToCheck) {
     const fullPath = path.join(dirPath, fileName);

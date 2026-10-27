@@ -210,9 +210,10 @@ function scanHardcodedLiterals(lines, rawLiterals) {
   }
 
   const violations = [];
+  const errorEmitRx = /\b(?:throw\s+new\s+\w*Error|console\.(?:error|warn))\s*\(/;
   for (let i = 0; i < lines.length; i += 1) {
     const line = lines[i];
-    if (isCommentOrBlank(line)) {
+    if (isCommentOrBlank(line) || errorEmitRx.test(line)) {
       continue;
     }
     for (const lit of literals) {

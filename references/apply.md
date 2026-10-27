@@ -76,33 +76,42 @@ Listo para implementar tareas de tasks.md.
 - **Si elige 3 (Modo Continuo):**
   Presentar el desglose de todas las fases pendientes con su nivel recomendado y solicitar la configuración de modelos en un solo turno.
 
-3. **Ejecución de Tarea (Subagente Implementador):**
-   - Anunciar en chat: `● [Subagente: Implementador] Ejecutando TASK-xx (<título>) con modelo: <modelo>...`
-   - Invocar subagente implementador con los paths a `idea.md`, `spec.md`, `plan.md`, `tasks.md`, directrices del proyecto y el identificador `TASK-xx`.
-   - **Directrices Innegociables de Calidad y Creación de Tests (TDD):**
-     * *El Norte del Test (Comportamiento Observable):* El test interactúa exclusivamente con la interfaz pública del módulo y valida que con los datos de entrada del Example Mapping de `spec.md`, se produzca exactamente la salida observable esperada (pudiendo apoyarse en `vsdd oracle <id>` para autodescubrir y generar el esqueleto declarativo en disco). Si el archivo de tests ya fue preparado por el oráculo, el implementador activa el caso correspondiente a `TASK-xx` (reemplazando `it.todo`/`skip` por la aserción activa), comprueba el fallo en rojo (Red) y luego implementa el código mínimo que lo hace pasar (Green).
-     * *Las 4 Fronteras Negativas (Qué NO HACER jamás):*
-       1. **Prohibido el test espejo:** No recalcular la lógica o fórmula dentro del test; usar los valores concretos esperados de la spec.
-       2. **Prohibido espiar las entrañas (Cero White-Box):** No probar funciones privadas ni verificar llamadas a helpers auxiliares internos; evaluar únicamente entradas y salidas públicas.
-       3. **Prohibido mockear la memoria (Mocks solo para frontera I/O):** No sustituir modelos, utilidades ni lógica pura en memoria por mocks; los test doubles se reservan exclusivamente para frontera I/O (red externa, disco, base de datos o reloj).
-       4. **Prohibido el test cosmético:** Cero aserciones que solo pregunten si una variable existe (`toBeDefined`, `not.toBeNull`); toda aserción debe comprobar un valor de negocio o estado observable.
-     * *Árbol Cerrado:* Modificar únicamente los archivos autorizados en el árbol de `plan.md`.
-   - El subagente verifica pruebas en verde, realiza el commit atómico y marca `- [x]` en `tasks.md`.
-   - Checkpoint en chat: `✔ [TASK-xx OK] <título> · Commit: <hash>`.
+3. **Ejecución de Tarea (Separación Autor de Tests + Implementador bajo `vsdd harness`):**
+   - **Paso 3a — Subagente Autor de Tests (Red Gate + Candado SHA-256):**
+     * Anunciar en chat: `● [Subagente: Autor de Tests] Preparando y sellando pruebas de TASK-xx con modelo: <modelo>...`
+     * Despachar al **Autor de Tests**: obtiene el contexto de la tarea con `vsdd harness brief TASK-xx` (y opcionalmente consulta `vsdd oracle <id> --dry-run` como guía declarativa).
+     * Redacta en el archivo de pruebas únicamente los casos activos de `TASK-xx` sobre la interfaz pública (sin tocar código de producción y **sin dejar bloques `.todo` ni `.skip`** en el archivo) respetando las 4 Fronteras Negativas:
+       1. **Prohibido el test espejo:** No recalcular la lógica dentro del test; usar los valores concretos esperados de `spec.md`.
+       2. **Prohibido espiar las entrañas (Cero White-Box):** Evaluar únicamente entradas y salidas públicas.
+       3. **Prohibido mockear la memoria:** Los test doubles se reservan exclusivamente para frontera I/O.
+       4. **Prohibido el test cosmético:** Cero `toBeDefined` / `not.toBeNull` vacíos; comprobar valores observables reales.
+     * Ejecuta `vsdd harness seal <ruta-test> --task TASK-xx` para verificar que el test falle en Rojo y sellar su hash SHA-256 en `context.json`.
+   - **Paso 3b — Subagente Implementador (Green + Higiene Estructural):**
+     * Anunciar en chat: `● [Subagente: Implementador] Ejecutando TASK-xx (<título>) con modelo: <modelo>...`
+     * Despachar al **Implementador**: lee su contexto con `vsdd harness brief TASK-xx`, implementa el código mínimo de producción dentro de los archivos autorizados de la tarea **sin modificar el archivo de pruebas sellado**, y ejecuta `vsdd harness verify TASK-xx`.
+     * **Si `vsdd harness verify TASK-xx` aprueba en Verde (Exit 0):** el Implementador realiza el commit atómico bajo Conventional Commits, marca `- [x]` en `tasks.md` y devuelve el checkpoint `✔ [TASK-xx OK] <título> · Commit: <hash>`.
+     * **Arbitraje de Apelaciones (`vsdd harness appeal`):** Si el Implementador detecta que el test sellado contradice `spec.md`, ejecuta `vsdd harness appeal TASK-xx --reason "<motivo>"` y se detiene. El Conductor contrasta el reclamo contra `spec.md`:
+       - *Si la apelación es válida:* ejecuta `vsdd harness appeal TASK-xx --resolve approved` (abre el candado SHA-256), despacha al **Autor de Tests** para corregir y re-sellar el test en Rojo (`vsdd harness seal`), y reanuda al Implementador.
+       - *Si la apelación es inválida:* ejecuta `vsdd harness appeal TASK-xx --resolve rejected` (mantiene candado y consume 1 intento) e instruye al Implementador a corregir el código productivo.
+     * **Cortacircuitos `2+1` y Analista:** Si el 2.º intento de `vsdd harness verify` falla, el arnés restaura automáticamente a limpio los archivos productivos de la tarea para un 3.er intento limpio. Si el 3.er intento falla (`blocked_analyst`), el Conductor **SE DETIENE**, muestra en el chat la ficha didáctica del **Analista** (máximo 12 líneas, 0 bloques de código, una analogía cotidiana y 3 opciones numeradas de resolución) y espera decisión del usuario.
 
-4. **Cierre de Fase (Subagente Auditor y Reparador):**
-   - Anunciar en chat: `● [Subagente: Auditoría de Fase N] Verificando diff de la fase con modelo: <modelo>...`
-   - Invocar subagente auditor independiente (solo lectura, nivel Crítico) sobre el diff de la fase. No pegar el reporte en el chat.
-   - **Evaluación del Auditor de Fase:** Confirma que el diff esté confinado al árbol del plan, que no haya sobre-ingeniería y rechaza activamente cualquier violación a las 4 fronteras negativas (tests espejo, espionaje de métodos internos, mocks en memoria o aserciones cosméticas).
+4. **Cierre de Fase (Subagente Tribunal de Fase 3+1 y Reparador):**
+   - Anunciar en chat: `● [Subagente: Auditoría / Tribunal de Fase N] Evaluando 3 lentes (Fiscal, Cazador, Artesano) y sentencia del Juez con modelo: <modelo>...`
+   - Invocar en **1 sola llamada** al subagente auditor independiente (solo lectura, nivel Crítico) sobre el diff de la fase y `context.json`. No pegar el reporte en el chat.
+   - **Las 3 Sillas del Jurado + Sentencia del Juez:**
+     1. **Fiscal del Contrato:** Confirma que todos los `RF`/`DT` de la fase estén cumplidos y que el diff esté 100% confinado al árbol de `plan.md` sin sobre-ingeniería.
+     2. **Cazador de Trampas:** Verifica en `context.json` que las tareas de la fase tengan sus candados `verified` y rechaza cualquier violación a las 4 fronteras negativas (tests espejo, white-box, mocks en memoria, aserciones cosméticas o hardcoding).
+     3. **Artesano de Código:** Audita higiene estructural (funciones $\le 50$ líneas efectivas, anidamiento $\le 3$ niveles, cero `catch` vacíos y cero supresores de tipos/linter).
+     4. **Sentencia del Juez:** Emite veredicto sintético (`limpio` | `requiere-reparacion`).
    - Si el veredicto es `limpio`:
      - Anunciar en chat: `● [Subagente: Cierre de Fase N] Ejecutando pruebas (<comando>) con modelo: <modelo>...`
      - El subagente ejecuta el comando de pruebas y calidad del proyecto, realiza el commit de fase y marca el bloque de control en `tasks.md`.
      - Checkpoint en chat: `✔ [FASE-N OK] Pruebas verdes (<comando>) · Commit de fase: <hash>`.
-   - Si hay hallazgos del auditor:
+   - Si hay hallazgos del Tribunal:
      - **Prohibido que el conductor edite código.**
      - Anunciar en chat: `● [Subagente: Reparador de Fase N] Aplicando correcciones con modelo: <modelo>...`
-     - Invocar subagente reparador pasando el reporte exclusivamente en su prompt. El reparador aplica los fixes mínimos, valida TDD, comitea y devuelve archivos tocados.
-     - Relanzar el auditor (máximo 2 iteraciones). Si persiste: frenar y reportar diagnóstico breve al usuario ($\le 5$ líneas).
+     - Invocar subagente reparador pasando el reporte exclusivamente en su prompt. El reparador aplica los fixes mínimos dentro del árbol autorizado, valida pruebas e higiene, comitea y devuelve archivos tocados.
+     - Relanzar el Tribunal (máximo 2 iteraciones). Si persiste: frenar y reportar diagnóstico breve al usuario ($\le 5$ líneas).
 
 5. **Fin de la Implementación y Menú de Transición:**
    Al completarse todas las tareas (`[x]`) y todos los controles de fase de `tasks.md`:

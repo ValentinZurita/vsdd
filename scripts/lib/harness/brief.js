@@ -98,7 +98,7 @@ function extractH3BlocksByIds(markdown, ids) {
 }
 
 /**
- * Lee y formatea la memoria verificada del repositorio si existe.
+ * Lee y formatea la memoria verificada del repositorio si existe (soporta Array de sonar y objeto entries).
  */
 function formatRepoMemory(featureDir) {
   const candidates = [
@@ -111,12 +111,20 @@ function formatRepoMemory(featureDir) {
   }
   try {
     const parsed = JSON.parse(fs.readFileSync(memPath, 'utf8'));
-    const entries = Array.isArray(parsed.entries) ? parsed.entries : [];
+    const rawEntries = Array.isArray(parsed)
+      ? parsed
+      : Array.isArray(parsed && parsed.entries)
+        ? parsed.entries
+        : [];
+    const entries = rawEntries.filter((e) => e && e.status !== 'rota');
     if (entries.length === 0) {
       return 'Sin entradas registradas en repo-memory.json.';
     }
     return entries
-      .map((e) => `- [${e.id || 'MEM'}] ${e.fact || e.summary || ''} (${e.anchor || 'repo'})`)
+      .map(
+        (e) =>
+          `- [${e.id || 'MEM'}] ${e.hypothesis || e.fact || e.summary || ''} (${e.anchor || 'repo'})`
+      )
       .join('\n');
   } catch (err) {
     return 'Sin entradas legibles en repo-memory.json.';

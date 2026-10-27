@@ -26,7 +26,7 @@ function readContextOrEmpty(featureDir) {
 }
 
 /**
- * Extrae las rutas de archivos autorizados para una tarea desde tasks.md.
+ * Extrae las rutas de archivos autorizados para una tarea desde tasks.md (inline o sub-viñetas).
  */
 function extractTaskFiles(featureDir, taskId) {
   const tasksContent = readFileSafe(path.join(featureDir, 'tasks.md')) || '';
@@ -36,13 +36,24 @@ function extractTaskFiles(featureDir, taskId) {
     return [];
   }
 
-  const filesLine = target.lines.find((l) => /\barchivos\b/i.test(l)) || '';
-  const rawTokens = filesLine
-    .replace(/^.*?\barchivos\b\s*:?\s*\*?\*?\s*/i, '')
-    .split(',')
+  const idx = target.lines.findIndex((l) => /\barchivos\b/i.test(l));
+  if (idx === -1) {
+    return [];
+  }
+  const inlinePart = target.lines[idx].replace(/^.*?\barchivos\b\s*:?\s*\*?\*?\s*/i, '');
+  const rawChunks = [inlinePart];
+  for (let i = idx + 1; i < target.lines.length; i += 1) {
+    const line = target.lines[i].trim();
+    if (!line || /^[-*]\s*(?:\*\*|\[\s*[xX ]\s*\])/.test(line)) {
+      break;
+    }
+    rawChunks.push(line.replace(/^[-*]\s*/, ''));
+  }
+  return rawChunks
+    .join(',')
+    .split(/[,;]/)
     .map((item) => item.replace(/[`*]/g, '').replace(/^[~+-]\s*/, '').trim())
     .filter(Boolean);
-  return rawTokens;
 }
 
 /**

@@ -42,7 +42,7 @@ Paso 4c (pregunta de cierre técnico) → escribir `plan.md` inicial (`Estado: e
 El conductor no realiza lecturas masivas ni tours completos del código en esta fase.
 
 **Persistencia Inmediata de Exploración (Checkpoint en context.json):**
-- **Excepción de Metadatos Técnicos:** La regla de escritura diferida aplica exclusivamente a los artefactos Markdown de negocio (`plan.md`). Todo mapeo de módulos y hallazgos de subagentes se persiste de inmediato en `context.json` mediante `saveFeatureExploration(featDir, 'plan', ...)` en el mismo turno en que se recibe, capturando el `baseCommit` y los módulos propuestos.
+- **Excepción de Metadatos Técnicos:** La regla de escritura diferida aplica exclusivamente a los artefactos Markdown de negocio (`plan.md`). Todo mapeo de módulos y hallazgos de subagentes se persiste de inmediato en `context.json` mediante `vsdd status --save-exploration <featDir> --phase plan --data '<json>'` (`saveFeatureExploration(featDir, 'plan', ...)`) en el mismo turno en que se recibe, capturando el `baseCommit` y los módulos propuestos.
 - Si Engram está disponible, respaldar adicionalmente con `mem_save topic_key: vsdd-explore-<slug>-plan`.
 
 **Ola 1 (Exploración Determinista con Sonar y Arquitectura Existente):**
@@ -87,7 +87,7 @@ Máximo 2 búsquedas web breves. Al recibir el reporte, persistir acumulativamen
 0. **Cargar la especificación y comprobar estado previo (Exploración y Entrevista):**
    - Requiere un archivo `spec.md` con `Estado: listo-para-plan`. Si no existe, invitar a ejecutar `vsdd spec`. Si hay varias, listar opciones numeradas en el chat.
    - Si ya existe un `plan.md` en esa carpeta, ofrecer: 1) Continuar revisión, 2) Rehacer, 3) Seleccionar otra especificación.
-   - **Detección de Exploración Previa y Salud de Git:** Antes de despachar subagentes, comprobar si existe `phases.plan.exploration` en `context.json` (`getFeatureExploration`). Si existe:
+   - **Detección de Exploración Previa y Salud de Git:** Antes de despachar subagentes, comprobar si existe `phases.plan.exploration` en `context.json` ejecutando `vsdd status --get-exploration <featDir> --phase plan` (`getFeatureExploration`). Si existe:
      * Si no hay commits nuevos posteriores al commit de la exploración:
        `● [Exploración previa detectada] Se encontró un análisis de módulos del [fecha].`
        `¿Deseas retomar con estos hallazgos o realizar una nueva exploración?`
@@ -96,7 +96,7 @@ Máximo 2 búsquedas web breves. Al recibir el reporte, persistir acumulativamen
      * Si el repositorio avanzó (drift detectado): advertir:
        `▲ Se detectaron commits nuevos en el repositorio desde la última exploración. ¿Deseas re-explorar la arquitectura o mantener los hallazgos previos?`
      Si elige usar la previa, avanzar a la entrevista técnica.
-   - **Detección de Entrevista Técnica Previa en Progreso:** Comprobar si existen decisiones técnicas acordadas en `phases.plan.interview.questions` (`getInterviewProgress(featDir, 'plan')`). Si existen:
+   - **Detección de Entrevista Técnica Previa en Progreso:** Comprobar si existen decisiones técnicas acordadas en `phases.plan.interview.questions` ejecutando `vsdd status --get-interview <featDir> --phase plan` (`getInterviewProgress(featDir, 'plan')`). Si existen:
      `● [Entrevista técnica en progreso detectada] Se encontraron decisiones técnicas acordadas:`
      Listar decisiones previas en viñetas:
      `  • DT1 (<tema>): <respuesta / alternativa elegida>`
@@ -104,10 +104,10 @@ Máximo 2 búsquedas web breves. Al recibir el reporte, persistir acumulativamen
      `1. Retomar desde la decisión pendiente [Recomendada]`
      `2. Ajustar decisión técnica previa`
      `3. Reiniciar entrevista de arquitectura (mantiene exploración previa)`
-     Si elige 1, continuar con la siguiente pregunta técnica pendiente. Si elige 2, permitir redefinir la DT seleccionada y actualizar la decisión. Si elige 3, ejecutar `clearInterviewProgress(featDir, 'plan')` y formular Q1 desde cero manteniendo intacta la exploración de módulos.
+     Si elige 1, continuar con la siguiente pregunta técnica pendiente. Si elige 2, permitir redefinir la DT seleccionada y actualizar la decisión. Si elige 3, ejecutar `vsdd status --clear-interview <featDir> --phase plan` (`clearInterviewProgress(featDir, 'plan')`) y formular Q1 desde cero manteniendo intacta la exploración de módulos.
 1. **Inicio de sesión:** Leer las directrices del proyecto (si existen), `idea.md` y `spec.md`. Indicar en una línea amable que definiremos la arquitectura y las decisiones técnicas paso a paso.
-2. **Primera Pregunta (Q1):** Anunciar el tope estimado $N$ y formular la pregunta 1 abordando la disyuntiva técnica más importante, con opciones estructuradas con pros, contras y recomendación basada en evidencia. Al recibir la respuesta del usuario, persistir de inmediato con `saveInterviewAnswer(featDir, 'plan', { index: 1, topic: '<tema/DT>', question: '...', answer: '...' })`. **DETENERSE y esperar respuesta.**
-3. **Recorrido de Temas Técnicos:** Avanzar por las decisiones clave (módulos, datos, contratos, pruebas), siempre una pregunta por turno encabezada con `Pregunta k de como máximo N.`. Al recibir cada respuesta del usuario, persistir de inmediato con `saveInterviewAnswer(featDir, 'plan', { index: k, topic: '<tema/DT>', question: '...', answer: '...' })`.
+2. **Primera Pregunta (Q1):** Anunciar el tope estimado $N$ y formular la pregunta 1 abordando la disyuntiva técnica más importante, con opciones estructuradas con pros, contras y recomendación basada en evidencia. Al recibir la respuesta del usuario, persistir de inmediato con `vsdd status --save-interview <featDir> --phase plan --data '<json>'` (`saveInterviewAnswer(featDir, 'plan', { index: 1, topic: '<tema/DT>', question: '...', answer: '...' })`). **DETENERSE y esperar respuesta.**
+3. **Recorrido de Temas Técnicos:** Avanzar por las decisiones clave (módulos, datos, contratos, pruebas), siempre una pregunta por turno encabezada con `Pregunta k de como máximo N.`. Al recibir cada respuesta del usuario, persistir de inmediato con `vsdd status --save-interview <featDir> --phase plan --data '<json>'` (`saveInterviewAnswer(featDir, 'plan', { index: k, topic: '<tema/DT>', question: '...', answer: '...' })`).
 4. **Pregunta de Cierre del Diálogo Técnico (4c):** Al agotar los temas o alcanzar el tope, formular de manera obligatoria:
    `Última pregunta: ¿Deseas agregar o aclarar algún punto técnico o arquitectónico adicional, o dejamos la propuesta así?`
    **DETENERSE y esperar respuesta.** No escribir el archivo ni generar el recapitulativo antes de esta respuesta.
@@ -140,7 +140,7 @@ Máximo 2 búsquedas web breves. Al recibir el reporte, persistir acumulativamen
 11. **Cierre Definitivo y Menú de Transición:**
     Únicamente en el turno donde el usuario confirme con **Sí**:
     - Actualizar en `plan.md` la cabecera a `Estado: listo-para-tareas`.
-    - Generar o actualizar `context.json` en la carpeta de la funcionalidad (`saveFeatureContext`): extraer la lista de archivos con sus acciones (`+` crear, `~` modificar, `-` eliminar) desde el `## Árbol de cambios`, y registrar el commit base actual (`git rev-parse HEAD`), la rama activa y el timestamp de captura.
+    - Generar o actualizar `context.json` en la carpeta de la funcionalidad ejecutando `vsdd status --save-context <featDir> --phase plan --status completado` (`saveFeatureContext`): extrae la lista de archivos con sus acciones (`+` crear, `~` modificar, `-` eliminar) desde el `## Árbol de cambios`, y registra el commit base actual (`git rev-parse HEAD`), la rama activa y el timestamp de captura.
     - Si Engram está disponible, persistir un resumen con `mem_save topic_key: vsdd-plan-<slug>`.
     - Si durante el diseño arquitectónico se descubrieron aprendizajes transversales o gotchas de infraestructura comprobables en archivos físicos, registrarlos en la memoria persistente del repositorio:
       `vsdd sonar --remember "<hipótesis de arquitectura o gotcha>" --anchor <ruta-del-archivo-ancla> [--contains "<texto-clave>"]`

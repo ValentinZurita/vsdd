@@ -277,6 +277,38 @@ if (require.main === module) {
       }
       const result = saveIntakeInterviewAnswer(data, cwd);
       console.log(JSON.stringify(result, null, 2));
+    } else if (args.includes('--save-context')) {
+      const featureDir = getCliDir(args, '--save-context', cwd);
+      if (!featureDir) {
+        console.error(JSON.stringify({ error: 'Directorio requerido: --save-context <dir>' }));
+        process.exit(1);
+      }
+      const phase = getCliPhase(args);
+      const statusIdx = args.indexOf('--status');
+      const phaseStatus =
+        statusIdx !== -1 && args[statusIdx + 1] && !args[statusIdx + 1].startsWith('--')
+          ? args[statusIdx + 1]
+          : 'completado';
+      const dataIdx = args.indexOf('--data');
+      const dataRaw = dataIdx !== -1 && args[dataIdx + 1] ? args[dataIdx + 1] : '{}';
+      let payload = {};
+      try {
+        payload = JSON.parse(dataRaw);
+      } catch (e) {
+        payload = {};
+      }
+      if (phase) {
+        payload.phases = {
+          ...(payload.phases || {}),
+          [phase]: {
+            ...((payload.phases && payload.phases[phase]) || {}),
+            status: phaseStatus,
+            completedAt: new Date().toISOString(),
+          },
+        };
+      }
+      const result = saveFeatureContext(featureDir, payload, cwd);
+      console.log(JSON.stringify(result, null, 2));
     } else {
       const features = scanFeatures(cwd);
       let updateInfo = null;

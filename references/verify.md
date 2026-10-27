@@ -55,13 +55,11 @@ Valida de forma exhaustiva que la funcionalidad implementada cumple al 100% con 
    - Checkpoint en chat: `✔ [VERIFY AUDIT] Requisitos verificados` o `▲ [VERIFY AUDIT] k discrepancias detectadas`.
 
 ```text
-Rol: auditor independiente de verificación (Oráculo Independiente). Solo lectura. No propongas parches ni reescribas código.
-1) Cada RF-xx: archivo impl + test + PASS/FAIL (una línea). Validar que el test automatizado compruebe exactamente el contrato observable (Entrada -> Salida) del Example Mapping en spec.md, y NO detalles privados de implementación.
-2) Calidad de pruebas: Identificar y rechazar test smells (tests tautológicos/espejo, mocks de mocks o aserciones superficiales tipo toBeDefined).
-3) Cada RNF-xx: evidencia observable + PASS/FAIL (una línea).
-4) Criterios "Listo cuando" de idea.md / spec.md: cumplido o pendiente.
-5) Diff fuera del árbol de plan.md, o sobre-ingeniería innecesaria vs idea.md.
-Veredicto: limpio | ok-con-huecos | bloquea
+Rol: Tribunal de Calidad Final 3+1 (Oráculo Independiente). Solo lectura. No propongas parches ni reescribas código.
+1) Silla 1 — Fiscal del Contrato: Cada RF-xx y RNF-xx (archivo impl + test + PASS/FAIL en 1 línea), criterios "Listo cuando" de idea.md/spec.md (cumplido/pendiente) y diff 100% confinado al árbol de plan.md sin sobre-ingeniería.
+2) Silla 2 — Cazador de Trampas: Verificar en context.json que las tareas se ejecutaron bajo candado SHA-256 (vsdd harness seal/verify) y rechazar test smells (tests espejo/tautológicos, mocks en memoria, aserciones cosméticas toBeDefined o literales hardcodeados).
+3) Silla 3 — Artesano de Código: Verificar higiene estructural en archivos productivos (funciones <= 50 líneas efectivas, anidamiento <= 3, cero bloques catch vacíos y cero supresores de linter/tipos).
+4) Sentencia del Juez: Veredicto consolidado (limpio | ok-con-huecos | bloquea) con lista accionable si hay fallos.
 ≤40 líneas. Prohibido volcar stdout o diffs crudos.
 ```
 
@@ -180,7 +178,7 @@ Superficie: <CLI Interactivo | Web | API | Headless>
 - <1 a 2 viñetas breves únicamente si se descubrió un gotcha técnico o convención no obvia del proyecto. Si no: Ninguno.>
 ```
 
-       2. Actualizar la cabecera de `tasks.md` y `spec.md` en disco a `Estado: completado`. Con esto la funcionalidad queda formalmente terminada y archivada.
+       2. Actualizar la cabecera de `tasks.md` y `spec.md` en disco a `Estado: completado`, validar los artefactos con `vsdd validate docs/sdd/vsdd/<nnn>-<slug>/resumen.md` y registrar el cierre en `context.json` ejecutando `vsdd status --save-context docs/sdd/vsdd/<nnn>-<slug> --phase verify --status completado`. Con esto la funcionalidad queda formalmente terminada y archivada.
        3. Persistir en Engram el cierre formal: `mem_save(topic_key: "sdd/<slug>/archive-report", title: "Resumen de Entrega: <slug>")`.
        4. Si se identifican aprendizajes o gotchas transversales verificables del repositorio, registrarlos en la memoria determinista para futuras funcionalidades:
           `vsdd sonar --remember "<hipótesis/gotcha transversal>" --anchor <ruta-del-archivo-ancla> [--contains "<texto-clave>"]`

@@ -58,7 +58,7 @@ La exploración tiene como único fin nutrir la comprensión del producto con he
    HUECO_PRINCIPAL: <dimensión que falta aclarar>
    HIPOTESIS_SUGERIDA: <propuesta simple y segura para ese hueco>
    ```
-3. Si detecta un módulo reutilizable: inyectarlo como sugerencia amable en la conversación (*«Ojo: vi que en la feature X ya tenemos Y. ¿Querés que nos colguemos de ahí para no reinventar la rueda?»*). Si no: continuar sin mencionarlo. Persistir borrador con `saveIntakeDraft`.
+3. Si detecta un módulo reutilizable: inyectarlo como sugerencia amable en la conversación (*«Ojo: vi que en la feature X ya tenemos Y. ¿Querés que nos colguemos de ahí para no reinventar la rueda?»*). Si no: continuar sin mencionarlo. Persistir borrador con `vsdd status --save-intake-draft --data '<json>'` (`saveIntakeDraft`).
 
 **Ola 2 (Benchmarking de Riesgos y Puntos Ciegos):**
 - **Disparo condicional estricto:** Solo si la idea involucra seguridad/permisos, interacción compleja o APIs externas. Omitir en scripts, utilidades o features internas directas.
@@ -69,7 +69,7 @@ La exploración tiene como único fin nutrir la comprensión del producto con he
 ## Ciclo de Conversación (Loop)
 
 0. **Verificación de borrador previo y regla de escritura:**
-   - Comprobar si existe `docs/sdd/vsdd/.draft-intake.json` (`getIntakeDraft`). Si existe:
+   - Comprobar si existe `docs/sdd/vsdd/.draft-intake.json` ejecutando `vsdd status --intake-draft` (`getIntakeDraft`). Si existe:
      `● [Borrador detectado] Se encontró una sesión previa para: "<ideaSummary>".`
      Si ya cuenta con preguntas respondidas en `interview.questions`:
        Listar acuerdos previos en viñetas: `  • Q1: <respuesta>`
@@ -100,7 +100,7 @@ La exploración tiene como único fin nutrir la comprensión del producto con he
      VEREDICTO: APROBADA | RECHAZADA
      MOTIVO: <1 línea>
      ```
-   - Si `APROBADA`: formular la pregunta en el chat con su hipótesis sugerida y esperar respuesta.
+   - Si `APROBADA`: formular la pregunta en el chat con su hipótesis sugerida y esperar respuesta. Al recibir la respuesta del usuario, persistirla en el borrador con `vsdd status --save-intake-interview --data '{"index":k,"question":"...","answer":"..."}'` (`saveIntakeInterviewAnswer`).
    - Si `RECHAZADA`: el evaluador detectó una pregunta inútil. El conductor tiene la libertad de calibrar: si existe un hueco de fondo real, lo reformula enfocándose en el valor y el dolor; si la idea ya está suficientemente clara y no hay nada crítico que preguntar, avanza directamente al paso 5 (Recapitulativo en Chat) para no hacer perder el tiempo.
 3. **Cierre por Suficiencia:**
    - La entrevista dura lo que tenga que durar según la sustancia de la idea (típicamente 1 o 2 preguntas bien puestas). Apenas el panorama esté claro: pasar directamente al paso 5.
@@ -132,7 +132,7 @@ La exploración tiene como único fin nutrir la comprensión del producto con he
     - Crear el directorio `docs/sdd/vsdd/<nnn>-<slug>/` si no existe (`nnn` correlativo de 3 dígitos, ej: `001-mi-idea`).
     - Guardar `docs/sdd/vsdd/<nnn>-<slug>/idea.md` conteniendo los 4 encabezados más la línea final `Estado: listo-para-spec`.
     - Ejecutar la **Compuerta de Formato**: `vsdd validate docs/sdd/vsdd/<nnn>-<slug>/idea.md`. Si reporta errores, corregirlos en disco de inmediato.
-    - Promover la exploración del borrador a `context.json`: `promoteIntakeDraft("docs/sdd/vsdd/<nnn>-<slug>")`.
+    - Promover la exploración del borrador a `context.json` ejecutando `vsdd status --promote-intake-draft docs/sdd/vsdd/<nnn>-<slug>` (`promoteIntakeDraft("docs/sdd/vsdd/<nnn>-<slug>")`).
     - Si Engram está disponible, persistir un resumen con `mem_save topic_key: vsdd-intake-<slug>`.
     - Presentar en la terminal el menú de transición de 3 opciones:
 

@@ -92,7 +92,19 @@ function parseHarnessArgs(argv = []) {
 }
 
 /**
- * Busca la funcionalidad activa dentro de docs/sdd/vsdd.
+ * Determina si una carpeta de funcionalidad con tasks.md sigue activa (no completada ni cancelada).
+ */
+function isFeatureActive(vsddRoot, name) {
+  try {
+    const tasksMd = fs.readFileSync(path.join(vsddRoot, name, 'tasks.md'), 'utf8');
+    return !/^\s*Estado:\s*(?:completado|cancelado)\b/im.test(tasksMd);
+  } catch (err) {
+    return false;
+  }
+}
+
+/**
+ * Busca la funcionalidad activa dentro de docs/sdd/vsdd priorizando las no completadas/canceladas.
  */
 function discoverActiveFeatureDir(vsddRoot) {
   if (!fs.existsSync(vsddRoot)) {
@@ -107,7 +119,9 @@ function discoverActiveFeatureDir(vsddRoot) {
     const withTasks = entries.filter((name) =>
       fs.existsSync(path.join(vsddRoot, name, 'tasks.md'))
     );
-    const chosen = withTasks.length > 0 ? withTasks[withTasks.length - 1] : entries[entries.length - 1];
+    const activeTasks = withTasks.filter((name) => isFeatureActive(vsddRoot, name));
+    const pool = activeTasks.length > 0 ? activeTasks : withTasks.length > 0 ? withTasks : entries;
+    const chosen = pool[pool.length - 1];
     return chosen ? path.join(vsddRoot, chosen) : null;
   } catch (err) {
     return null;
