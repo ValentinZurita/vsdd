@@ -39,13 +39,16 @@ test('install.sh: ciclo de vida completo (instalación, verificación CLI y desi
   assert.ok(fs.existsSync(path.join(cliDir, 'scripts', 'cli.js')), 'scripts/cli.js debe existir');
   assert.ok(fs.existsSync(path.join(cliDir, 'scripts', 'vsdd-sonar.js')), 'scripts/vsdd-sonar.js debe existir');
   assert.ok(fs.existsSync(path.join(cliDir, 'scripts', 'vsdd-oracle.js')), 'scripts/vsdd-oracle.js debe existir');
+  assert.ok(fs.existsSync(path.join(cliDir, 'scripts', 'vsdd-harness.js')), 'scripts/vsdd-harness.js debe existir');
   assert.ok(fs.existsSync(path.join(cliDir, 'scripts', 'install-skill.js')), 'scripts/install-skill.js debe existir');
   assert.ok(fs.existsSync(path.join(cliDir, 'scripts', 'lib', 'sonar', 'constants.js')), 'scripts/lib/sonar/constants.js debe existir');
   assert.ok(fs.existsSync(path.join(cliDir, 'scripts', 'lib', 'oracle', 'sanitizers.js')), 'scripts/lib/oracle/sanitizers.js debe existir');
+  assert.ok(fs.existsSync(path.join(cliDir, 'scripts', 'lib', 'harness', 'brief.js')), 'scripts/lib/harness/brief.js debe existir');
   assert.ok(fs.existsSync(path.join(cliDir, 'references')), 'references/ debe existir');
 
   // Verificar bit ejecutable en scripts clave instalados
   assert.ok((fs.statSync(path.join(cliDir, 'scripts', 'vsdd-sonar.js')).mode & 0o111) !== 0, 'vsdd-sonar.js debe tener permisos de ejecución');
+  assert.ok((fs.statSync(path.join(cliDir, 'scripts', 'vsdd-harness.js')).mode & 0o111) !== 0, 'vsdd-harness.js debe tener permisos de ejecución');
   assert.ok((fs.statSync(path.join(cliDir, 'scripts', 'install-skill.js')).mode & 0o111) !== 0, 'install-skill.js debe tener permisos de ejecución');
 
   // 3. Verificar ejecutable symlink en ~/.local/bin/vsdd

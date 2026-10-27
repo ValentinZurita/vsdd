@@ -87,7 +87,7 @@ function abortFeature(featureId, options = {}, cwd = process.cwd()) {
   // Helper interno para estampar cancelación en los markdown de un directorio
   function stampCancellationInDir(targetDir) {
     if (!fs.existsSync(targetDir)) return;
-    const mdFiles = ['idea.md', 'spec.md', 'plan.md', 'tasks.md'];
+    const mdFiles = ['idea.md', 'spec.md', 'plan.md', 'tasks.md', 'resumen.md'];
     for (const file of mdFiles) {
       const filePath = path.join(targetDir, file);
       if (fs.existsSync(filePath)) {

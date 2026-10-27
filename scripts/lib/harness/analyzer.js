@@ -235,11 +235,26 @@ function scanHardcodedLiterals(lines, rawLiterals) {
  * Extrae el nombre de función si una línea declara el inicio de una función con llaves.
  */
 function matchBraceFunctionStart(cleanLine) {
-  const decl =
+  const standalone =
     cleanLine.match(/\b(?:async\s+)?function\s+([A-Za-z0-9_$]+)\s*\([^)]*\)\s*\{/) ||
     cleanLine.match(/\b(?:const|let|var)\s+([A-Za-z0-9_$]+)\s*=\s*(?:async\s*)?(?:\([^)]*\)|[A-Za-z0-9_$]+)\s*=>\s*\{/) ||
-    cleanLine.match(/\b(?:func|fn)\s+([A-Za-z0-9_]+)\s*\([^)]*\)[^{]*\{/);
-  return decl ? decl[1] : null;
+    cleanLine.match(/\b(?:func|fn)\s+(?:\([^)]*\)\s*)?([A-Za-z0-9_]+)\s*\([^)]*\)[^{]*\{/);
+  if (standalone) {
+    return standalone[1];
+  }
+
+  const method = cleanLine.match(
+    /^\s*(?:(?:public|private|protected|static|async)\s+)*([A-Za-z0-9_$]+)\s*\([^)]*\)\s*(?::\s*[^{]+)?\s*\{/
+  );
+  if (method) {
+    const name = method[1];
+    const reserved = new Set(['if', 'for', 'while', 'switch', 'catch', 'with', 'function', 'return', 'throw', 'new']);
+    if (!reserved.has(name)) {
+      return name;
+    }
+  }
+
+  return null;
 }
 
 /**

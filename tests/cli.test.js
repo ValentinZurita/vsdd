@@ -67,6 +67,13 @@ test('cli: parseCliCommand sonar rutea a vsdd-sonar.js con argumentos', () => {
   assert.deepEqual(parsed.args, ['--focus', 'scripts/cli.js', '--json']);
 });
 
+test('cli: parseCliCommand harness rutea a vsdd-harness.js con argumentos', () => {
+  const parsed = parseCliCommand(['harness', 'brief', 'TASK-01', '--json'], scriptsDir);
+  assert.equal(parsed.action, 'run');
+  assert.equal(parsed.script, path.join(scriptsDir, 'vsdd-harness.js'));
+  assert.deepEqual(parsed.args, ['brief', 'TASK-01', '--json']);
+});
+
 test('cli: parseCliCommand reconoce banderas de versión y ayuda', () => {
   const parsedV = parseCliCommand(['-v'], scriptsDir);
   assert.equal(parsedV.action, 'version');

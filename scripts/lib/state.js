@@ -85,6 +85,7 @@ function saveFeatureContext(featureDir, data = {}, cwd = process.cwd()) {
     $schema: 'https://json-schema.org/draft/2020-12/schema',
     version: '1.0',
     featureId: path.basename(featureDir),
+    status: data.status || existing.status || 'activa',
     git: {
       branch: branch || (existing.git && existing.git.branch) || '',
       baseCommit: baseCommit || (existing.git && existing.git.baseCommit) || '',
@@ -96,6 +97,12 @@ function saveFeatureContext(featureDir, data = {}, cwd = process.cwd()) {
       ...(data.phases || {}),
     },
     harness: hydrateHarnessState(existing.harness, data.harness),
+    ...(existing.cancelledAt ? { cancelledAt: existing.cancelledAt } : {}),
+    ...(data.cancelledAt ? { cancelledAt: data.cancelledAt } : {}),
+    ...(existing.cancelReason ? { cancelReason: existing.cancelReason } : {}),
+    ...(data.cancelReason ? { cancelReason: data.cancelReason } : {}),
+    ...(existing.completedAt ? { completedAt: existing.completedAt } : {}),
+    ...(data.completedAt ? { completedAt: data.completedAt } : {}),
   };
 
   fs.writeFileSync(contextPath, JSON.stringify(updated, null, 2) + '\n', 'utf8');

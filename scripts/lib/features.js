@@ -231,11 +231,10 @@ function parseFeatureDirectory(dirName, dirPath, cwd = process.cwd()) {
       resumen: resumenState || (hasResumen ? 'presente' : 'no-generado'),
     },
     hasResumen,
-    resumenContent,
-    planContent,
+    archivosClave: extractArchivosClaveSafe(resumenContent, planContent),
   };
 
-  feature.drift = calculateFeatureDrift(dirPath, feature, cwd);
+  feature.drift = calculateFeatureDrift(dirPath, { planContent }, cwd);
   return feature;
 }
 
@@ -316,7 +315,7 @@ function generateFeatureCatalog(cwd = process.cwd(), limit = 15, preloadedFeatur
 
   return slice.map((f) => {
     const objetivo = f.objective ? truncateText(f.objective, 80) : '';
-    const archivosClave = extractArchivosClaveSafe(f.resumenContent, f.planContent);
+    const archivosClave = f.archivosClave || extractArchivosClaveSafe(f.resumenContent, f.planContent);
     return {
       id: f.id,
       objetivo,

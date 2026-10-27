@@ -64,11 +64,17 @@ function detectTestCommand(cwd = process.cwd(), explicitCmd = '') {
 function defaultRunner(command, runnerOptions = {}) {
   const cwd = runnerOptions.cwd || process.cwd();
   const timeout = runnerOptions.timeoutMs || 30000;
+  const binDir = path.resolve(cwd, 'node_modules', '.bin');
+  const pathKey = Object.keys(process.env).find((k) => k.toLowerCase() === 'path') || 'PATH';
+  const customPath = fs.existsSync(binDir)
+    ? `${binDir}${path.delimiter}${process.env[pathKey] || ''}`
+    : process.env[pathKey] || '';
   const child = spawnSync(command, {
     cwd,
     shell: true,
     encoding: 'utf8',
     timeout,
+    env: { ...process.env, [pathKey]: customPath },
   });
 
   const timedOut = Boolean(child.error && child.error.code === 'ETIMEDOUT');

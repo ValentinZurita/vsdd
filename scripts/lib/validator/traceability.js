@@ -138,38 +138,48 @@ function validateCrossArtifactTraceability(parsedTasks, featureDir, errors, warn
     }
 
     if (planFiles.size > 0) {
-      for (const line of parsedTasks.lines) {
-        if (!line.inCodeBlock && /^\s*[-*]\s*\*\*Archivos:\*\*\s*(.+)$/i.test(line.trimmed)) {
-          const match = line.trimmed.match(/^\s*[-*]\s*\*\*Archivos:\*\*\s*(.+)$/i);
-          if (match && match[1]) {
-            const rawFiles = match[1].split(/[,;]/);
-            for (const rf of rawFiles) {
-              let cleaned = rf.replace(/[`*]/g, '').trim();
-              cleaned = cleaned.replace(/^([+~-])\s*/, '').trim();
-              if (
-                cleaned &&
-                !cleaned.toLowerCase().includes('ninguno') &&
-                !cleaned.toLowerCase().includes('n/a')
-              ) {
-                let matched = false;
-                for (const pf of planFiles) {
-                  if (pf.includes(cleaned) || cleaned.includes(pf)) {
-                    matched = true;
-                    break;
-                  }
-                }
-                if (!matched) {
-                  warnings.push({
-                    line: line.lineNumber,
-                    rule: 'trazabilidad-archivo-no-en-plan',
-                    message: `El archivo '${cleaned}' mencionado en la tarea no figura en el '## Árbol de cambios' de plan.md.`,
-                    expected: `Archivo declarado en plan.md (${Array.from(planFiles).join(', ')})`,
-                    found: cleaned,
-                    snippet: parsedTasks.getSnippet ? parsedTasks.getSnippet(line.lineNumber) : undefined,
-                    suggestion: `Declara '${cleaned}' en el '## Árbol de cambios' de plan.md para asegurar consistencia.`,
-                  });
-                }
+      for (let i = 0; i < parsedTasks.lines.length; i += 1) {
+        const line = parsedTasks.lines[i];
+        if (line.inCodeBlock || !/^\s*[-*]\s*\*\*Archivos:\*\*/i.test(line.trimmed)) {
+          continue;
+        }
+
+        const inlinePart = line.trimmed.replace(/^\s*[-*]\s*\*\*Archivos:\*\*\s*:?\s*/i, '');
+        const rawChunks = [inlinePart];
+        for (let j = i + 1; j < parsedTasks.lines.length; j += 1) {
+          const nextLine = parsedTasks.lines[j];
+          if (nextLine.inCodeBlock || !nextLine.trimmed || /^[-*]\s*(?:\*\*|\[\s*[xX ]\s*\])/.test(nextLine.trimmed)) {
+            break;
+          }
+          rawChunks.push(nextLine.trimmed.replace(/^[-*]\s*/, ''));
+        }
+
+        const rawFiles = rawChunks.join(',').split(/[,;]/);
+        for (const rf of rawFiles) {
+          let cleaned = rf.replace(/[`*]/g, '').trim();
+          cleaned = cleaned.replace(/^([+~-])\s*/, '').trim();
+          if (
+            cleaned &&
+            !cleaned.toLowerCase().includes('ninguno') &&
+            !cleaned.toLowerCase().includes('n/a')
+          ) {
+            let matched = false;
+            for (const pf of planFiles) {
+              if (pf.includes(cleaned) || cleaned.includes(pf)) {
+                matched = true;
+                break;
               }
+            }
+            if (!matched) {
+              warnings.push({
+                line: line.lineNumber,
+                rule: 'trazabilidad-archivo-no-en-plan',
+                message: `El archivo '${cleaned}' mencionado en la tarea no figura en el '## Árbol de cambios' de plan.md.`,
+                expected: `Archivo declarado en plan.md (${Array.from(planFiles).join(', ')})`,
+                found: cleaned,
+                snippet: parsedTasks.getSnippet ? parsedTasks.getSnippet(line.lineNumber) : undefined,
+                suggestion: `Declara '${cleaned}' en el '## Árbol de cambios' de plan.md para asegurar consistencia.`,
+              });
             }
           }
         }

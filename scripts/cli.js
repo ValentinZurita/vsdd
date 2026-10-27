@@ -35,6 +35,7 @@ Comandos directos del agente:
   vsdd validate docs/sdd/vsdd/<slug>/spec.md
   vsdd validate docs/sdd/vsdd/<slug>/plan.md
   vsdd validate docs/sdd/vsdd/<slug>/tasks.md
+  vsdd validate docs/sdd/vsdd/<slug>/resumen.md
 `);
 }
 
