@@ -6,7 +6,7 @@ description: >-
 license: MIT
 metadata:
   author: Valentin Zurita
-  version: "0.45.0"
+  version: "0.45.1"
 allowed-tools: Read, Edit, Write, Glob, Grep, Bash, Task
 ---
 

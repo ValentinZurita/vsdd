@@ -69,7 +69,7 @@ Paso 4c (pregunta de cierre) → escribir `spec.md` inicial (`Estado: en-revisio
   - Si el entorno no soporta subagentes o la herramienta falla, se notifica de inmediato:
     `▲ [Aviso] No fue posible despachar el subagente; el agente principal asume la tarea localmente.`
 - **Gestión de Dudas Abiertas (`[NECESITA ATENCIÓN]`):** Todo aspecto funcional que quede sin definir o que el usuario prefiera postergar se registra en la sección `## Dudas abiertas` bajo la etiqueta `[NECESITA ATENCIÓN]`. No inventar requisitos ni esconder vacíos.
-- **Diagramas y Representación Visual:** Para flujos con bifurcaciones, interfaces o casos límite, utilizar los diagramas de flujo y la tríada de estados observables (Empty/Happy/Error) de [`references/guia-visual.md`](references/guia-visual.md). En el archivo físico `spec.md`, como máximo un diagrama conceptual en Mermaid solo si aclara un flujo acordado; de lo contrario, registrar `Ninguno.`.
+- **Diagramas y Representación Visual:** Para flujos con bifurcaciones, interfaces o casos límite, utilizar los diagramas de flujo y la tríada de estados observables (Empty/Happy/Error) de [`references/guia-visual.md`](guia-visual.md). En el archivo físico `spec.md`, como máximo un diagrama conceptual en Mermaid solo si aclara un flujo acordado; de lo contrario, registrar `Ninguno.`.
 
 ---
 

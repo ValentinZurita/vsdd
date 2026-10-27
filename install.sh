@@ -9,7 +9,7 @@ set -E -o pipefail
 # ------------------------------------------------------------------------------
 # Configuración y Constantes
 # ------------------------------------------------------------------------------
-VSDD_VERSION="0.45.0"
+VSDD_VERSION="0.45.1"
 
 # Tabla de Agentes Soportados: "id|Nombre Visible|Ruta Global|Ruta Proyecto"
 # Para agregar soporte a nuevos editores, solo agrega una línea en este formato.

@@ -1802,3 +1802,69 @@ test('resolveReferenceFile y resolveTargetFile entregan rutas absolutas canónic
   assert.equal(resolveTargetFile(dummyDir, 'verify'), path.join(dummyDir, 'resumen.md'));
 });
 
+test('scanFeatures no expone planContent ni resumenContent en el objeto feature (Principio 11: Cero Basura)', () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'vsdd-status-token-leak-'));
+  try {
+    const featDir = path.join(tempDir, 'docs', 'sdd', 'vsdd', '001-test');
+    fs.mkdirSync(featDir, { recursive: true });
+    fs.writeFileSync(path.join(featDir, 'idea.md'), '# Idea 001\nEstado: listo-para-spec\n');
+    fs.writeFileSync(path.join(featDir, 'plan.md'), '# Plan 001\nEstado: listo-para-tareas\n\n## Árbol de cambios\n- + src/app.js\n');
+    fs.writeFileSync(path.join(featDir, 'resumen.md'), '# Resumen de Entrega: 001\nEstado: completado\n\n## 2. Componentes y Pruebas\n- Archivos clave: `src/app.js`\n');
+
+    const features = scanFeatures(tempDir);
+    assert.equal(features.length, 1);
+    const f = features[0];
+    assert.equal(f.planContent, undefined, 'planContent no debe ser expuesto en el objeto feature');
+    assert.equal(f.resumenContent, undefined, 'resumenContent no debe ser expuesto en el objeto feature');
+    assert.deepEqual(f.archivosClave, ['src/app.js'], 'archivosClave debe estar calculado en el objeto feature');
+  } finally {
+    fs.rmSync(tempDir, { recursive: true, force: true });
+  }
+});
+
+test('saveFeatureContext preserva status, completedAt, cancelledAt y cancelReason', () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'vsdd-ctx-lifecycle-'));
+  try {
+    const featDir = path.join(tempDir, '001-feature');
+    fs.mkdirSync(featDir, { recursive: true });
+
+    // Guardar contexto con estado completado
+    const saved = saveFeatureContext(featDir, {
+      status: 'completado',
+      completedAt: '2026-10-26T20:00:00.000Z',
+    }, tempDir);
+
+    assert.equal(saved.status, 'completado');
+    assert.equal(saved.completedAt, '2026-10-26T20:00:00.000Z');
+
+    // Actualización posterior preserva los campos
+    const updated = saveFeatureContext(featDir, {
+      phases: { verify: { status: 'completado' } },
+    }, tempDir);
+
+    assert.equal(updated.status, 'completado');
+    assert.equal(updated.completedAt, '2026-10-26T20:00:00.000Z');
+  } finally {
+    fs.rmSync(tempDir, { recursive: true, force: true });
+  }
+});
+
+test('abortFeature estampa Estado: cancelado en resumen.md cuando este existe', () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'vsdd-abort-resumen-'));
+  try {
+    const featDir = path.join(tempDir, 'docs', 'sdd', 'vsdd', '001-cancellable');
+    fs.mkdirSync(featDir, { recursive: true });
+    fs.writeFileSync(path.join(featDir, 'idea.md'), '# Idea 001\nEstado: listo-para-spec\n');
+    fs.writeFileSync(path.join(featDir, 'resumen.md'), '# Resumen de Entrega: 001\nEstado: completado\n');
+
+    const result = abortFeature('001-cancellable', { reason: 'Pospuesto para siguiente sprint' }, tempDir);
+    assert.equal(result.success, true);
+
+    const resumenAfter = fs.readFileSync(path.join(featDir, 'resumen.md'), 'utf8');
+    assert.match(resumenAfter, /Estado:\s*cancelado/i);
+    assert.match(resumenAfter, /Pospuesto para siguiente sprint/);
+  } finally {
+    fs.rmSync(tempDir, { recursive: true, force: true });
+  }
+});
+

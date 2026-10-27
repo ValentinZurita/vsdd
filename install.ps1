@@ -12,7 +12,7 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
-$VSDD_VERSION = "0.45.0"
+$VSDD_VERSION = "0.45.1"
 $USER_PROFILE = $env:USERPROFILE
 
 # Configuración de Agentes: Id, Nombre, Ruta Global, Ruta Local

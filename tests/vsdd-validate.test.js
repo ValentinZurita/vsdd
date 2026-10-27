@@ -808,6 +808,18 @@ test('trazabilidad cruzada: detecta archivo no declarado en el árbol de cambios
   assert.ok(warn.message.includes('src/inventado/foo.js'));
 });
 
+test('trazabilidad cruzada: detecta archivo no declarado en el árbol del plan con sub-viñetas en Archivos', () => {
+  const tasksWithSubBullets = VALID_TASKS.replace(
+    /- \*\*Archivos:\*\* `\+ src\/auth\/oauth-client\.js`/,
+    '- **Archivos:**\n  - `+ src/auth/oauth-client.js`\n  - `src/alien/subbullet.js`'
+  );
+
+  const res = validateContent(tasksWithSubBullets, 'tasks.md', { planContent: VALID_PLAN });
+  const warn = res.warnings.find((w) => w.rule === 'trazabilidad-archivo-no-en-plan');
+  assert.ok(warn, 'Debe advertir sobre archivo en sub-viñeta no contemplado en el plan');
+  assert.ok(warn.message.includes('src/alien/subbullet.js'));
+});
+
 test('trazabilidad cruzada en disco: validateFeatureDir verifica automáticamente la trazabilidad entre archivos', () => {
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'vsdd-trace-test-'));
   try {

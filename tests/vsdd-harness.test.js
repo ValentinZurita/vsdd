@@ -482,6 +482,37 @@ test('analyzer.inspectProductionCode: detecta funciones > 50 líneas efectivas e
       (v) => v.type === 'function-too-long' && v.name === 'procesar_lote_extenso'
     )
   );
+
+  const classLines = ['class OrderService {', '  async procesarPedidoMonolitico(pedido) {'];
+  for (let i = 1; i <= 52; i += 1) {
+    classLines.push(`    const step${i} = pedido.id + ${i};`);
+  }
+  classLines.push('    return step52;');
+  classLines.push('  }');
+  classLines.push('}');
+
+  const classRes = inspectProductionCode(classLines.join('\n'));
+  assert.equal(classRes.valid, false);
+  assert.ok(
+    classRes.violations.some(
+      (v) => v.type === 'function-too-long' && v.name === 'procesarPedidoMonolitico'
+    )
+  );
+
+  const goLines = ['func (s *OrderService) HandlePedidoExtenso(w http.ResponseWriter) {'];
+  for (let i = 1; i <= 52; i += 1) {
+    goLines.push(`    step${i} := ${i}`);
+  }
+  goLines.push('    return');
+  goLines.push('}');
+
+  const goRes = inspectProductionCode(goLines.join('\n'));
+  assert.equal(goRes.valid, false);
+  assert.ok(
+    goRes.violations.some(
+      (v) => v.type === 'function-too-long' && v.name === 'HandlePedidoExtenso'
+    )
+  );
 });
 
 test('analyzer.inspectProductionCode: detecta anidamiento > 3 niveles, catch vacíos, supresores y literales espejo', () => {
@@ -724,6 +755,20 @@ test('seal.detectTestCommand y timeout (Casos 4 y 5): autodetecta manifiestos, s
     assert.equal(inspectProductionCode(harnessCliCode, []).valid, true);
   } finally {
     fs.rmSync(tmpRoot, { recursive: true, force: true });
+  }
+});
+
+test('seal.defaultRunner: inyecta node_modules/.bin local al PATH del proceso', () => {
+  const { defaultRunner } = require('../scripts/lib/harness/seal');
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'vsdd-runner-path-'));
+  try {
+    const binDir = path.join(tmpDir, 'node_modules', '.bin');
+    fs.mkdirSync(binDir, { recursive: true });
+
+    const res = defaultRunner('node -e "process.exit(0)"', { cwd: tmpDir });
+    assert.equal(res.exitCode, 0);
+  } finally {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
   }
 });
 
